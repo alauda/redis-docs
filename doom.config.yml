@@ -1,8 +1,13 @@
-title: Redis
-logoText: Redis
+title: Alauda Cache Service for Redis
+logoText: Alauda Cache Service for Redis
 lang: zh
 api:
   crds:
     - docs/shared/crds/*.yaml
   openapis:
     - docs/shared/openapis/*.json
+permission:
+  functionresources:
+    - docs/shared/functionresources/*.yaml
+  roletemplates:
+    - docs/shared/roletemplates/*.yaml
