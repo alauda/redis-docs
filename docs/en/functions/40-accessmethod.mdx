@@ -1,0 +1,50 @@
+---
+weight: 40
+sourceSHA: 685bfef08a3a004f416e9810c277ebd27ad1cd8fa47da23a5c8c5bb799ae6688
+---
+
+# Access Methods
+
+There are various connection methods for business applications to access Redis instances. This section describes how to select connection addresses and access Redis instances in sentinel mode or cluster mode through those addresses.
+
+## How to Obtain Access Addresses
+
+Redis instances support multiple access addresses to meet the demands of different scenarios. The access methods introduced here refer to standard Redis access methods. For more details, please refer to the community documentation:
+
+- [Redis Cluster Mode Specification](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)
+- [Redis Sentinel Mode Client Specification](https://redis.io/docs/latest/develop/reference/sentinel-clients/)
+
+### Internal Cluster Access Addresses
+
+Internal cluster access is only available for accessing the Kubernetes network. There are two options for the connection address:
+
+1. Internal routing (i.e., via DNS)
+2. Internal routing IP
+
+Both methods allow access to the Redis cluster mode or sentinel mode.
+
+Address retrieval path: **Instance Details** > **Access Methods** > **Internal Cluster Access**
+
+### External Cluster Access Addresses
+
+External cluster access can be used for network access outside of Kubernetes, such as accessing from another Kubernetes cluster (it can also be used for internal access within the Kubernetes cluster, which requires confirming firewall rules to see if they allow this).
+
+Currently, two types of external access methods are supported: NodePort and LoadBalancer.
+
+Address retrieval path: **Instance Details** > **Access Methods** > **External Cluster Access**
+
+## Connection Access
+
+Examples demonstrate how to access Redis instances using clients such as Jedis, Lettuce, Redisson, and go-redis. For more client connection examples, please refer to the community.
+
+### Sentinel Mode
+
+Each sentinel instance corresponds to the cluster name `mymaster`.
+
+For examples of connecting to Redis instances, please refer to [Accessing Instances (Sentinel Mode)](../how_to/access/10-sentinel.mdx)
+
+### Cluster Mode
+
+Once a client connects to any node in the cluster, it will query the slot distribution of the cluster. During data access, the client needs to connect directly to each Pod. To ensure connection reliability, it is recommended that the client fill in the access addresses of all Pods.
+
+For examples of connecting to Redis instances, please refer to [Accessing Instances (Cluster Mode)](../how_to/access/20-cluster.mdx)

@@ -1,0 +1,63 @@
+---
+weight: 160
+sourceSHA: b1be7f82ac7425a40cb39eaf717650ce8eed52d85507966602e4137ff01ceedc
+---
+
+# Start and Stop Instances
+
+The one-click start and stop feature meets the daily development and operation needs, allowing you to quickly pause or start middleware instances. In scenarios such as planned downtime, excessive node load, or development and testing environments, you may need to temporarily free up CPU and memory resources without deleting the instance. The one-click start and stop feature helps you save resources and flexibly manage middleware instances, thus reducing costs and improving efficiency.
+
+## Stopping Instances
+
+### Prerequisites
+
+The instance must be in **Processing**, **Running**, **Abnormal**, or **Unknown** status.
+
+### Steps to Operate
+
+<Tabs>
+  <Tab label="Web Console">
+    **Tip**: It is recommended to perform a full backup before stopping the instance to prevent data loss.
+
+    1. In the left navigation bar, click on **Redis**.
+
+    2. Click on ***namespace name***.
+
+    3. Click on ***instance name***.
+
+    4. Click on **Actions** > **Stop**, and confirm.
+  </Tab>
+</Tabs>
+
+### Features Unavailable After Stopping
+
+| Feature        | Description              |
+| --------- | --------------- |
+| **Terminal Console** | The terminal console is unavailable.      |
+| **Actions**    | Restarting, updating, and updating scheduling configuration are not possible. |
+| **Topology**    | The topology page cannot be viewed.        |
+| **Parameter Configuration**  | Parameters cannot be updated or exported.    |
+| **User Management**  | The user management page cannot be viewed.      |
+| **Backup and Recovery**  | Backups cannot be executed.         |
+| **Inspection**    | Inspection results for the current instance are invalid.   |
+| **Access Method**  | Routing information may not be obtained.     |
+
+## Starting Instances
+
+### Prerequisites
+
+The instance must be in **Stopping** or **Stopped** status.
+
+### Steps to Operate
+
+<Tabs>
+  <Tab label="Web Console">
+    1. In the left navigation bar, click on **Redis**.
+
+    2. Click on ***namespace name***.
+
+    3. Click on ***instance name***.
+
+    4. Click on **Actions** > **Start**, and confirm.
+  </Tab>
+</Tabs>

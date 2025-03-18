@@ -1,0 +1,170 @@
+---
+weight: 20
+sourceSHA: a5430ce1de789daa18528a9e251c3937beb4a5b3e8b1db2729dc53d1b0e21bf5
+---
+
+# Discovery and Handling of BigKey
+
+The presence of BigKey can impact the performance and stability of Redis services, potentially leading to service failures. This document primarily introduces the concept, detection methods, and handling techniques for BigKey.
+
+## What is BigKey
+
+A BigKey does not refer to the Key being large, but rather the value associated with the Key being large. Generally, it is evaluated based on the memory occupation size of the value and the number of members. For example:
+
+- String: Size exceeds 5MB.
+- List: The number of elements exceeds 20,000.
+- Set: The number of elements exceeds 10,000.
+- Sorted Set: The number of elements exceeds 10,000.
+- Hash: The number of fields exceeds 10,000.
+
+> The above standards are for reference only.
+
+## Impact of BigKey
+
+BigKey can affect the performance and stability of Redis services, mainly reflected in the following aspects:
+
+- **Blocking Threads**: Since Redis data processing is single-threaded, executing a time-consuming command will block the execution of other commands, resulting in a decrease in Redis service performance.
+- **Client Timeouts**: Due to Redis's single-threaded nature, operations on large keys can take a long time, leading to unresponsive clients.
+- **Network Bandwidth Consumption**: The transmission of BigKey consumes a significant amount of network bandwidth, causing excessive network transmission pressure on Redis services. If the size of a key is 1MB and the access frequency is 1000 per second, it results in 1000MB of traffic per second, which is catastrophic for a typical Gigabit NIC server.
+
+Specifically, in cluster mode, the following impacts may occur:
+
+- **Uneven Memory Distribution**: BigKey may lead to excessive memory consumption in one node of the cluster, while other nodes consume less memory, resulting in uneven memory distribution within the cluster.
+- **High Data Migration Pressure**: During scaling operations in cluster mode, migrating BigKey can block Redis for an extended period, affecting normal business access and reducing cluster stability, potentially leading to service failures.
+
+## Detection of BigKey
+
+### Detecting with Inspection Tools
+
+The Data Service View page provides a BigKey detection function that allows you to detect BigKey in Redis instances using this capability.
+
+1. Edit the inspection tool deployment configuration to enable BigKey detection.
+
+On the cluster where the instance is located, edit the RdsInstaller function to enable BigKey detection.
+
+```bash
+# First check the RdsInstaller configuration
+kubectl -n operators get RdsInstaller rds -o yaml
+```
+
+The output is as follows:
+
+```yaml
+apiVersion: middleware.alauda.io/v1
+kind: RdsInstaller
+metadata:
+  name: rds
+spec:
+  ......
+  inspection:
+    concurrency: "10"
+    dependency: true
+    env:
+    - name: ENABLE_REDIS_KEYS_INDICATOR
+    image: xxx
+    imagePullPolicy: Always
+    instanceReportLimit: "10"
+    name: inspection-operator
+    namespace: operators
+    ......
+```
+
+2. Modify the value of the `ENABLE_REDIS_KEYS_INDICATOR` environment variable and save.
+
+```bash
+kubectl -n operators edit RdsInstaller rds
+```
+
+Change the value of `ENABLE_REDIS_KEYS_INDICATOR` in `spec.inspection.env` to `1`. The modified instance is as follows:
+
+```yaml
+apiVersion: middleware.alauda.io/v1
+kind: RdsInstaller
+metadata:
+  name: rds
+spec:
+  ......
+  inspection:
+    concurrency: "10"
+    dependency: true
+    env:
+    - name: ENABLE_REDIS_KEYS_INDICATOR
+      value: "1"
+    image: xxx
+    imagePullPolicy: Always
+    instanceReportLimit: "10"
+    name: inspection-operator
+    namespace: operators
+    ......
+```
+
+After saving, the inspection Operator tool will restart. You can check the restart progress with the following command:
+
+```bash
+kubectl -n operators get pods -l name.operator=inspection-operator
+```
+
+The output is as follows:
+
+```bash
+$ kubectl -n operators get pods -l name.operator=inspection-operator
+NAME                                   READY   STATUS    RESTARTS   AGE
+inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
+```
+
+> Note: The above modification is not permanently effective; the configuration will be overwritten during platform upgrades.
+
+3. Execute the inspection
+
+In **Data Service** -> **Redis** -> **Instance Details Page**, click the **Inspect** button to start the instance inspection, as shown in the figure below:
+
+![BigKey Detection](../assets/44redis-bigkey-inspect-entry.png)
+
+Once the inspection starts, the button will display **Inspecting...**. After completion, the inspection button will become clickable.
+
+> Due to the enabled BigKey detection function, the inspection tool will `SCAN` all data in the cache; hence, this process may take a considerable amount of time.
+
+4. View the inspection results
+
+Upon completion of the inspection, you can click the **Query** button in the inspection report on the **Data Service** -> **Redis** -> **Instance Details Page** to view the inspection results.
+
+![BigKey Detection Report View Entry](../assets/44redis-bigkey-inspect-report-entry.png)
+
+If BigKey does indeed exist in the instance, the inspection result will list the `BigKey Top5` items, as shown in the figure below:
+
+![BigKey Detection Report](../assets/44redis-bigkey-inspect-report.png)
+
+#### Usage Limitations
+
+- The inspection tool performs a full scan of Redis data, which can place a certain amount of stress on the Redis service; it is recommended to use during low business peaks.
+- Currently, the inspection tool only supports detecting `string`, `list`, and `zset` types.
+
+### Detecting with Command Line
+
+The Redis community offers functionality to detect BigKey using `redis-cli`. During detection, it traverses/samples all Keys in the Redis instance and returns overall statistics of the Keys and the largest Key of each data type. The bigkeys can currently analyze `string`, `list`, `set`, `zset`, `hash`, and `stream` types. The execution command is as follows:
+
+```bash
+$ redis-cli -h <host> -a <password> --bigkeys
+```
+
+#### Usage Limitations
+
+- The `redis-cli` detection also performs a full scan of Redis data, which may impose certain pressure on the Redis service; it is recommended to use during low business peaks.
+
+## Optimization of BigKey
+
+It is necessary to choose appropriate optimization schemes based on specific business scenarios and data characteristics, generally focusing on the following aspects:
+
+### Optimization of Storage Data Structures
+
+For collection types with numerous data members (such as `list`, `set`, `zset`, `hash`, etc.), split them into multiple Keys and ensure that the number of members per Key is within a reasonable range. In a Redis cluster architecture, splitting large Keys can significantly enhance memory balance between data shards.
+
+### Compressing Data
+
+If a substantial amount of JSON or HTML cache is stored, consider compressing the data. Additionally, serialization protocols such as ProtoBuffer or MessagePack can be utilized to reduce the data size.
+
+### Regular Cleanup of Expired Data
+
+For data with a definite expiration time, you can automatically clean up expired data by setting expiration dates. For data with uncertain expiration times, it can be cleaned up periodically. This is particularly relevant for data structures like `list`, `set`, `zset`, and `hash`, which can accumulate a large amount of expired data; therefore, combining `SCAN` and `DEL` to clean up invalid members is advisable.
+
+Regardless of which optimization scheme is chosen, it is crucial to be particularly cautious when using the `DEL` command to clean up existing BigKey, as the `DEL` command will block the Redis service. It is recommended to use the `UNLINK` command instead, as the `UNLINK` command will asynchronously delete Keys without blocking the Redis service.

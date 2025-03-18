@@ -1,0 +1,74 @@
+---
+weight: 20
+sourceSHA: 63f4bd7ef73bdadc98354968334fda735d10d915a93fd520457cd3bcd2011772
+---
+
+# Shard Changes in Cluster Mode
+
+Redis cluster mode achieves high availability and scalability by distributing data shards across multiple nodes. In practical applications, the Redis cluster may need to increase or decrease shards based on business requirements. This document details the prerequisites, resource requirements, service access policies, and the time required for shard changes.
+
+## Prerequisites
+
+Before changing shards in a Redis cluster, the following conditions must be ensured:
+
+- The status of the cluster instances must be running.
+- It must be ensured that there is sufficient memory resource for the shards before and after scaling.
+- The operations should be performed during off-peak business hours to avoid impacting the business.
+- It must be confirmed that the network bandwidth of the nodes where the Pods are located is sufficient before and after the changes to avoid shard change failures due to insufficient network bandwidth.
+- The reliability of the infrastructure must be ensured to prevent issues such as data loss or shard loss due to server failures or power outages.
+
+## Resource Requirements
+
+When changing shards, it is essential to ensure that the resources of the cluster instances are sufficient to guarantee the successful completion of the shard changes.
+
+The definitions of memory-related concepts are as follows:
+
+| Name           | Definition                               | Description                                                                                                                                                                      |
+| :------------- | :--------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data Memory    | Memory actually occupied by data in Redis | In Redis, this can be checked using `info memory`. Since the redis-server continually optimizes and cleans up data, this value is constantly changing.                                                                 |
+| Maximum Data Memory | Maximum value of memory occupied by data across all Redis nodes | In Redis, this can also be checked using `info memory`.                                                                                                                                 |
+| Maximum Running Memory | Maximum Data Memory / 0.8                     | `0.8` is the ratio of `maxmemory` to instance memory specifications, and `0.8` is the ideal maximum value. `maxmemory` includes not only data memory but also buffer memory, etc. Therefore, in actual production, it is recommended that this ratio range is 0.5-0.8; the smaller the value, the larger the required instance specification, the lower the possibility of Redis encountering OOM. |
+| Migration Data Memory | Sum of the data memory to be deleted in all shards after scaling down | During the scaling-down process, the data in the shards that need to be deleted must be migrated to other shards, and it is possible that all data ends up being migrated to one of the shards.                                                                                                     |
+
+### Increasing Shards
+
+Memory specification calculation formula: `instance specification size >= Maximum Running Memory`
+
+This formula ensures the successful addition of shards when data is reasonably balanced. If **data is unbalanced** or there are BigKeys, it is likely that all data will migrate to a particular shard, which would require significant resources; **therefore, no hard limits are imposed, and actual conditions must be evaluated**.
+
+### Decreasing Shards
+
+Memory specification calculation formula: `instance specification size >= (Maximum Data Memory of the retained shards after scaling + Migration Data Memory) / 0.8`
+
+This formula ensures the successful removal of shards when data is reasonably balanced. If **data is unbalanced** or there are BigKeys, it is likely that all data will migrate to a particular shard; however, unlike adding shards, reducing shards should be conducted during a sustained low-load period for the business, with significant memory being free, thus a **hard limit on resource requirements** is imposed for unbalanced data scaling down.
+
+## Operation Steps
+
+<Tabs>
+  <Tab label="CLI">
+    Shard changes involve increasing or decreasing the number of shards and can be controlled through the field `spec.replicas.cluster.shard` (refer to the [API documentation](../../../../apis/kubernetes_apis/redis/redis) for more details)
+
+    ```bash
+    # Set the number of shards for the cluster to 4
+    kubectl -n default patch redis c6 --type=merge --patch='{"spec": {"replicas":{"cluster":{"shard": 4}}}}'
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. On the instance details page, click **Shard Changes**.
+
+    2. Enter the new number of shards and click **Update**.
+  </Tab>
+</Tabs>
+
+After submitting shard changes, the system will automatically perform the shard change operations, and during the change process, the instance status will display as `Data Balancing`. While in this status, all operations except **deleting** the instance are prohibited.
+
+## Service Access Strategy During Shard Changes
+
+During the shard change process, if a specific slot is marked as migrating and the Key under that slot is being migrated, Redis will return a `MOVED` error, and the client needs to resend the request. If it has not yet been migrated, it will still be processed on the original shard. Therefore, the client needs to handle the `MOVED` error and resend the request to the new shard.
+
+> Note: Performing shard changes during peak business hours may result in a doubled client request load, causing network bandwidth pressure; thus, it is recommended to conduct shard changes during off-peak business hours.
+
+## Time Required for Shard Changes
+
+The time required for shard changes depends on various factors including the amount of data, network bandwidth, and instance specifications. Generally, the time for shard changes ranges from twenty minutes to several hours. The larger the data, the longer the shard change time.

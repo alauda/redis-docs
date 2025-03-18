@@ -1,0 +1,296 @@
+---
+weight: 20
+sourceSHA: 598b38348adf2636d3464b37b2c05a0b9f6c876de00fa7783b93d1e6dc4a67df
+---
+
+# User Management
+
+To ensure the security of the Redis environment, it is essential to set a password and keep it secure. If there is a risk of leakage, please update the password promptly. For unused business scenarios, different users can be created to implement permission separation, thereby enhancing security.
+
+<Directive type="info" title="Tip">
+  Redis 5 only supports single password authentication and does not support custom users. Redis 6.0 and later introduces ACL support and includes a default user for compatibility with older clients.
+</Directive>
+
+## View Users
+
+View all users associated with the instance.
+
+<Tabs>
+  <Tab label="CLI">
+    The CR resource type associated with the instance user is `RedisUser`. You can view all users associated with the instance using the following command:
+
+    > This applies only to non-Redis 5.0 instances.
+
+    ```bash
+    kubectl -n default get redisuser -l middleware.instance/name=<instance_name>
+    ```
+
+    An example of retrieving user information for the instance `s6` is as follows:
+
+    ```bash
+    $ kubectl -n test get redisuser -l middleware.instance/name=s6
+    NAME                  INSTANCE   USERNAME   PHASE     AGE
+    rfr-acl-s6-admin      s6         admin      Success   22s
+    rfr-acl-s6-app-a      s6         app-a      Success   45s
+    rfr-acl-s6-app-b      s6         app-b      Success   6s
+    rfr-acl-s6-default    s6         default    Success   3m17s
+    rfr-acl-s6-operator   s6         operator   Success   3m17s
+    ```
+
+    The explanation of the fields in the output is as follows:
+
+    | Field     | Explanation                                                                                                                                |
+    | :------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+    | NAME     | The name of the RedisUser CR resource                                                                                                       |
+    | INSTANCE | The name of the Redis instance associated with the RedisUser CR resource                                                                    |
+    | USERNAME | The Redis name registered in Redis                                                                                                           |
+    | PHASE    | The status of the RedisUser CR resource, which includes <ul><li>`Success`: User synchronized to all Redis nodes successfully</li><li>`Fail`: User synchronization to all Redis nodes failed</li><li>`Pending`: Associated Redis instance is not ready</li></ul> |
+
+    <Directive type="warning" title="Operator Account Description">
+      An **operator** user is built into the instance for cluster construction, and this user is automatically created when the instance is created. This user has all permissions on the instance (including the permission to create new users) and has a complex 64-bit password.
+
+      This account is for the operator's own use only and cannot be used for business purposes; no information about this account can be updated or modified, as modifying any information will cause the instance to malfunction and become unrecoverable.
+    </Directive>
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Click **Redis** in the left navigation bar.
+
+    2. Click ***namespace name***.
+
+    3. Click ***instance name***.
+
+    4. You can view all user information managing the instance on the **User Management** tab of the instance.
+  </Tab>
+</Tabs>
+
+## Update Password
+
+### Steps
+
+<Tabs>
+  <Tab label="CLI">
+    <Directive type="info" title="Tip">
+      The following operations are applicable only to Redis >= 6.0 instances.
+    </Directive>
+
+    1. Find the user to be updated from the list.
+
+    Here, we assume that we want to update the password of the `default` user for the instance `s6`.
+
+    2. Retrieve the secret resource associated with the user.
+
+    ```bash
+    $ kubectl -n default get RedisUser rfr-acl-s6-default -o yaml
+    apiVersion: redis.middleware.alauda.io/v1
+    kind: RedisUser
+    metadata:
+      annotations:
+        middleware.alauda.io/acl-supported-version: "6.0"
+      creationTimestamp: "2025-02-28T02:07:26Z"
+      finalizers:
+      - redisusers.redis.middleware.alauda.io/finalizer
+      generation: 1
+      labels:
+        managed-by: redis-operator
+        middleware.instance/name: s6
+      name: rfr-acl-s6-default
+      namespace: hfxia-dev
+      ownerReferences:
+      - apiVersion: databases.spotahome.com/v1
+        blockOwnerDeletion: true
+        controller: true
+        kind: RedisFailover
+        name: s6
+        uid: 56596fa0-4a42-408b-ba26-d61b3a42b60c
+      - apiVersion: middleware.alauda.io/v1
+        blockOwnerDeletion: true
+        kind: Redis
+        name: s6
+        uid: 80d2e7b0-02d2-490f-bec4-f145f2c738fc
+      resourceVersion: "1014064"
+      uid: aae888f3-86ba-48bd-9376-710070bf07e0
+    spec:
+      accountType: default
+      aclRules: +@all -acl -flushall -flushdb -keys ~*
+      arch: sentinel
+      passwordSecrets:
+      - redis-s6-2hqxb
+      redisName: s6
+      username: default
+    status:
+      Phase: Success
+      lastUpdateSuccess: "2025-02-28T02:16:28Z"
+    ```
+
+    The explanation of each field can be found in the [RedisUser API](../../../apis/kubernetes_apis/redis/redisuser).
+
+    From the field `spec.passwordSecrets[0]`, it is found that the password of the `default` user is stored in the Secret `redis-s6-2hqxb`.
+
+    ```bash
+    $ kubectl -n default get secret redis-s6-2hqxb -o yaml
+    apiVersion: v1
+    data:
+      password: YWRtaW5AMTIz
+    kind: Secret
+    metadata:
+      annotations:
+        cpaas.io/creator: admin
+        cpaas.io/operator: admin
+        cpaas.io/updated-at: "2025-02-28T08:49:38Z"
+      creationTimestamp: "2025-02-28T02:07:24Z"
+      generateName: redis-s6-
+      labels:
+        managed-by: redis-operator
+        middleware.instance/name: s6
+      name: redis-s6-2hqxb
+      namespace: hfxia-dev
+      ownerReferences:
+      - apiVersion: redis.middleware.alauda.io/v1
+        blockOwnerDeletion: true
+        controller: true
+        kind: RedisUser
+        name: rfr-acl-s6-default
+        uid: aae888f3-86ba-48bd-9376-710070bf07e0
+      resourceVersion: "1183397"
+      uid: 45a5faa7-5b47-4a6a-a4e4-c614feccb806
+    type: Opaque
+    ```
+
+    > In the output information, `password` is a fixed field name, which is used by the operator and should not be changed. Its value is a base64 encoded secret.
+
+    Update the `password` to the new password using the command below:
+
+    ```bash
+    $ kubectl -n default patch secret redis-s6-2hqxb --type=merge --patch='{"stringData": {"password": "admin@12345"}}'
+    ```
+
+    You can confirm the successful password update with the following command:
+
+    ```bash
+    $ kubectl -n default get secret redis-s6-2hqxb -o jsonpath='{.data.password}' | base64 -d
+    admin@12345
+    ```
+
+    After updating the password, the RedisUser instance will enter the `Pending` state. Once the update is completed,
+  </Tab>
+
+  <Tab label="Redis 5.0 CLI">
+    Redis 5 does not support ACL and therefore does not have RedisUser resources to manage Redis users. For Redis instances, there is a field `spec.passwordSecret` to record the current instance’s password (refer to the documentation: [Redis API Documentation](../../../apis/kubernetes_apis/redis/redis)).
+
+    <Directive type="warning" title="Warning">
+      Updating the password will cause the instance to restart, leading to potential service interruptions. It is recommended to avoid performing this operation during sensitive business periods.
+    </Directive>
+
+    1. Create a Secret that holds the new password.
+
+    ```bash
+    kubectl -n default create secret generic new-redis-password --from-literal=password=admin@123456
+    ```
+
+    2. Update the new Secret in the instance's `spec.passwordSecret` field.
+
+    ```bash
+    kubectl -n default patch redis s5 --type=merge --patch='{"spec": {"passwordSecret": "new-redis-password"}}'
+    ```
+
+    After execution, the status of the instance changes to `Initializing`. You can check the status by the following name:
+
+    ```
+    $ kubectl -n default get redis -w
+    NAME ARCH       VERSION   ACCESS     STATUS         MESSAGE   BUNDLE VERSION   AUTOUPGRADE   AGE
+    c6   cluster    6.0                  Ready                    3.18.19          false         125m
+    s5   sentinel   5.0                  Initializing             3.18.19          false         8h
+    s6   sentinel   6.0                  Ready                    3.18.19          false         124m
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Select the corresponding user information and click the expand button.
+
+    2. Select **Reset Password**, enter the new password, and confirm it by entering it again.
+
+    3. Wait for the update to complete.
+  </Tab>
+</Tabs>
+
+## Update Permissions
+
+The Web Console provides the following predefined permission sets:
+
+| Permission Set    | ACL Rules                                   | Description                                         |
+| :-------------- | :--------------------------------------- | :---------------------------------------------- |
+| NotDangerous    | +@all -@dangerous ~*                     | Allows all commands on all KEYS except those classified as dangerous.  |
+| ReadWrite       | -@all +@write +@read -@dangerous ~*     | Allows all read and write commands on all keys except those classified as dangerous. |
+| ReadOnly        | -@all +@read -keys ~*                    | Allows all commands in the read category on all KEYS.          |
+| Administrator    | +@all -acl ~*                             | Allows all commands on all KEYS.                   |
+
+Additionally, custom rules are supported. For custom rules, you can refer to the Redis community documentation on [ACL Rules](https://redis.io/topics/acl).
+
+> It is important to note that both built-in ACL rules and custom rules enforce the revocation of permissions to execute ACL commands. Changes to the user can only be made here.
+
+### Steps
+
+<Tabs>
+  <Tab label="CLI">
+    ```bash
+    kubectl -n default patch RedisUser s56 --type=merge --patch='{"spec": {"aclRules": "+@all ~*"}}'
+    ```
+
+    After successful creation, the user randomly enters the `Pending` state. Wait for it to change to the `Success` state, indicating that the update has been successful.
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Select the corresponding user information and click the expand button.
+
+    2. Select **Update Permissions**.
+
+    3. Choose a permission set or click custom to enter custom rules.
+
+    4. Click **Update** and wait for the update to complete.
+  </Tab>
+</Tabs>
+
+## Create User
+
+### Steps
+
+<Tabs>
+  <Tab label="CLI">
+    Create for the Redis cluster instance.
+
+    ```bash
+    cat << EOF | kubectl -n default create -f -
+    apiVersion: redis.middleware.alauda.io/v1
+    kind: RedisUser
+    metadata:
+      name: rfr-acl-s6-app-a
+    spec:
+      accountType: custom
+      aclRules: +@all -acl ~*
+      passwordSecrets:
+      - new-redis-password
+      redisName: s6
+      username: app-a
+    EOF
+
+    Once the resource status changes to `Success`, you can connect with the new password for debugging.
+    ```
+  </Tab>
+
+  <Tab label="Web Console">
+    1. Click **Create User**.
+
+    2. Enter the username.
+
+    3. Enter the password and repeat it to confirm.
+
+    4. Select a permission set or click custom to enter custom rules.
+
+    5. Click **Confirm** to create the user.
+
+    6. Select the user, and you can check the user status by clicking the username.
+
+    Once the resource status changes to **Normal**, you can connect with the new password for debugging.
+  </Tab>
+</Tabs>

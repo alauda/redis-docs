@@ -1,0 +1,355 @@
+---
+weight: 10
+sourceSHA: 8d2151682104e1e65faa160d54d853b87de317af58aaefca665a71e5f17ec779
+---
+
+# How to Access Sentinel Instances
+
+This example demonstrates how to access Redis (in Sentinel mode) using the [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson) clients. For more optional clients, [view the Redis community client recommendations](https://redis.io/clients).
+
+## Obtaining Access Information
+
+- If you have set a password for Redis, you need to use that password.
+
+- If you have disabled **Set Password**, you can access the instance without a password.<br />
+
+<Directive type="warning" title="Note">
+  **Tip**: To ensure environment security, it is recommended that you refer to [User Management](../../functions/20-user) to set a password and use the configured password to access Redis.
+</Directive>
+
+## Obtaining Connection Information
+
+### For Internal Cluster Access
+
+Once the instance is created, you can find the information used for **internal cluster access** in the **Access Method** tab under the **Internal Cluster Access** section.
+
+| Parameter                   | Description                           |
+|-----------------------------|---------------------------------------|
+| **Connection Address (by Internal Routing Name)** | Sentinel internal routing name and port. |
+| **Connection Address (by Internal Routing IP)**   | IP address and port of the internal routing. |
+
+### For External Cluster Access
+
+If **External Cluster Access** was enabled when creating the instance, clients can connect to Redis through the node access addresses via the **External Cluster Access** section in the instance **Access Method** tab.
+
+| Parameter                  | Description                                               |
+|----------------------------|-----------------------------------------------------------|
+| **Sentinel Node Access Address** | Used for accessing the instance from outside the cluster, including the IP addresses and port numbers of the corresponding internal routes of the sentinels. |
+
+## Debugging Redis
+
+On the instance details page, click the **Terminal Console** in the upper right corner, and use the `redis-cli` command to connect to each Redis node.
+
+```
+redis-cli -h {IP corresponding to port 6379} -p 6379
+```
+
+A debugging example is shown below.
+
+```
+192.168.0.10:6379> set a 1
+OK
+192.168.0.10:6379> get a
+"1"
+192.168.0.10:6379>
+```
+
+## Connecting to Redis
+
+The following lists common example codes for connecting to Redis for reference.
+
+> **Note**: The master-slave cluster name registered in Sentinel mode is fixed as `mymaster`.
+
+<Tabs>
+  <Tab label="go-redis">
+    ```go
+    package main
+
+    import (
+        "context"
+        "fmt"
+        "time"
+
+        // It is recommended to periodically upgrade to the latest version of the client for the latest bug fixes.
+        "github.com/redis/go-redis/v9"
+    )
+
+    func main() {
+        client := redis.NewFailoverClient(&redis.FailoverOptions{
+            SentinelAddrs: []string{"<address>"},
+            MasterName:    "mymaster",
+            Password:      "<password>",
+            OnConnect: func(ctx context.Context, conn *redis.Conn) error {
+                ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+                defer cancel()
+                return conn.Ping(ctx).Err()
+            },
+            // Client name for identification and tracking
+            ClientName: "go-demo",
+            // Using Context for timeout control
+            ContextTimeoutEnabled: true,
+            // Maximum number of retries
+            MaxRetries: 3,
+            // Minimum backoff time for retries
+            MinRetryBackoff: 20 * time.Millisecond,
+            // Maximum backoff time for retries
+            MaxRetryBackoff: 200 * time.Millisecond,
+            // Connection timeout
+            DialTimeout: 3 * time.Second,
+            // Read timeout
+            ReadTimeout: 5 * time.Second,
+            // Write timeout
+            WriteTimeout: 10 * time.Second,
+            // Connection pool size for each node
+            PoolSize: 100,
+            // Maximum wait time for available connections in the pool
+            PoolTimeout: time.Second,
+            // Minimum idle connections for each node
+            MinIdleConns: 5,
+            // Maximum idle connections for each node
+            MaxIdleConns: 10,
+            // Maximum active connections for each node
+            MaxActiveConns: 100,
+            // Maximum idle time for connections
+            ConnMaxIdleTime: time.Minute * 5,
+        })
+        defer client.Close()
+
+        if val, err := client.Get(context.TODO(), "test").Result(); err != nil {
+            panic(err)
+        } else {
+            fmt.Println(val)
+        }
+    }
+    ```
+
+    For more detailed configuration, please refer to the [community documentation](https://redis.uptrace.dev/guide/go-redis-sentinel.html).
+  </Tab>
+
+  <Tab label="Jedis">
+    ```java
+    package io.alauda.demo.redis;
+
+    // It is recommended to periodically upgrade to the latest version of the client for the latest bug fixes.
+    import redis.clients.jedis.DefaultJedisClientConfig;
+    import redis.clients.jedis.JedisSentinelPool;
+    import redis.clients.jedis.JedisPoolConfig;
+    import redis.clients.jedis.Jedis;
+    import redis.clients.jedis.HostAndPort;
+
+    import java.time.Duration;
+    import java.util.Set;
+    import java.util.HashSet;
+
+    public class Main {
+        public static void main(String []args) {
+            JedisPoolConfig poolConfig = new JedisPoolConfig();
+            // Set the maximum size of the connection pool, -1 means unbounded. If the current number of connections exceeds this value, new connections will fail.
+            poolConfig.setMaxTotal(200);
+            // Set the maximum number of idle connections; idle connections exceeding this number will be released immediately.
+            poolConfig.setMaxIdle(10);
+            // Set the minimum number of idle connections; if the number falls below this, new idle connections will be created.
+            poolConfig.setMinIdle(3);
+            // Maximum wait time for business when there are no available connections and the maximum number of connections has been reached.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // Validate the connection by pinging it when borrowing from the connection pool.
+            poolConfig.setTestOnBorrow(true);
+            // Test idle connections, finding and releasing invalid connections; this configuration only takes effect if timeBetweenEvictionRunsMillis is greater than 1ms.
+            poolConfig.setTestWhileIdle(true);
+            // Set the minimum idle time for connections; connections older than this will be released; -1 means do not release, this configuration only takes effect if timeBetweenEvictionRunsMillis is greater than 0. Default value is 30m.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Number of connections validated on each idle connection check; -n means 1/n of the connections.
+            poolConfig.setNumTestsPerEvictionRun(-1);
+            // Eviction interval of time; -1 means disabled.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+
+            DefaultJedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                    // Client name for debugging and tracking connection source.
+                    .clientName("demo-jedis")
+                    // TCP connection timeout
+                    .connectionTimeoutMillis(2000)
+                    // Command timeout
+                    .timeoutMillis(10000)
+                    .password("<password>")
+                    .build();
+
+            DefaultJedisClientConfig sentinelConfig = DefaultJedisClientConfig.builder()
+                    .connectionTimeoutMillis(2000)
+                    .timeoutMillis(10000)
+                    .build();
+
+            Set<HostAndPort> nodes =  new HashSet<>();
+            nodes.add(new HostAndPort("<ip1>", "<port1>"));
+            nodes.add(new HostAndPort("<ip2>", "<port2>"));
+            JedisSentinelPool pool = new JedisSentinelPool("mymaster", nodes, poolConfig, clientConfig, sentinelConfig);
+
+            try {
+                try (Jedis jedis = pool.getResource()) {
+                    String val = jedis.get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    For more detailed configuration, please refer to the [community documentation](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html).
+  </Tab>
+
+  <Tab label="Lettuce">
+    ```java
+    package io.alauda.demo.redis;
+
+    // It is recommended to periodically upgrade to the latest version of the client for the latest bug fixes.
+    import io.lettuce.core.*;
+    import io.lettuce.core.api.StatefulRedisConnection;
+    import io.lettuce.core.support.ConnectionPoolSupport;
+    import org.apache.commons.pool2.impl.GenericObjectPool;
+    import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+    import java.time.Duration;
+    import java.util.List;
+
+    public class Main {
+        public static void main(String[] args) {
+            RedisURI.Builder redisUriBuilder = RedisURI.builder();
+            redisUriBuilder.withSentinel(RedisURI.create("<ip1>", "<port1>"));
+            redisUriBuilder.withSentinel(RedisURI.create("<ip2>", "<port2>"));
+            redisUriBuilder.withPassword("<password>");
+
+            // Client name for debugging and tracking connection source.
+            redisUriBuilder.withClientName("demo-lettuce");
+            redisUriBuilder.withSentinelMasterId("mymaster");
+            // Set the client connection timeout
+            redisUriBuilder.withTimeout(Duration.ofSeconds(2));
+            RedisURI redisUri = redisUriBuilder.build();
+
+            // Configure SocketOptions
+            SocketOptions socketOptions = SocketOptions.builder()
+                // Set connection timeout
+                .connectTimeout(Duration.ofSeconds(10))
+                .tcpNoDelay(true)
+                // Enable TCP keepalive for quick detection of broken connections
+                // This value is not strictly necessary for non-pub/sub type requests; connectivity can be maintained through timely release of idle connections.
+                .keepAlive(true)
+                .build();
+
+            ClientOptions clientOptions = ClientOptions.builder()
+                .socketOptions(socketOptions)
+                // Connection auto-reconnect
+                .autoReconnect(true)
+                // Configure the client's behavior when a connection is disconnected
+                // DEFAULT - when autoReconnect = true, commands remaining will not be rejected; otherwise, commands will be rejected
+                .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
+                .build();
+            RedisClient redisClient = RedisClient.create(redisUri);
+            redisClient.setOptions(clientOptions);
+
+            // Pool configuration
+            GenericObjectPoolConfig<StatefulRedisConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
+            // Connection pool size should not be too large, otherwise it may waste server connection resources, or even exhaust connection numbers leading to health check failures for the instance itself.
+            // Estimate your business concurrency; a suggested concurrency level is 1.2-1.5 times your business scale.
+            poolConfig.setMaxTotal(200);
+            // Minimum idle connections reserved to speed up business response.
+            poolConfig.setMinIdle(3);
+            // Maximum idle connections; idle connections exceeding this number will be released immediately.
+            poolConfig.setMaxIdle(10);
+            // Set the minimum idle time for connections; connections older than this will be released; -1 indicates no release; this configuration only takes effect if timeBetweenEvictionRunsMillis is greater than 0. Default value is 30m.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Number of connections validated for each idle connection check; -n indicates 1/n of the connections.
+            poolConfig.setNumTestsPerEvictionRun(3);
+            // Eviction interval of time; -1 means disabled.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+            // Maximum wait time for business when there are no available connections and the maximum connection number has been reached.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // Validate a connection by pinging it when borrowing from the connection pool.
+            poolConfig.setTestOnBorrow(true);
+            // Test idle connections, finding and releasing invalid connections; this configuration only takes effect if timeBetweenEvictionRunsMillis is greater than 1ms.
+            poolConfig.setTestWhileIdle(true);
+
+            GenericObjectPool<StatefulRedisConnection<String, String>> pool = ConnectionPoolSupport.createGenericObjectPool(redisClient::connect, poolConfig);
+
+            try {
+                try (StatefulRedisConnection<String, String> connection = pool.borrowObject()) {
+                    String val = connection.sync().get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    For more detailed configuration, please refer to the [community documentation](https://lettuce.io/core/release/reference/#redis-sentinel).
+  </Tab>
+
+  <Tab label="Redisson">
+    ```java
+    package io.alauda.demo.redis;
+
+    // It is recommended to periodically upgrade to the latest version of the client for the latest bug fixes.
+    import org.redisson.Redisson;
+    import org.redisson.api.RedissonClient;
+    import org.redisson.config.Config;
+
+    import java.util.List;
+    import java.util.ArrayList;
+
+    public class Main {
+        public static void main(String[] args) {
+            List<String> nodes = new ArrayList<>();
+            nodes.add("redis://<ip1>:<port1>");
+            nodes.add("redis://<ip2>:<port2>");
+
+            Config config = new Config();
+            config.setNettyThreads(64)
+                    .useSentinelServers()
+                    .addSentinelAddress(nodes.toArray(new String[0]))
+                    .setPassword("<password>")
+                    .setMasterName("mymaster")
+                    // Enable discovery for sentinel nodes.
+                    .setSentinelsDiscovery(true)
+                    // Test the connection every 30s for availability.
+                    // If KeepAlive is enabled, this value can be correspondingly increased.
+                    .setPingConnectionInterval(30000)
+                    // Interval for scanning the cluster topology.
+                    .setScanInterval(2000)
+                    // Connection timeout.
+                    .setConnectTimeout(10000)
+                    // Command timeout.
+                    .setTimeout(10000)
+                    // Idle connection timeout, set to 60s to avoid default being too short.
+                    .setIdleConnectionTimeout(60000)
+                    // Connection pool size, should not be too large to avoid wasting server connection resources or exhausting connection numbers, leading to health check failures for the instance itself.
+                    // Estimate your business concurrency; a suggested concurrency level is 1.2-1.5 times your business scale.
+                    .setMasterConnectionPoolSize(200)
+                    // Minimum idle connections reserved to speed up business response.
+                    .setMasterConnectionMinimumIdleSize(3)
+                    // Number of retries for failed commands.
+                    .setRetryAttempts(3)
+                    // Retry interval for failed commands.
+                    .setRetryInterval(1500)
+                    // Enable TCP KeepAlive mechanism for quick detection of broken connections.
+                    .setKeepAlive(true)
+                    // Enable TCP no delay.
+                    .setTcpNoDelay(true)
+                    // Client name for debugging and tracking connection source.
+                    .setClientName("demo-redisson");
+
+            RedissonClient redissonClient = Redisson.create(config);
+
+            System.out.printf("%s", redissonClient.getBucket("test").get().toString());
+
+            redissonClient.shutdown();
+        }
+    }
+    ```
+
+    For more detailed configuration, please refer to the [community documentation](https://redisson.org/docs/configuration/#sentinel-mode).
+  </Tab>
+</Tabs>

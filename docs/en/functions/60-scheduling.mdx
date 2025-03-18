@@ -1,0 +1,32 @@
+---
+weight: 50
+sourceSHA: 557c597bff3320f247fbe0b09e136ebd5a54dc722ab616592a0dce0154e98d50
+---
+
+# Update Scheduling Configuration
+
+When the node taints change, adding, modifying, or deleting Pod tolerations is supported. Updating the scheduling configuration will not affect the normal provision of services.
+
+## Precautions
+
+- Pod migration is not supported. After changing the Pod tolerations, the selected nodes must include the nodes that were present before the update.
+
+- If you have configured node labels, the number of nodes matching the Pod tolerations and node taints must be greater than or equal to the number of replicas. Additionally, the changed available nodes must either match the previously available nodes or include new nodes added to the original available nodes for the scheduling configuration to update correctly.
+
+## Steps to Operate
+
+<Tabs>
+  <Tab label="Web Console">
+    1. In the left navigation bar, click on **Redis**.
+
+    2. Click on ***namespace name***.
+
+    3. Click on ***instance name***.
+
+    4. Click on the **Actions** button in the upper right corner > **Update Scheduling Configuration**.
+
+    5. Modify the configuration as needed.
+
+    6. Click **Update**.
+  </Tab>
+</Tabs>

@@ -1,0 +1,60 @@
+---
+weight: 10
+sourceSHA: 9d7d0b474c90fbe37b5e44f92c07fc64438f6bcd3841bb465d4e6598269942f7
+---
+
+# Introduction
+
+## What is Redis OSS?
+
+**Redis OSS** is an open-source **in-memory data structure storage system** that supports various data structures (such as strings, hashes, lists, sets, sorted sets, etc.) and provides features like persistence, high availability, and distributed clustering. With its high performance and low latency characteristics, Redis is widely used in scenarios such as caching, message queues, and real-time data analytics. Its core deployment modes include:
+
+- **Standalone**: Single-node deployment, suitable for development and testing environments.
+- **Sentinel**: High availability architecture based on Sentinel, providing automatic failover and monitoring.
+- **Cluster**: Distributed sharded cluster, supporting horizontal scaling and automatic data partitioning.
+
+## What is Alauda Cache Service for Redis OSS?
+
+**Alauda Cache Service for Redis OSS** is built on Kubernetes (K8s) and customizes multiple controllers (Operators) designed specifically to simplify the lifecycle management of Redis instances in Kubernetes clusters. It extends the Kubernetes API to provide declarative configuration and automated operation and maintenance capabilities, enabling users to efficiently deploy and manage Redis clusters in a cloud-native manner, while ensuring stability and scalability in the production environment.
+
+### Core Features
+
+1. **Multi-architecture Support**
+
+   - Supports **Standalone**, **Sentinel**, and **Redis Cluster** deployment modes, covering development, testing, and production needs.
+
+   | Mode         | Applicable Scenarios       |
+   | ------------ | -------------------------- |
+   | Standalone   | Development/Testing/Lightweight Caching |
+   | Sentinel     | Read/Write Separation/Hot Standby  |
+   | Cluster      | Massive Data/Horizontal Scaling  |
+
+2. **Version Compatibility**
+   - Supports Redis 5.0, 6.0, 7.2.
+
+3. **Access Control and Security**
+   - Supports TLS encryption.
+   - Integrates **Redis ACL** (Access Control List), supporting fine-grained user permission management (this feature is not supported in Redis 5.0).
+
+4. **Network and Access Methods**
+   - Supports service exposure of **NodePort** and **LoadBalancer** types, with the ability to specify NodePort ports.
+   - Compatible with **IPv4** and **IPv6** network environments.
+
+5. **Elastic Scaling**
+   - Supports online horizontal scaling (in Cluster mode) and vertical resource adjustments without downtime.
+
+6. **Version Upgrade and High Availability**
+   - Provides a **graceful version upgrade** mechanism to ensure uninterrupted service.
+   - Ensures **high availability in production environments** through mechanisms such as multi-replication and automatic fault recovery.
+
+7. **Customized Scheduling Policies**
+   - Supports **NodeSelector**, **Toleration**, and **Affinity** to flexibly control Pod scheduling logic.
+
+8. **Automated Operation and Maintenance Capabilities**
+   - **Rolling Scaling**: Adjusts the number of shards or replicas based on configuration, automatically handling data redistribution (Cluster) or master-slave relationships (Sentinel).
+   - **Zero-Downtime Upgrades**: Replaces and synchronizes data one node at a time to ensure service continuity.
+   - **Configuration Hot Update**: Automatically injects new configurations after modifying the ConfigMap without restarting instances.
+
+## Why Choose Alauda Cache Service for Redis OSS
+
+Alauda Cache Service for Redis OSS abstracts the complex operational logic of Redis (such as cluster topology management, version upgrades, and scaling) into Kubernetes native resources, enabling operations personnel to perform actions through simple YAML declarative configurations. It significantly reduces the complexity of managing Redis in Kubernetes, while also considering flexibility, security, and production-grade stability, making it an ideal management tool for Redis clusters in cloud-native scenarios.

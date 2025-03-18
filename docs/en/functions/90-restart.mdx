@@ -1,0 +1,36 @@
+---
+weight: 100
+sourceSHA: e61c21767ebe6300cab0d98c6fac7cc846cedc35c235c77429c0376c7c545257
+---
+
+# Restarting an Instance
+
+If you encounter faults during the instance operation, excessive connection counts, or other unspecified unknown issues that are difficult to diagnose, you can resolve the issues by restarting the instance.
+
+## Precautions
+
+During the restart process, Pods will be restarted one by one, which may cause a brief disruption in services.
+
+## Preconditions
+
+The instance must be in the **Running** state.
+
+**Note**:
+
+- If the instance is in the **Processing** state, it indicates that the instance may be starting normally; please be patient.
+
+- If the instance fails to start or is abnormal, meaning the instance is in the **Processing** or **Error** state, it will automatically restart after the health check times out; please be patient.
+
+## Operation Steps
+
+<Tabs>
+  <Tab label="Web Console">
+    1. In the left navigation bar, click **Redis**.
+
+    2. Click on ***Namespace Name***.
+
+    3. Click on ***Instance Name***.
+
+    4. Click **Actions** > **Restart**, and confirm.
+  </Tab>
+</Tabs>

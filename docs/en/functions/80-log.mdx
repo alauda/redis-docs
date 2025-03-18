@@ -1,0 +1,38 @@
+---
+weight: 80
+sourceSHA: 09bad71a7d23d8b9f2c18dc11d1e43e653900208bc25bf82b87647bad2d321cd
+---
+
+# Log Query
+
+Understand the logs of instance operations from the container level, such as Redis error logs. Proper use of logs can help you quickly locate issues and handle faults and exceptions.
+
+**Note**: To save disk space, the platform retains logs for a default period of 7 days (up to a maximum of 30 days). The actual retention duration can be configured in the operation and maintenance center under **Logs** > **Policy Management**. If long-term storage is required, please export the logs in a timely manner.
+
+## Prerequisites
+
+If the interface prompts that there is no data, please deploy the **Log Collection Component** and ensure that the component is running normally.
+
+## Steps
+
+#
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Click on **Redis** in the left navigation menu.
+
+    2. Click on ***Name of the Namespace***.
+
+    3. Click on ***Name of the Instance***.
+
+    4. On the **Logs** tab, set the search criteria.
+
+       - To find logs for a specific Pods, which are the Redis replicas: In the **Pods** section, select a Pods and click **Search**.
+
+       - To find logs within a specific time range: In the **Time Range** section, select a period.
+
+    5. Wait a moment and review the results.
+
+    6. (Optional) Click <span style={{display: 'inline-block'}}>![](../assets/44buttonexport.png)</span> to export the logs.
+  </Tab>
+</Tabs>
