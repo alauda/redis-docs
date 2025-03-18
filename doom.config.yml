@@ -1,0 +1,8 @@
+title: Redis
+logoText: Redis
+lang: zh
+api:
+  crds:
+    - docs/shared/crds/*.yaml
+  openapis:
+    - docs/shared/openapis/*.json
