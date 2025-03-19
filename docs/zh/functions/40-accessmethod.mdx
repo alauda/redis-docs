@@ -32,6 +32,13 @@ Redis 实例支持多种访问地址来满足不同场景的需求。这里介�
 
 地址获取路径：**实例详情** > **访问方式** > **集群外访问**
 
+<Directive type="warning" title="NodePort 访问说明">
+在 Kubernetes 集群外访问 NodePort，需要确保防火墙已放行相应的IP 和 NodePort。由于 Redis 哨兵和集群的架构限制，业务与 NodePort 之间需要确保网络联通，不支持将实例的 NodePort 地址通过 Load Balancer (LB) 做代理转发。
+
+在多网卡情况下，Redis 哨兵和集群会选择节点的默认网卡 IP 来初始化各个 Redis 节点访问地址，因而不支持通过节点的非默认 IP + 暴露的端口访问。这种情况下建议使用 LoadBalancer 访问方式来创建实例。
+</Directive>
+
+
 ## 连接访问
 
 举例展示了 Jedis、 Lettuce, Redission, go-redis 客户端如何访问 Redis 实例。更多客户端连接示例请参考社区。

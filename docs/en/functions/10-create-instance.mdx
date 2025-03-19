@@ -9,15 +9,17 @@ You can create a Redis instance to achieve faster read and write speeds and scal
 
 In the current version, the following Redis versions are supported: `5.0`, `6.0`, `7.2`; other versions are not supported by default.
 
-<Directive type="tip" title="Suggestion">
-  `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your business's data and concurrency needs.
-
+<Directive type="tip" title="Version selection suggestion">
   When used in a production environment, it is recommended to prioritize the `7.2` version, followed by `6.0`.
 
   1. `7.2` is a version still maintained by the community, which fixes known issues in `6.0` and `5.0`. The `6.0` and `5.0` versions are no longer maintained by the community.
   2. `7.2` is fully compatible with `6.0` and `5.0`.
   3. `7.2` has further improved the ACL features.
   4. `5.0` is not recommended for use as it does not support advanced features like ACL and lacks user management capabilities; all business processes will share a single password, presenting potential security risks; also, changing the password requires restarting all nodes.
+</Directive>
+
+<Directive type="warning" title="Architecture selection suggestion">
+  `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your business's data and concurrency needs.
 </Directive>
 
 ## Create Redis Instance
