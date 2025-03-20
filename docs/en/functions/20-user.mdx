@@ -123,7 +123,7 @@ View all users associated with the instance.
       lastUpdateSuccess: "2025-02-28T02:16:28Z"
     ```
 
-    The explanation of each field can be found in the [RedisUser API](../../../apis/kubernetes_apis/redis/redisuser).
+    The explanation of each field can be found in the [RedisUser API](../apis/kubernetes_apis/redis/redisuser).
 
     From the field `spec.passwordSecrets[0]`, it is found that the password of the `default` user is stored in the Secret `redis-s6-2hqxb`.
 
@@ -176,7 +176,7 @@ View all users associated with the instance.
   </Tab>
 
   <Tab label="Redis 5.0 CLI">
-    Redis 5 does not support ACL and therefore does not have RedisUser resources to manage Redis users. For Redis instances, there is a field `spec.passwordSecret` to record the current instance’s password (refer to the documentation: [Redis API Documentation](../../../apis/kubernetes_apis/redis/redis)).
+    Redis 5 does not support ACL and therefore does not have RedisUser resources to manage Redis users. For Redis instances, there is a field `spec.passwordSecret` to record the current instance’s password (refer to the documentation: [Redis API Documentation](../apis/kubernetes_apis/redis/redis)).
 
     <Directive type="warning" title="Warning">
       Updating the password will cause the instance to restart, leading to potential service interruptions. It is recommended to avoid performing this operation during sensitive business periods.
