@@ -33,6 +33,12 @@ Currently, two types of external access methods are supported: NodePort and Load
 
 Address retrieval path: **Instance Details** > **Access Methods** > **External Cluster Access**
 
+<Directive type="warning" title="NodePort Access Instructions">
+  To access NodePort from outside the Kubernetes cluster, you need to ensure that the firewall has allowed the corresponding IP and NodePort. Due to the architectural limitations of Redis Sentinel and Cluster, it is necessary to ensure network connectivity between the application and NodePort. It is not supported to forward the NodePort address of the instance through a Load Balancer (LB) as a proxy.
+
+  In the case of multiple network cards, Redis Sentinel and Cluster will select the default network card IP of the node to initialize the access addresses of each Redis node. Therefore, access through the node's non-default IP + exposed port is not supported. In this situation, it is recommended to use the Load Balancer access method to create instances.
+</Directive>
+
 ## Connection Access
 
 Examples demonstrate how to access Redis instances using clients such as Jedis, Lettuce, Redisson, and go-redis. For more client connection examples, please refer to the community.
