@@ -11,3 +11,9 @@ permission:
     - docs/shared/functionresources/*.yaml
   roletemplates:
     - docs/shared/roletemplates/*.yaml
+releaseNotes:
+  queryTemplates:
+    mw-redis-v4.0-fixed: |
+      project = MiddleWare AND feature = "MiddleWare - Redis" AND type = Bug AND affectedVersion not in (v4.0.0) AND fixVersion in (v4.0.0) AND status in (Resolved, 已验证) AND ReleaseNotesStatus = Publish ORDER BY priority DESC
+    mw-redis-v4.0-known: |
+      project = MiddleWare AND feature = "MiddleWare - Redis" AND type = Bug AND labels in (v4.0.0-RN) AND ReleaseNotesStatus = Publish ORDER BY priority DESC
