@@ -3,24 +3,34 @@ weight: 20
 i18n:
   title:
     zh: 发布说明
-sourceSHA: e25a254d253b745ba115864c17a55bb486919e4a82d330cf806f9e09b6b94d0c
+sourceSHA: 13a073ca0491d238a071ce51b6eb116a96d0e43cc36d2ff569b1720e01248b41
 ---
 
 # 发布说明
 
 ## v4.0.0
 
-### 新增和优化功能
+### 新增和优化的功能
 
 #### 组件与平台解耦
 
-Alauda Cache Services for Redis 的生命周期已与平台解耦，这意味着当客户需要某个功能或修复 bug 时，Redis 团队可以立即发布，而无需等待平台的共同发布。
+Alauda Cache Services for Redis 的生命周期已与平台的生命周期解耦，这意味着当客户需要某个特性或修复时，Redis 团队可以立即发布，而无需等待与平台的共同发布。
 
-#### 组件详细信息页面的实时日志
+#### 组件详情页实时日志
 
-Redis 详细信息页面上的日志已被实时日志替代，实时更新，方便故障排除和问题分析。
+Redis 详情页上的日志已被实时日志取代，日志会即时更新，便于故障排除和问题分析。
 
-### 修复的问题
+#### 通过 LoadBalancer 对 Redis 的外部访问
+
+现已支持通过 LoadBalancer 访问 Redis。在创建实例时，用户可以选择通过 LoadBalancer 类型的服务将服务暴露为外部服务。
+
+与 NodePort 相比，LoadBalancer 提供了更好的高可用性、性能，并支持标准端口暴露。在生产环境中建议使用 LoadBalancer 方式。
+
+`限制`
+
+使用 LoadBalancer 时，请确保集群有可用的外部地址池。我们建议使用 MetalLB 为集群创建外部地址池。
+
+### 已修复的问题
 
 {/* release-notes-for-bugs?template=mw-redis-v4.0-fixed&project=Middleware */}
 

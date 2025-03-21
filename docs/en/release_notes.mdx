@@ -19,6 +19,16 @@ Alauda Cache Services for Redis's lifecycle havs been decoupled from platform's,
 
 The logs on Redis details page have been replaced with real-time logs that update instantly, facilitating troubleshooting and issue analysis.
 
+#### External Access via LoadBalancer for Redis
+
+LoadBalancer access is now supported for Redis. When creating an instance, users can choose to expose services externally through a LoadBalancer-type Service.
+
+Compared to NodePort, LoadBalancer provides better high availability, performance, and supports standard port exposure. It is recommended to use the LoadBalancer method in production environments.
+
+`Limitations`
+
+When using LoadBalancer, ensure that the cluster has available external address pools. We recommend using MetalLB to create external address pools for the cluster.
+
 ### Fixed Issues
 
 {/* release-notes-for-bugs?template=mw-redis-v4.0-fixed&project=Middleware */}
