@@ -33,7 +33,7 @@ weight: 10
 通过 CLI 创建 Redis 6.0 的哨兵模式实例:
 
 ```bash
-cat << EOF | kubectl -n default create -f -
+cat << EOF | kubectl -n <namespace> create -f -
 apiVersion: middleware.alauda.io/v1
 kind: Redis
 metadata:
