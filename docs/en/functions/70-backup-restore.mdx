@@ -3,7 +3,7 @@ weight: 70
 sourceSHA: 9c95e7d9fb50f09a7876e8fd94ebb61443a7736c873510baea5cb0cb18d7d5e6
 ---
 
-# Backup and Recovery
+# Backup and Restore
 
 To prevent data loss, it is recommended that you perform backups in a timely manner. In the event of a database anomaly, you can restore the backed-up data.
 
@@ -11,7 +11,7 @@ To prevent data loss, it is recommended that you perform backups in a timely man
 
 Before performing a backup, please declare storage based on the data volume, specifically a PersistentVolumeClaim (PVC). The PersistentVolumeClaim encapsulates the configuration for storage resource requests and will automatically match suitable PersistentVolumes in the cluster based on request access modes, storage size, and other information. You can configure the PersistentVolumeClaim in the Container Platform.
 
-## Immediate Backup (Full)
+## Immediate Backup
 
 Perform an immediate backup of the running Redis instance.
 
@@ -25,13 +25,13 @@ Perform an immediate backup of the running Redis instance.
 
     3. Click on ***Instance Name***.
 
-    4. In the **Backup and Recovery** tab, click **Create Data Backup**.
+    4. In the **Backup & Restore** tab, click **Create Backup**.
 
     5. Set the parameters and click **Create**. The duration of the backup depends on the data volume and network conditions, please be patient.
   </Tab>
 </Tabs>
 
-## Automatic Backup (Full)
+## Automatic Backup
 
 Specify the backup time, after which the platform will automatically back up the Redis instance and perform backups regularly.
 
@@ -45,7 +45,7 @@ Specify the backup time, after which the platform will automatically back up the
 
     3. Click on ***Instance Name***.
 
-    4. In the **Backup and Recovery** tab, click the edit button in the **Automatic Backup Settings** area ![](../assets/44buttoneditblue.png).
+    4. In the **Backup & Restore** tab, click the edit button in the **Automatic Backup Setting** area ![](../assets/44buttoneditblue.png).
 
     5. Enable **Automatic Backup** and set the parameters.
 
@@ -53,7 +53,7 @@ Specify the backup time, after which the platform will automatically back up the
   </Tab>
 </Tabs>
 
-## Recovery
+## Restore
 
 Restore the backup data to a new Redis instance.
 
@@ -65,7 +65,7 @@ Restore the backup data to a new Redis instance.
 
     2. Click on ***Namespace Name***.
 
-    3. Go to the source instance's **Backup and Recovery** tab, and click ![](../assets/44buttonanniu.png) > **Recover**.
+    3. Go to the source instance's **Backup & Restore** tab, and click ![](../assets/44buttonanniu.png) > **Recover**.
 
     4. Configure the instance parameters and click **Recover**. Please be patient until the target instance is in **Running** state.
   </Tab>

@@ -42,7 +42,7 @@ Memory specification calculation formula: `instance specification size >= (Maxim
 
 This formula ensures the successful removal of shards when data is reasonably balanced. If **data is unbalanced** or there are BigKeys, it is likely that all data will migrate to a particular shard; however, unlike adding shards, reducing shards should be conducted during a sustained low-load period for the business, with significant memory being free, thus a **hard limit on resource requirements** is imposed for unbalanced data scaling down.
 
-## Operation Steps
+## Steps
 
 <Tabs>
   <Tab label="CLI">
@@ -50,7 +50,7 @@ This formula ensures the successful removal of shards when data is reasonably ba
 
     ```bash
     # Set the number of shards for the cluster to 4
-    kubectl -n default patch redis c6 --type=merge --patch='{"spec": {"replicas":{"cluster":{"shard": 4}}}}'
+    $ kubectl -n default patch redis c6 --type=merge --patch='{"spec": {"replicas":{"cluster":{"shard": 4}}}}'
     ```
   </Tab>
 

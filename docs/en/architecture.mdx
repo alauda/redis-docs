@@ -5,7 +5,7 @@ sourceSHA: d95b55c82b2612d70d0cf9b89658a9ca0207e1f397b0d1d4a09c9a67792fbae5
 
 # Architecture
 
-The full-stack cloud-native open platform provides two Redis management architectures to meet the high availability requirements of different scenarios based on customer pain points.
+Alauda Cache Service for Redis OSS provides two Redis management architectures to meet the high availability requirements of different scenarios based on customer pain points.
 
 - Sentinel Mode: This mode includes one Redis master node and a configurable number of one or more replica nodes. The replica nodes are used for read operations and stay in sync with the master node to ensure high availability. Sentinel mode offers read scalability and can be used in conjunction with Redis Sentinel for automatic failover and high availability.
 - Cluster Mode: This mode is a distributed architecture that allows data sharding across multiple Redis nodes. Cluster mode provides read and write scalability, automatic failover, and data partitioning capabilities, resulting in higher performance and availability.

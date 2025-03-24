@@ -36,7 +36,7 @@ Specifically, in cluster mode, the following impacts may occur:
 
 ### Detecting with Inspection Tools
 
-The Data Service View page provides a BigKey detection function that allows you to detect BigKey in Redis instances using this capability.
+Alauda Application Services provides **Inspections** for you to detect BigKey in Redis instances.
 
 1. Edit the inspection tool deployment configuration to enable BigKey detection.
 
@@ -44,7 +44,7 @@ On the cluster where the instance is located, edit the RdsInstaller function to 
 
 ```bash
 # First check the RdsInstaller configuration
-kubectl -n operators get RdsInstaller rds -o yaml
+$ kubectl -n operators get RdsInstaller rds -o yaml
 ```
 
 The output is as follows:
@@ -72,7 +72,7 @@ spec:
 2. Modify the value of the `ENABLE_REDIS_KEYS_INDICATOR` environment variable and save.
 
 ```bash
-kubectl -n operators edit RdsInstaller rds
+$ kubectl -n operators edit RdsInstaller rds
 ```
 
 Change the value of `ENABLE_REDIS_KEYS_INDICATOR` in `spec.inspection.env` to `1`. The modified instance is as follows:
@@ -101,7 +101,7 @@ spec:
 After saving, the inspection Operator tool will restart. You can check the restart progress with the following command:
 
 ```bash
-kubectl -n operators get pods -l name.operator=inspection-operator
+$ kubectl -n operators get pods -l name.operator=inspection-operator
 ```
 
 The output is as follows:
@@ -116,9 +116,7 @@ inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
 
 3. Execute the inspection
 
-In **Data Service** -> **Redis** -> **Instance Details Page**, click the **Inspect** button to start the instance inspection, as shown in the figure below:
-
-![BigKey Detection](../assets/44redis-bigkey-inspect-entry.png)
+In **Redis** -> **Details Info**, click the **Inspection** button to start the instance inspection.
 
 Once the inspection starts, the button will display **Inspecting...**. After completion, the inspection button will become clickable.
 
@@ -126,7 +124,7 @@ Once the inspection starts, the button will display **Inspecting...**. After com
 
 4. View the inspection results
 
-Upon completion of the inspection, you can click the **Query** button in the inspection report on the **Data Service** -> **Redis** -> **Instance Details Page** to view the inspection results.
+Upon completion of the inspection, you can click the **Query** button in the inspection report on the **Redis** -> **Detail Info** to view the inspection results.
 
 ![BigKey Detection Report View Entry](../assets/44redis-bigkey-inspect-report-entry.png)
 

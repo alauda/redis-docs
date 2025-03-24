@@ -3,11 +3,11 @@ weight: 15
 sourceSHA: 612f662135cabe7ebd481d4343c84744fe005443a0736f4e02e6ccaa0f79ff7e
 ---
 
-# Deleting an Instance
+# Deleting Instance
 
-Deleting an instance will remove not only the created CR resources but also the StatefulSets, ConfigMaps, Secrets, PersistentVolumeClaims, and other resources created by RedisOperator based on the CR resources.
+Deleting an instance will remove not only the created CR resources but also the StatefulSets, ConfigMaps, Secrets, PersistentVolumeClaims, and other resources created by Operator based on the CR resources.
 
-## Steps to Operate
+## Steps
 
 <Tabs>
   <Tab label="CLI">
@@ -15,20 +15,20 @@ Deleting an instance will remove not only the created CR resources but also the 
 
     ```bash
     # delete redis instance directly
-    kubectl -n default delete redis <Instance Name>
+    $ kubectl -n default delete redis <Instance Name>
     ```
 
     If you want to delete the instance and also remove its persistent volume claim, you can execute the following commands:
 
     ```bash
     # patch finalizer `delete-pvc` to instance
-    kubectl -n default patch redis <Instance Name> --type='merge' -p '{"metadata": {"finalizers": ["delete-pvc"]}}'
+    $ kubectl -n default patch redis <Instance Name> --type='merge' -p '{"metadata": {"finalizers": ["delete-pvc"]}}'
 
     # delete redis instance with pvc
-    kubectl -n default delete redis <Instance Name>
+    $ kubectl -n default delete redis <Instance Name>
     ```
 
-    > `delete-pvc` is a built-in keyword in the Redis Operator, used to instruct the operator to delete the persistent volume storage when deleting the instance.
+    > `delete-pvc` is a built-in keyword in the Operator, used to instruct the operator to delete the persistent volume storage when deleting the instance.
   </Tab>
 
   <Tab label="Web Console">
@@ -38,11 +38,11 @@ Deleting an instance will remove not only the created CR resources but also the 
 
     3. From the instance list, select the instance you want to delete to enter the instance details page.
 
-    4. In the upper right corner of the **Instance Details** page, click the **Operations** button to expand the menu options.
+    4. In the upper right corner of the **Instance Details** page, click the **Actions** button to expand the menu options.
 
     5. Click on **Delete** in the menu, and a deletion confirmation box will pop up.
 
-    6. For instances with data persistence enabled, you can check "Delete Persistent Volume Claim" to free up storage, or leave it unchecked to retain the data.
+    6. For instances with data persistence enabled, you can check "Delete PVC" to free up storage, or leave it unchecked to retain the data.
 
     7. In the popup, enter the name of the instance you wish to delete.
 
