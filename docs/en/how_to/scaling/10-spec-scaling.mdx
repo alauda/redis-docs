@@ -17,7 +17,7 @@ As data volume increases, it is crucial to expand the resources promptly before 
 
 4. When changing CPU and memory resources, please evaluate based on business requirements and resource availability to avoid expansion failures due to insufficient or excessive resources, which may lead to the instance being unable to start normally.
 
-## Operation Steps
+## Steps
 
 <Tabs>
   <Tab label="CLI">
@@ -25,7 +25,7 @@ As data volume increases, it is crucial to expand the resources promptly before 
 
     ```bash
     # Set the instance specification to cpu:300m, memory: 300Mi
-    kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"resources":{"limits":{"cpu": "300m","memory":"300Mi"},"requests":{"cpu":"300m", "memory":"300Mi"}}}}'
+    $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"resources":{"limits":{"cpu": "300m","memory":"300Mi"},"requests":{"cpu":"300m", "memory":"300Mi"}}}}'
     ```
   </Tab>
 
@@ -36,7 +36,7 @@ As data volume increases, it is crucial to expand the resources promptly before 
 
     3. Click on ***instance name***.
 
-    4. In the **Details** tab, click on **Specifications Change** above the topology.
+    4. In the **Details** tab, click on **Update Specifications** above the topology.
 
     5. Fill in the desired replica count and new specifications for the corresponding resources.
 

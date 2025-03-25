@@ -1,56 +1,51 @@
 ---
 weight: 15
+sourceSHA: 5bc269b63d329ff3dcd404f153d96cf7176a1b29a3453d4bb7a947b0ad13e4be
 ---
 
 # 删除实例
 
-删除实例除了删除创建的 CR 资源，还会删除 RedisOperator 根据 CR 资源创建的 Statefulset，Configmap，Secret, PersistentVolumeClaim 等资源。
+删除实例不仅会删除创建的 CR 资源，还会删除根据 CR 资源创建的 StatefulSets、ConfigMaps、Secrets、PersistentVolumeClaims 以及其他由 Operator 创建的资源。
 
 ## 操作步骤
 
 <Tabs>
+  <Tab label="CLI">
+    如果实例没有启用持久化或者您需要保留实例的持久数据，请执行以下命令以删除实例：
 
-<Tab label="CLI">
+    ```bash
+    # delete redis instance directly
+    $ kubectl -n default delete redis <实例名称>
+    ```
 
-如果实例没有开启持久化，或者需要保留实例的持久化数据，执行以下命令来删除实例：
+    如果您希望删除实例的同时也删除其持久卷声明，可以执行以下命令：
 
-```bash
-# delete redis instance directly
-kubectl -n default delete redis <Instance Name>
-```
+    ```bash
+    # patch finalizer `delete-pvc` to instance
+    $ kubectl -n default patch redis <实例名称> --type='merge' -p '{"metadata": {"finalizers": ["delete-pvc"]}}'
 
-如果删除实例的同时，也要删除实例，可执行如下命令:
+    # delete redis instance with pvc
+    $ kubectl -n default delete redis <实例名称>
+    ```
 
-```bash
-# patch finalizer `delete-pvc` to instance
-kubectl -n default patch redis <Instance Name>--type='merge' -p '{"metadata": {"finalizers": ["delete-pvc"]}}'
+    > `delete-pvc` 是 Operator 内置的关键词，用于指示 Operator 在删除实例时也删除持久卷存储。
+  </Tab>
 
-# delete redis instance with pvc
-kubectl -n default delete redis <Instance Name>
-```
-> `delete-pvc` 是 redis operator 内置的关键词，用于告诉 operator 在删除实例的同时，删除持久卷存储。
+  <Tab label="Web Console">
+    1. 在左侧导航栏中，单击 **Redis**。
 
+    2. 单击 ***命名空间的名称***。
 
-</Tab>
+    3. 在实例列表中选择要删除的实例，进入实例详情页面。
 
-<Tab label="Web Console">
+    4. 在 **实例详情** 页面的右上角，点击 **操作** 按钮以展开菜单选项。
 
-1. 在左侧导航栏中，单击 **Redis**。
+    5. 点击菜单中的 **删除**，弹出删除确认框。
 
-2. 单击 ***命名空间的名称***。
+    6. 对于启用数据持久化的实例，您可以勾选“删除 PVC”以释放存储，或不勾选以保留数据。
 
-3. 在实例列表中选择要删除的实例，进入实例详情页面。
+    7. 在弹出框中输入您希望删除的实例名称。
 
-4. 在**实例详情** 页面的右上角，点击**操作**按钮，展开功能菜单。
-
-5. 点击功能菜单中的**删除**，会弹出删除确认框。
-
-6. 对开启了数据持久化的实例，可勾选“删除持久卷申明”来释放存储，或者不勾选来保留数据。
-
-7. 在弹出框中数据要删除的实例名称
-
-8. 点击**删除**
-
-</Tab>
-
+    8. 点击 **删除**。
+  </Tab>
 </Tabs>

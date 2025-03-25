@@ -1,35 +1,35 @@
 ---
 weight: 30
-sourceSHA: 6de5193b1f91f44e7880f1e9e76832add1847ded06798757e5f9a9c9446aa667
 ---
 
-# Minor Version Upgrade
+# Patch Version Upgrade
 
-With the need for vulnerability fixes or new feature releases, minor version upgrades of middleware will occur. During the minor version upgrade process, Pods will be restarted one by one, which may cause a brief interruption of service. Therefore, it is recommended to choose an appropriate time window for the upgrade. When a minor version is available for upgrade, it is advisable to upgrade as soon as possible to apply the latest fixes to the components.
+With the need for vulnerability fixes or new feature releases, patch version upgrades of middleware will occur. During the patch version upgrade process, Pods will be restarted one by one, which may cause a brief interruption of service. Therefore, it is recommended to choose an appropriate time window for the upgrade. When a patch version is available for upgrade, it is advisable to upgrade as soon as possible to apply the latest fixes to the components.
 
-## Set Up Minor Version Upgrade Strategy
+## Setup Patch Version Upgrade Strategy
 
-### Steps to Operate
+### Steps
 
 <Tabs>
   <Tab label="Web Console">
     1. Go to the instance detail page.
 
-    2. Click on **Minor Version Upgrade Strategy**.
+    2. Click on **Patch Version Upgrade Policy**.
 
     3. Choose **Manual** or **Automatic**.
 
     4. Click on **Update** to complete the settings.
   </Tab>
+
 </Tabs>
 
-## Minor Version Upgrade
+## Upgrade one by one
 
 ### Prerequisites
 
-When a minor version is available, the instance list page will display an upgrade icon, and the instance detail page will show an upgrade prompt.
+When a patch version is available, the instance list page will display an upgrade icon, and the instance detail page will show an upgrade prompt.
 
-### Steps to Operate
+### Steps
 
 <Tabs>
   <Tab label="Web Console">
@@ -45,17 +45,17 @@ When a minor version is available, the instance list page will display an upgrad
   </Tab>
 </Tabs>
 
-## Bulk Minor Version Upgrade
+## Bulk Upgrade
 
 ### Prerequisites
 
 Users must have platform administrator rights.
 
-### Steps to Operate
+### Steps
 
 <Tabs>
   <Tab label="Web Console">
-    1. Click on **Operators** in the left navigation bar.
+    1. Click on **Upgrade Management** in the left navigation bar.
 
     2. Select the **operator** you need to operate on, and go to the operator detail page.
 
@@ -67,4 +67,5 @@ Users must have platform administrator rights.
 
     6. Wait for the instance status to change to Running, indicating the upgrade was successful.
   </Tab>
+
 </Tabs>

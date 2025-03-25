@@ -5,7 +5,19 @@ sourceSHA: 308585571db88077bffd035151f6160f84c24c6ffd00a0ffdcf91d9a017b364b
 
 # Parameter Configuration
 
-When creating a Redis instance, the system parameter template is used by default. You can also customize the configuration in the parameter template.
+When creating a Redis instance, the system parameter template is used by default.
+
+Alauda Application Services provides three parameter templates for different scenarios for each version of Redis (only two for 5.0) to facilitate users in quickly creating instances.
+
+| Parameter Template  | Description                                                                                                                                                                                | Notes                                              |
+| :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ |
+| RDB Parameter Template | **RDB Persistence Parameter Template** This parameter template configures Redis to work with RDB persistence. RDB persistence saves the in-memory dataset to disk in binary format at specified time intervals. It is suitable for resource-limited scenarios that require a balance of performance and data reliability, with an acceptable level of data loss within minutes. In this mode, Redis can be used as a storage database. | Data reliability is provided based on the configured `save` parameter, which defaults to minute-level reliability.            |
+| AOF Parameter Template | **AOF Persistence Parameter Template** This parameter template configures Redis to work with AOF persistence. AOF persistence records all write operations to a log file (in append mode) to ensure data safety. When Redis restarts, operations in the AOF file will be replayed to rebuild the dataset. It is suitable for resource-rich scenarios that do not have high performance requirements but need sufficient data safety. In this mode, Redis can also be used as a storage database. | Frequent data log persistence requires high disk performance and may reduce Redis’s overall performance, but can provide second-level reliability. |
+| Diskless Parameter Template | **Diskless Parameter Template** This parameter template disables Redis's persistence functionality. In this configuration, Redis only serves as a cache layer to speed up application access, with all data stored in memory. This means that all data will be lost upon Redis restart or failure. This configuration is suitable for high-performance requirements, but less concern for business data interruption. | All data is stored in memory, so performance is not affected by storage. However, if all nodes fail, all data will be lost.         |
+
+When creating instance, you can select one of the above templates which matches most your business in the **Create Redis Instance** page for field **Parameter Templates**.
+
+You can also create customize configurations in the parameter template for reuse.
 
 Redis parameter configuration is divided into three categories:
 
@@ -20,7 +32,7 @@ When updating parameters, please pay attention to the following details:
 - Before updating parameters, ensure whether the parameters are hot update parameters. If the parameters to be updated include those that require a restart to take effect, it is recommended to take proper data backups.
 - After upgrading the Redis version, if there are parameters to be deleted, deprecated, or changed, please consult the corresponding modifications on the [Redis official website](https://redis.io/topics/config).
 
-## Operating Steps
+## Steps
 
 <Tabs>
   <Tab label="CLI">
@@ -32,7 +44,7 @@ When updating parameters, please pay attention to the following details:
 
     ```bash
     # Update the data node configuration of instance s6
-    kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"customConfig": {"save":"600 1"}}}'
+    $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"customConfig": {"save":"600 1"}}}'
     ```
 
     ##### Sentinel Node Parameters
@@ -43,7 +55,7 @@ When updating parameters, please pay attention to the following details:
 
     ```bash
     # Update the sentinel node configuration of instance s6
-    kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"sentinel": {"monitorConfig": {"down-after-milliseconds":"30000","failover-timeout":"180000","parallel-syncs":"1"}}}}'
+    $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"sentinel": {"monitorConfig": {"down-after-milliseconds":"30000","failover-timeout":"180000","parallel-syncs":"1"}}}}'
     ```
   </Tab>
 
@@ -62,10 +74,3 @@ When updating parameters, please pay attention to the following details:
   </Tab>
 </Tabs>
 
-The platform provides three parameter templates for different scenarios for each version of Redis (only two for 5.0) to facilitate users in quickly creating instances.
-
-| Parameter Template  | Description                                                                                                                                                                                | Notes                                              |
-| :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ |
-| RDB Parameter Template | **RDB Persistence Parameter Template** This parameter template configures Redis to work with RDB persistence. RDB persistence saves the in-memory dataset to disk in binary format at specified time intervals. It is suitable for resource-limited scenarios that require a balance of performance and data reliability, with an acceptable level of data loss within minutes. In this mode, Redis can be used as a storage database. | Data reliability is provided based on the configured `save` parameter, which defaults to minute-level reliability.            |
-| AOF Parameter Template | **AOF Persistence Parameter Template** This parameter template configures Redis to work with AOF persistence. AOF persistence records all write operations to a log file (in append mode) to ensure data safety. When Redis restarts, operations in the AOF file will be replayed to rebuild the dataset. It is suitable for resource-rich scenarios that do not have high performance requirements but need sufficient data safety. In this mode, Redis can also be used as a storage database. | Frequent data log persistence requires high disk performance and may reduce Redis’s overall performance, but can provide second-level reliability. |
-| Diskless Parameter Template | **Diskless Parameter Template** This parameter template disables Redis's persistence functionality. In this configuration, Redis only serves as a cache layer to speed up application access, with all data stored in memory. This means that all data will be lost upon Redis restart or failure. This configuration is suitable for high-performance requirements, but less concern for business data interruption. | All data is stored in memory, so performance is not affected by storage. However, if all nodes fail, all data will be lost.         |

@@ -3,82 +3,90 @@ weight: 15
 i18n:
   title:
     en: Installation
+sourceSHA: ae225f326966238dfbc7e1510f8ff737da4c23a1c9ad3da279437bfa7c5360aa
 ---
 
-# 部署
+# 安装
 
 ## 安装 Alauda Application Services Essentials 插件
 
-::: tip 可选部署
-插件为 Application Services 界面化服务基础组件，无需界面化服务时可以不部署。
+::: tip 可选
+该插件是 Alauda Application Services 图形管理界面的基础组件。如果您仅使用 CLI，可以跳过此步骤。
 :::
 
 ### 前提条件
-1. 下载与平台匹配的 Alauda Application Services Essentials 安装包。
-2. 通过平台应用上架能力，上架 Alauda Application Services Essentials 至 ***global 集群***。
+
+1. 下载与您的平台匹配的 Alauda Application Services Essentials 安装包。
+2. 使用平台的应用上架能力，将 Alauda Application Services Essentials 上架到 `global` 集群。
 
 ### 操作步骤
+
 <Tabs>
-<Tab label="Web Console">
-1. 在左侧导航栏中，进入 **应用商店管理** > **集群插件**。
-2. 选择 **global** 集群
-3. 单击 **Alauda Application Services Essentials** 插件右侧的操作按钮 > **部署**。
-</Tab>
+  <Tab label="Web Console">
+    1. 在左侧导航栏中，进入 **市场** > **集群插件**。
+    2. 选择 `global` 集群。
+    3. 单击 **Alauda Application Services Essentials** 插件右侧的操作按钮 > **安装**。
+  </Tab>
 </Tabs>
 
 ## 安装 Alauda Application Services RDS Framework 插件
 
-::: tip 可选部署
-插件为 Application Services 界面化服务基础组件，无需界面化服务时可以不部署。
+::: tip 可选
+Alauda Application Services RDS Framework 是 Alauda Application Services 图形管理界面所需的组件。如果您仅使用 CLI，可以跳过此步骤。
 :::
 
 ### 前提条件
-1. 下载与平台匹配的 Alauda Application Services RDS Framework 安装包。
-2. 通过平台应用上架能力，上架 Alauda Application Services RDS Framework 至 任意希望使用 Application Services 界面化能力的集群。
+
+1. 下载与您的平台匹配的 Alauda Application Services RDS Framework 安装包。
+2. 使用平台的应用上架能力，将 Alauda Application Services RDS Framework 上架到您希望使用 Alauda Application Services 图形功能的任何集群。
 
 ### 操作步骤
+
 <Tabs>
-<Tab label="Web Console">
-1. 登录平台，进入 **平台管理** 页面。
-2. 左侧导航栏选择 **应用商店管理** -> **Operator**， 进入 **Operator Hub** 页面。
-3. 找到 **Alauda Application Services RDS Framework**，点击 **部署**， 进入部署页面。
+  <Tab label="Web Console">
+    1. 登录平台，进入 **平台管理** 页面。
+    2. 在左侧导航栏中，选择 **市场** -> **操作员中心**，进入 **操作员中心** 页面。
+    3. 找到 **Alauda Application Services RDS Framework**，点击 **安装**，进入部署页面。
 
-配置参数:
+    配置参数：
 
-|**参数**| **推荐配置** |
-|:--------|:------------|
-| **升级策略** | **手动**：Operator Hub 有新版本时，需要手动确认升级至 Operator 至最新版本。|
-| **部署模式** | **集群**：集群下所有命名空间共用一个 Operator 对实例进行创建和管理，资源占用更低。|
-| **频道**    | 默认 Channel 为 **stable** 。|
-| **命名空间** | 选择 **推荐命名空间**：无则自动创建。|
-4. 在 **部署 Operator** 页面，选择 **默认配置**， 点击 **部署**，完成 **Alauda Application Services RDS Framework** 部署。
+    | **参数**             | **推荐配置**                                                                                                                  |
+    | :------------------ | :--------------------------------------------------------------------------------------------------------------------------- |
+    | **频道**             | 默认频道为 **stable**。                                                                                                       |
+    | **版本**             | 默认选择最新版本。                                                                                                           |
+    | **安装模式**         | **集群**：集群下所有命名空间共用一个 Operator 来创建和管理实例，从而降低资源消耗。                                          |
+    | **安装位置**         | 选择 **推荐命名空间**：如果不存在，将自动创建。                                                                              |
+    | **升级策略**         | **手动**：当 Operator Hub 有新版本时，需要手动确认以升级 Operator 到最新版本。                                              |
 
-</Tab>
+    4. 在弹出的安装页面上，使用默认配置，然后点击 **安装** 完成 **Alauda Application Services RDS Framework** 的部署。
+  </Tab>
 </Tabs>
 
 ## 安装 Alauda Cache Service for Redis OSS 插件
 
 ### 前提条件
-1. 下载与平台匹配的插件安装包。
-2. 通过平台应用上架能力，上架插件至任意希望使用 Alauda Cache Service for Redis OSS 组件能力的集群。
+
+1. 下载与您的平台匹配的插件安装包。
+2. 使用平台的应用上架能力，将插件上架到您希望使用 Alauda Cache Service for Redis OSS 功能的任何集群。
 
 ### 操作步骤
 
 <Tabs>
-<Tab label="Web Console">
-1. 登录平台，进入 **平台管理** 页面。
-2. 左侧导航栏选择 **应用商店管理** -> **Operator**， 进入 **Operator Hub** 页面。
-3. 找到 **Alauda Cache Service for Redis OSS**，点击 **部署**， 进入部署页面。
+  <Tab label="Web Console">
+    1. 登录平台，进入 **平台管理** 页面。
+    2. 在左侧导航栏中，选择 **市场** -> **操作员中心**，进入 **操作员中心** 页面。
+    3. 找到 **Alauda Cache Service for Redis OSS**，点击 **安装**，进入部署页面。
 
-  配置参数:
-  
-  |**参数**| **推荐配置** |
-  |:--------|:------------|
-  | **升级策略** | **手动**：Operator Hub 有新版本时，需要手动确认升级至 Operator 至最新版本。|
-  | **部署模式** | **集群**：集群下所有命名空间共用一个 Operator 对实例进行创建和管理，资源占用更低。|
-  | **频道**    | 默认 Channel 为 **stable** 。|
-  | **命名空间** | 选择 **推荐命名空间**：无则自动创建。|
+    配置参数：
 
-4. 在 **部署 Operator** 页面，选择 **默认配置**， 点击 **部署**，完成部署。
-</Tab>
+    | **参数**             | **推荐配置**                                                                                                                  |
+    | :------------------ | :--------------------------------------------------------------------------------------------------------------------------- |
+    | **频道**             | 默认频道自动选择。                                                                                                          |
+    | **版本**             | 默认选择最新版本。                                                                                                           |
+    | **安装模式**         | **集群**：集群下所有命名空间共用一个 Operator 来创建和管理实例，从而降低资源消耗。                                          |
+    | **安装位置**         | 选择 **推荐命名空间**：如果不存在，将自动创建。                                                                              |
+    | **升级策略**         | **手动**：当 Operator Hub 有新版本时，需要手动确认以升级 Operator 到最新版本。                                              |
+
+    4. 在弹出的安装页面上，使用默认配置，然后点击 **安装** 完成部署。
+  </Tab>
 </Tabs>

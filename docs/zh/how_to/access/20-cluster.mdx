@@ -1,48 +1,46 @@
 ---
 weight: 20
+sourceSHA: 98556624a076b02dc848a2beb07aa84ebe60dcf5f3122d544376f1e9c33f0b02
 ---
 
 # 如何访问集群实例
 
-示例展示了如何使用 [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), [Redisson](https://github.com/redisson/redisson) 客户端访问 Redis（集群模式）。更多可选客户端，[查看 Redis 社区客户端推荐](https://redis.io/clients)
+示例展示了如何使用 [go-redis](https://github.com/redis/go-redis)、[Jedis](https://github.com/redis/jedis)、[Lettuce](https://github.com/lettuce-io/lettuce-core) 和 [Redisson](https://github.com/redisson/redisson) 客户端访问 Redis（集群模式）。更多可选客户端，请 [查看 Redis 社区客户端推荐](https://redis.io/clients)。
 
 ## 获取访问信息
 
 * 如果您已为 Redis 设置密码，需使用该密码。
 
-* 如果您已关闭 **设置密码**，则可无密码访问实例。<br/>
+* 如果您已禁用 **设置密码**，则可无密码访问实例。<br/>
 
 <Directive type="warning" title="注意">
-
-**提示**：为确保环境安全，建议您参考 [用户管理](../../functions/20-user) 设置密码 ，并使用已设置的密码访问 Redis。
-
+  **提示**：为确保环境安全，建议您参考 [用户管理](../../functions/20-user) 设置密码，并使用已设置的密码访问 Redis。
 </Directive>
 
 ## 获取连接信息
 
-### 用于集群内
+### 用于集群内访问
 
-实例创建完毕后，可在实例的 **访问方式** 页签中查询用于 **集群内** 访问的信息。
+实例创建完毕后，可在实例的 **访问方式** 页签中查询用于 **集群内访问** 的信息。
 
 | 参数 | 说明 |
 | --- | --- |
-| **连接地址（通过各分片的内部路由）** | 内部路由名称与端口。 |
+| **连接地址（通过各分片的服务）** | 服务名称和端口 pair 列表。 |
 
+### 用于集群外访问
 
+如果在实例创建时启用了 **集群外访问** 访问方式，客户端可通过实例 **访问方式** 页签下的 **集群外访问** 区域内的地址连接 Redis。
 
-### 用于集群外
-
-* **通过 Pod 的 NodePort**：在实例 **访问方式** 页签中，客户端可通过 **集群外访问 — 通过 Pod 的 NodePort** 区域内的节点访问地址连接 Redis。
-
-* **通过 Predixy【不推荐】**：为 Predixy 开启 NodePort 以实现集群外访问。请注意，**Predixy 不支持暴露 IPv6 地址**。
-
+| 参数 | 说明 |
+| --- | --- |
+| **分片地址** | 用于从集群外访问实例，包括各分片对应服务的 IP 地址和端口。 |
 
 ## 调试 Redis
 
 在实例详细信息页，单击右上角 **终端控制台**，通过 `redis-cli -c` 命令连接 Redis 各节点。
 
 ```
-redis-cli -c -h {内部路由的 IP} -p 6379
+redis-cli -c -h <内部路由的 IP> -p 6379
 ```
 
 调试示例如下。
@@ -58,12 +56,11 @@ OK
 
 ## 连接 Redis
 
-以下列出了常用 Redis 的实例代码，仅供参考。
+以下列出了常用 Redis 实例代码，仅供参考。
 
 <Tabs>
 
 <Tab label="go-redis">
-
     ```go
     package main
 
@@ -124,13 +121,10 @@ OK
         }
     }
     ```
-
-    更多更详细配置请参考[社区文档](https://redis.uptrace.dev/guide/go-redis-cluster.html)
-
+    更多详细配置，请参考 [社区文档](https://redis.uptrace.dev/guide/go-redis-cluster.html)
 </Tab>
 
 <Tab label="Jedis">
-
     ```java
     package io.alauda.demo.redis;
 
@@ -199,13 +193,10 @@ OK
         }
     }
     ```
-
-    更多更详细配置请参考[社区文档](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html)
-
+    更多详细配置，请参考 [社区文档](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html)
 </Tab>
 
 <Tab label="Lettuce">
-
     ```java
     package io.alauda.demo.redis;
 
@@ -243,7 +234,7 @@ OK
             ClusterTopologyRefreshOptions refreshOptions = ClusterTopologyRefreshOptions.builder()
                     // 默认的刷新拓扑的时间间隔为 60 秒
                     .enablePeriodicRefresh()
-                    // 在遇到如下错误时，触发拓扑刷新：ASK_REDIRECT,MOVED_REDIRECT,PERSISTENT_RECONNECTS,UNCOVERED_SLOT, UNKNOWN_NODE
+                    // 在遇到如下错误时，触发拓扑刷新：ASK_REDIRECT, MOVED_REDIRECT, PERSISTENT_RECONNECTS, UNCOVERED_SLOT, UNKNOWN_NODE
                     .enableAllAdaptiveRefreshTriggers()
                     .build();
 
@@ -257,7 +248,7 @@ OK
                     .connectTimeout(Duration.ofSeconds(10))
                     .tcpNoDelay(true)
                     // 开启 TCP keepalive，用于快速发现无效连接
-                    // 该值在非 pub/sub 类型的请求上不是必须的；可通过 idle 连接的及时释放来实现连接的探活
+                    // 该值在非 pub/sub 类型的请求上不是必须的；可通过及时释放空闲连接来实现连接的探活
                     .keepAlive(true)
                     .build();
 
@@ -268,9 +259,9 @@ OK
                     // 自动重连 (默认值)
                     .autoReconnect(true)
                     // 配置在连接断开时，客户端的行为。
-                    // DEFAULT - autoReconnect = true 时，当有命令过来时，不会拒绝请求；否则拒绝命令发送
+                    // DEFAULT - autoReconnect = true 时，命令不会被拒绝；否则命令将被拒绝
                     .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
-                    // 配置 Socket 参数，lettuce 默认不开启 keepalive, 对业务上需要长连接的，需要开启此项
+                    // 配置 Socket 参数，lettuce 默认不开启 keepalive, 对于需要长连接的业务需要开启此项
                     .socketOptions(socketOptions)
                     .build();
 
@@ -279,7 +270,7 @@ OK
 
             GenericObjectPoolConfig<StatefulRedisClusterConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
             // 连接池大小，不可太大，不然会造成服务器连接资源的浪费，甚至造成连接数耗尽，导致实例自身的探活失败。
-            // 建议 预估自己的业务并发，除以分片数，最终值是 1.2-1.5 倍即可
+            // 建议预估业务的并发，除以分片数，最终值是 1.2-1.5 倍即可
             poolConfig.setMaxTotal(200);
             // 最小空闲连接数，预留部分空闲连接，加速业务响应
             poolConfig.setMinIdle(3);
@@ -293,7 +284,7 @@ OK
             poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
             // 当连接池中无可用连接且达到最大连接数时，业务最大等待时间
             poolConfig.setMaxWait(Duration.ofSeconds(1));
-            // 在每次从连接池中拿连接时，PING 一下验证连接是否可用
+            // 在每次从连接池中拿连接时，PING 验证连接是否可用
             poolConfig.setTestOnBorrow(true);
             // 对空闲连接进行测试，发现无效的连接并释放，该配置只有在 timeBetweenEvictionRunsMillis 大于 1ms 时才会生效
             poolConfig.setTestWhileIdle(true);
@@ -313,13 +304,10 @@ OK
         }
     }
     ```
-
-    更多更详细配置请参考[社区文档](https://lettuce.io/core/release/reference/#redis-cluster)
-
+    更多详细配置，请参考 [社区文档](https://lettuce.io/core/release/reference/#redis-cluster)
 </Tab>
 
 <Tab label="Redisson">
-
     ```java
     package io.alauda.demo.redis;
 
@@ -343,7 +331,7 @@ OK
                     .useClusterServers()
                     .addNodeAddress(nodes.toArray(new String[0]))
                     .setPassword("<password>")
-                    // 在服务启动时，检查集群 Slots 状态
+                    // 检查集群 Slots 状态
                     .setCheckSlotsCoverage(true)
                     // 每次扫描集群拓扑的时间间隔
                     .setScanInterval(5000)
@@ -351,13 +339,13 @@ OK
                     .setConnectTimeout(10000)
                     // 命令超时时间
                     .setTimeout(10000)
-                    // 30s 测试一次连接，用于检测连接可用性
-                    // 如果开启了 KeepAlive，该值的时间可以相应变长
+                    // 每 30 秒测试一次连接，用于检测连接可用性
+                    // 如果开启了 KeepAlive，该值的时间可以相应延长
                     .setPingConnectionInterval(30000)
-                    // 空闲连接超时时间 超过 60s 就放掉，默认 10s太短了
+                    // 超过 60 秒的空闲连接将被丢弃，默认的 10 秒太短
                     .setIdleConnectionTimeout(60000)
                     // 连接池大小，不可太大，不然会造成服务器连接资源的浪费，甚至造成连接数耗尽，导致实例自身的探活失败。
-                    // 建议 预估自己的业务并发，除以分片数，最终值是 1.2-1.5 倍即可
+                    // 建议预估业务并发，除以分片数，最终值是 1.2-1.5 倍即可
                     .setMasterConnectionPoolSize(200)
                     // 最小空闲连接数，预留部分空闲连接，加速业务响应
                     .setMasterConnectionMinimumIdleSize(10)
@@ -365,7 +353,7 @@ OK
                     .setRetryAttempts(3)
                     // 失败命令重试时间间隔
                     .setRetryInterval(1500)
-                    // TCP keepalive，启用TCP KeepAlive机制，连接会测试活性，快速发现意外断开的连接
+                    // 启用 TCP keepalive 机制，快速发现意外断开的连接
                     .setKeepAlive(true)
                     // TCP no delay
                     .setTcpNoDelay(true)
@@ -379,7 +367,6 @@ OK
         }
     }
     ```
-
-    更多更详细配置请参考[社区文档](https://redisson.org/docs/configuration/#cluster-mode)
+    更多详细配置，请参考 [社区文档](https://redisson.org/docs/configuration/#cluster-mode)
 </Tab>
 </Tabs>

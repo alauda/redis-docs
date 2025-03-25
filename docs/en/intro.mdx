@@ -21,7 +21,7 @@ sourceSHA: 9d7d0b474c90fbe37b5e44f92c07fc64438f6bcd3841bb465d4e6598269942f7
 
 1. **Multi-architecture Support**
 
-   - Supports **Standalone**, **Sentinel**, and **Redis Cluster** deployment modes, covering development, testing, and production needs.
+   - Supports **Standalone**, **Sentinel**, and **Cluster** deployment modes, covering development, testing, and production needs.
 
    | Mode         | Applicable Scenarios       |
    | ------------ | -------------------------- |
@@ -29,15 +29,15 @@ sourceSHA: 9d7d0b474c90fbe37b5e44f92c07fc64438f6bcd3841bb465d4e6598269942f7
    | Sentinel     | Read/Write Separation/Hot Standby  |
    | Cluster      | Massive Data/Horizontal Scaling  |
 
-2. **Version Compatibility**
-   - Supports Redis 5.0, 6.0, 7.2.
+2. **Version Support**
+   - Redis `5.0`, `6.0`, `7.2`.
 
 3. **Access Control and Security**
    - Supports TLS encryption.
    - Integrates **Redis ACL** (Access Control List), supporting fine-grained user permission management (this feature is not supported in Redis 5.0).
 
 4. **Network and Access Methods**
-   - Supports service exposure of **NodePort** and **LoadBalancer** types, with the ability to specify NodePort ports.
+   - Supports service expose type of **NodePort** and **LoadBalancer**, with the ability to specify NodePort ports.
    - Compatible with **IPv4** and **IPv6** network environments.
 
 5. **Elastic Scaling**
@@ -57,4 +57,4 @@ sourceSHA: 9d7d0b474c90fbe37b5e44f92c07fc64438f6bcd3841bb465d4e6598269942f7
 
 ## Why Choose Alauda Cache Service for Redis OSS
 
-Alauda Cache Service for Redis OSS abstracts the complex operational logic of Redis (such as cluster topology management, version upgrades, and scaling) into Kubernetes native resources, enabling operations personnel to perform actions through simple YAML declarative configurations. It significantly reduces the complexity of managing Redis in Kubernetes, while also considering flexibility, security, and production-grade stability, making it an ideal management tool for Redis clusters in cloud-native scenarios.
+Alauda Cache Service for Redis OSS abstracts the complex operational logic of Redis (such as cluster topology management, version upgrades, and scaling) into Kubernetes native resources, enabling operations personnel to perform actions through simple YAML declarative configurations. It significantly reduces the complexity of managing Redis in Kubernetes, while also considering flexibility, security, and production-grade stability, making it an ideal management tool for Redis instances in cloud-native scenarios.
