@@ -5,59 +5,65 @@ sourceSHA: b1be7f82ac7425a40cb39eaf717650ce8eed52d85507966602e4137ff01ceedc
 
 # Start and Stop Instance
 
-The one-click start and stop feature meets the daily development and operation needs, allowing you to quickly pause or start middleware instances. In scenarios such as planned downtime, excessive node load, or development and testing environments, you may need to temporarily free up CPU and memory resources without deleting the instance. The one-click start and stop feature helps you save resources and flexibly manage middleware instances, thus reducing costs and improving efficiency.
+Alauda Cache Service for Redis OSS provides one-click start and stop functionality to support operational flexibility in managing middleware instances. This capability is particularly valuable for temporarily releasing resources without deleting instances during maintenance windows, high node load scenarios, or in development/testing environments. Efficiently managing instance state helps optimize resource utilization and reduce operational costs.
 
 ## Stop Instance
 
+Stopping a Redis instance gracefully suspends its operation while preserving configuration and persistent data.
+
 ### Prerequisites
 
-The instance must be in **Processing**, **Running**, **Abnormal**, or **Unknown** status.
+The instance must be in one of the following states: **Processing**, **Running**, **Abnormal**, or **Unknown**.
 
 ### Steps
 
 <Tabs>
   <Tab label="Web Console">
-    **Tip**: It is recommended to perform a full backup before stopping the instance to prevent data loss.
+    > **Recommendation**: Perform a complete backup before stopping an instance to safeguard against potential data loss.
 
-    1. In the left navigation bar, click on **Redis**.
+    1. In the left navigation bar, click **Redis**.
 
     2. Click on ***namespace name***.
 
     3. Click on ***instance name***.
 
-    4. Click on **Actions** > **Stop**, and confirm.
+    4. Click **Actions** > **Stop**, and confirm the operation.
   </Tab>
 </Tabs>
 
-### Features Unavailable After Stopping
+### Features Unavailable During Stopped State
 
-| Feature        | Description              |
-| --------- | --------------- |
-| **Terminal Console** | The terminal console is unavailable.      |
-| **Actions**    | Restarting, updating, and updating scheduling configuration are not possible. |
-| **Topology**    | The topology page cannot be viewed.        |
-| **Parameter Configuration**  | Parameters cannot be updated or exported.    |
-| **User Management**  | The user management page cannot be viewed.      |
-| **Backup and Recovery**  | Backups cannot be executed.         |
-| **Inspection**    | Inspection results for the current instance are invalid.   |
-| **Access Method**  | Routing information may not be obtained.     |
+| Feature | Limitation |
+| ------- | ---------- |
+| **Terminal Console** | Terminal access to Redis instances is unavailable. |
+| **Actions** | Instance operations including restart, update, and scheduling configuration changes are disabled. |
+| **Topology** | Topology visualization is unavailable as the instance components are not running. |
+| **Parameter Configuration** | Parameter updates and configuration exports cannot be performed. |
+| **User Management** | User administration functionality is inaccessible. |
+| **Backup & Restore** | New backup operations cannot be initiated. |
+| **Inspection** | Inspection metrics and results for the stopped instance are invalid. |
+| **Access Method** | Routing information may be unavailable or inaccessible. |
 
 ## Start Instance
 
+Starting a previously stopped Redis instance restores full functionality and service availability.
+
 ### Prerequisites
 
-The instance must be in **Stopping** or **Stopped** status.
+The instance must be in **Stopping** or **Stopped** state.
 
 ### Steps
 
 <Tabs>
   <Tab label="Web Console">
-    1. In the left navigation bar, click on **Redis**.
+    1. In the left navigation bar, click **Redis**.
 
     2. Click on ***namespace name***.
 
     3. Click on ***instance name***.
 
-    4. Click on **Actions** > **Start**, and confirm.
+    4. Click **Actions** > **Start**, and confirm the operation.
   </Tab>
 </Tabs>
+
+After the start operation completes successfully, the instance transitions to the **Running** state and all features become available again.

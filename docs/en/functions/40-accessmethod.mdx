@@ -5,52 +5,57 @@ sourceSHA: 685bfef08a3a004f416e9810c277ebd27ad1cd8fa47da23a5c8c5bb799ae6688
 
 # Access Methods
 
-There are various connection methods for business applications to access Redis instances. This section describes how to select connection addresses and access Redis instances in sentinel mode or cluster mode through those addresses.
+Alauda Cache Service for Redis OSS provides multiple connection strategies for applications to access Redis instances. This section outlines how to obtain appropriate connection addresses and establish connections to Redis instances in both Sentinel and Cluster modes.
 
 ## How to Obtain Access Addresses
 
-Redis instances support multiple access addresses to meet the demands of different scenarios. The access methods introduced here refer to standard Redis access methods. For more details, please refer to the community documentation:
+Redis instances support various access methods designed for different deployment scenarios. These access methods align with standard Redis connection protocols. For comprehensive details, refer to the official Redis documentation:
 
 - [Redis Cluster Mode Specification](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)
 - [Redis Sentinel Mode Client Specification](https://redis.io/docs/latest/develop/reference/sentinel-clients/)
 
 ### Internal Cluster Access Addresses
 
-Internal cluster access is only available for accessing the Kubernetes network. There are two options for the connection address:
+Internal cluster access provides connectivity within the Kubernetes network environment. Two connection options are available:
 
-1. Internal routing (i.e., via DNS)
-2. Internal routing IP
+1. **DNS-based Internal Routing**: Uses Kubernetes service discovery mechanisms
+2. **IP-based Internal Routing**: Uses direct IP addressing
 
-Both methods allow access to the Redis cluster mode or sentinel mode.
+Both methods support connections to Redis instances configured in either Cluster or Sentinel mode.
 
-Address retrieval path: **Instance Details** > **Access Method** > **Access within the Cluster**
+To obtain internal access addresses: Navigate to **Instance Details** > **Access Method** > **Access within the Cluster**
 
 ### External Cluster Access Addresses
 
-External cluster access can be used for network access outside of Kubernetes, such as accessing from another Kubernetes cluster (it can also be used for internal access within the Kubernetes cluster, which requires confirming firewall rules to see if they allow this).
+External cluster access enables connectivity from outside the Kubernetes network environment, such as from applications running in different clusters or external systems. This method can also be used for intra-cluster access when permitted by network policies.
 
-Currently, two types of external access methods are supported: NodePort and LoadBalancer.
+Two external access methods are supported:
 
-Address retrieval path: **Instance Details** > **Access Method** > **Access from outsize the Cluster**
+- **NodePort**: Exposes Redis on static ports on each Kubernetes node
+- **LoadBalancer**: Provisions an external load balancer to route traffic to Redis instances
 
-<Directive type="warning" title="NodePort Access Instructions">
-  To access NodePort from outside the Kubernetes cluster, you need to ensure that the firewall has allowed the corresponding IP and NodePort. Due to the architectural limitations of Redis Sentinel and Cluster, it is necessary to ensure network connectivity between the application and NodePort. It is not supported to forward the NodePort address of the instance through a Load Balancer (LB) as a proxy.
+To obtain external access addresses: Navigate to **Instance Details** > **Access Method** > **Access from outside the Cluster**
 
-  In the case of multiple network cards, Redis Sentinel and Cluster will select the default network card IP of the node to initialize the access addresses of each Redis node. Therefore, access through the node's non-default IP + exposed port is not supported. In this situation, it is recommended to use the Load Balancer access method to create instances.
+<Directive type="warning" title="NodePort Access Considerations">
+  When utilizing NodePort access from external networks, verify that your network firewall allows traffic to the appropriate IP addresses and NodePort ranges. Due to architectural constraints of Redis Sentinel and Cluster protocols, direct network connectivity between client applications and NodePort endpoints is required. Proxying NodePort connections through an additional load balancer is not supported.
+
+  In multi-NIC environments, Redis Sentinel and Cluster will initialize node addresses using the default network interface of each node. Therefore, accessing Redis through non-default network interfaces combined with exposed ports is not supported. For multi-NIC deployments, the LoadBalancer access method is recommended.
 </Directive>
 
-## Connection Access
+## Connection Methods
 
-Examples demonstrate how to access Redis instances using clients such as Jedis, Lettuce, Redisson, and go-redis. For more client connection examples, please refer to the community.
+The following sections outline how to establish connections to Redis instances based on their architecture.
 
 ### Sentinel Mode
 
-Each sentinel instance corresponds to the cluster name `mymaster`.
+In Sentinel mode deployments, all sentinel instances register the Redis master-replica group under the fixed name `mymaster`. Client applications must use this name when connecting through the Sentinel protocol.
 
-For examples of connecting to Redis instances, please refer to [Accessing Instances (Sentinel Mode)](../how_to/access/10-sentinel.mdx)
+For detailed connection examples with popular client libraries, refer to [Accessing Instances (Sentinel Mode)](../how_to/access/10-sentinel.mdx)
 
 ### Cluster Mode
 
-Once a client connects to any node in the cluster, it will query the slot distribution of the cluster. During data access, the client needs to connect directly to each Pod. To ensure connection reliability, it is recommended that the client fill in the access addresses of all Pods.
+In Cluster mode deployments, client applications initially connect to any node in the cluster to retrieve cluster topology information (slot distribution). During subsequent operations, clients must maintain direct connections to the appropriate Redis pods based on the key hash slot mapping.
 
-For examples of connecting to Redis instances, please refer to [Accessing Instances (Cluster Mode)](../how_to/access/20-cluster.mdx)
+For optimal reliability, client applications should initialize connections using the addresses of all cluster nodes.
+
+For detailed connection examples with popular client libraries, refer to [Accessing Instances (Cluster Mode)](../how_to/access/20-cluster.mdx)
