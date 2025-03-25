@@ -5,11 +5,17 @@ sourceSHA: 9c95e7d9fb50f09a7876e8fd94ebb61443a7736c873510baea5cb0cb18d7d5e6
 
 # Backup and Restore
 
-To prevent data loss, it is recommended that you perform backups in a timely manner. In the event of a database anomaly, you can restore the backed-up data.
+To safeguard against data loss, timely backups are highly recommended. In the event of a database anomaly, you can restore your data from a backup.
+
+Alauda Cache Service for Redis OSS supports two backup types: S3 (Amazon Simple Storage Service) backups and PVC (PersistentVolumeClaim) backups.
+
+* **S3 Backup:** Backs up data to S3 storage.
+* **PVC Backup:** Backs up data to a PersistentVolume (PV) using a PersistentVolumeClaim (PVC). This method requires the PV to support Kubernetes node migration and the ReadWriteMany access mode. Examples of suitable PV types include NFS and Ceph.
 
 ## Prerequisites
 
-Before performing a backup, please declare storage based on the data volume, specifically a PersistentVolumeClaim (PVC). The PersistentVolumeClaim encapsulates the configuration for storage resource requests and will automatically match suitable PersistentVolumes in the cluster based on request access modes, storage size, and other information. You can configure the PersistentVolumeClaim in the Container Platform.
+To back up data to your own S3 bucket, please confirm with your administrator that S3 storage is properly configured for your project. Otherwise, ensure your business cluster provides a `StorageClass` that can provision network-based storage.
+
 
 ## Immediate Backup
 
