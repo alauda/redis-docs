@@ -23,7 +23,7 @@ Internal cluster access is only available for accessing the Kubernetes network. 
 
 Both methods allow access to the Redis cluster mode or sentinel mode.
 
-Address retrieval path: **Instance Details** > **Access Methods** > **Internal Cluster Access**
+Address retrieval path: **Instance Details** > **Access Method** > **Access within the Cluster**
 
 ### External Cluster Access Addresses
 
@@ -31,7 +31,7 @@ External cluster access can be used for network access outside of Kubernetes, su
 
 Currently, two types of external access methods are supported: NodePort and LoadBalancer.
 
-Address retrieval path: **Instance Details** > **Access Methods** > **External Cluster Access**
+Address retrieval path: **Instance Details** > **Access Method** > **Access from outsize the Cluster**
 
 <Directive type="warning" title="NodePort Access Instructions">
   To access NodePort from outside the Kubernetes cluster, you need to ensure that the firewall has allowed the corresponding IP and NodePort. Due to the architectural limitations of Redis Sentinel and Cluster, it is necessary to ensure network connectivity between the application and NodePort. It is not supported to forward the NodePort address of the instance through a Load Balancer (LB) as a proxy.

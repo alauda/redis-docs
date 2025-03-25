@@ -3,7 +3,7 @@ weight: 20
 sourceSHA: e92b2df1a4f608644c23e6da475b09dbc1239192dcda2a944925e2a1dd1a75d0
 ---
 
-# How to Access Cluster Instances
+# How to Access Cluster Instance
 
 This example demonstrates how to access Redis (Cluster Mode) using the [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson) clients. For more optional clients, [see Redis Community Client Recommendations](https://redis.io/clients).
 
@@ -19,26 +19,28 @@ This example demonstrates how to access Redis (Cluster Mode) using the [go-redis
 
 ## Obtain Connection Information
 
-### For In-Cluster
+### For Internal Cluster Access
 
-Once the instance is created, you can check the access information used for **In-Cluster** access in the **Access Method** tab of the instance.
+Once the instance is created, you can find the information used for internal cluster access in the **Access Method** tab under the **Access within the Cluster** section.
 
 | Parameter                        | Description                     |
 | ------------------------------- | ------------------------------- |
-| **Connection Address (through internal routing of each shard)** | Internal routing name and port. |
+| **Connection Address (By the Services of each shard)** | Service name and port pair list. |
 
-### For Out-of-Cluster
+### For External Cluster Access
 
-- **Via Pod’s NodePort**: In the instance **Access Method** tab, clients can connect to Redis via the node access address within the **External Access - Via Pod’s NodePort** area.
+If **Outside the Cluster** access method was enabled when creating the instance, clients can connect to Redis through the addresses via the **Access from outside the Cluster** section in the instance **Access Method** tab.
 
-- **Via Predixy [Not Recommended]**: Enable NodePort for Predixy for external access. Please note, **Predixy does not support exposing IPv6 addresses**.
+| Parameter         | Description                                               |
+|-------------------|-----------------------------------------------------------|
+| **Shard Address** | Used for accessing the instance from outside the cluster, including the IP addresses and ports of the corresponding services of each shard. |
 
 ## Debugging Redis
 
 On the instance details page, click on the **Terminal Console** at the top right, and connect to each Redis node using the `redis-cli -c` command.
 
 ```
-redis-cli -c -h {IP of internal routing} -p 6379
+redis-cli -c -h <IP of internal routing> -p 6379
 ```
 
 An example of debugging is shown below.

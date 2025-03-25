@@ -5,11 +5,9 @@ sourceSHA: f9bfcbdca6540fe5c33b1d774fbf710c3808a2b3c37f3beb9c252bd5845b999e
 
 # Create Instance
 
-You can create a Redis instance to achieve faster read and write speeds and scalable services, meeting the diverse and high availability needs of your business.
+Following Redis versions are fully supported: `5.0`, `6.0`, `7.2`; other versions are not supported by default.
 
-In the current version, the following Redis versions are supported: `5.0`, `6.0`, `7.2`; other versions are not supported by default.
-
-<Directive type="tip" title="Version selection suggestion">
+<Directive type="tip" title="Version suggestion">
   When used in a production environment, it is recommended to prioritize the `7.2` version, followed by `6.0`.
 
   1. `7.2` is a version still maintained by the community, which fixes known issues in `6.0` and `5.0`. The `6.0` and `5.0` versions are no longer maintained by the community.
@@ -18,20 +16,20 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
   4. `5.0` is not recommended for use as it does not support advanced features like ACL and lacks user management capabilities; all business processes will share a single password, presenting potential security risks; also, changing the password requires restarting all nodes.
 </Directive>
 
-<Directive type="warning" title="Architecture selection suggestion">
+<Directive type="note" title="Architecture suggestion">
   `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your business's data and concurrency needs.
 </Directive>
 
 ## Create Redis Instance
 
-### Operation Steps
+### Steps
 
 <Tabs>
   <Tab label="Sentinel CLI">
     Create a Redis 6.0 Sentinel mode instance using CLI:
 
     ```bash
-    cat << EOF | kubectl -n default create -f -
+    $ cat << EOF | kubectl -n default create -f -
     apiVersion: middleware.alauda.io/v1
     kind: Redis
     metadata:
@@ -79,21 +77,24 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
       version: "6.0"
     EOF
     ```
+
+    Refer to the [Redis API documentation](../apis/kubernetes_apis/redis/redis.mdx) for field descriptions.
+
   </Tab>
 
   <Tab label="Cluster CLI">
     Create a Redis 6.0 Cluster mode instance using CLI:
 
     ```bash
-    cat << EOF | kubectl -n default create -f -
+    $ cat << EOF | kubectl -n default create -f -
     apiVersion: middleware.alauda.io/v1
     kind: Redis
     metadata:
-      name: s6
+      name: c6
     spec:
-      arch: sentinel
+      affinityPolicy: AntiAffinityInSharding
+      arch: cluster
       customConfig:
-        databases: "16"
         hz: "10"
         save: 60 10000 300 100 600 1
         timeout: "0"
@@ -106,40 +107,31 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
           requests:
             cpu: 50m
             memory: 128Mi
+      expose:
+        type: NodePort
       replicas:
-        sentinel:
-          master: 1
+        cluster:
+          shard: 3
           slave: 1
       resources:
         limits:
-          cpu: "1"
-          memory: 2Gi
+          cpu: 200m
+          memory: 200Mi
         requests:
-          cpu: "1"
-          memory: 2Gi
-      sentinel:
-        monitorConfig:
-          down-after-milliseconds: "30000"
-          failover-timeout: "180000"
-          parallel-syncs: "1"
-        replicas: 3
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
+          cpu: 200m
+          memory: 200Mi
       version: "6.0"
     EOF
     ```
+
+    Refer to the [Redis API documentation](../apis/kubernetes_apis/redis/redis.mdx) for field descriptions.
   </Tab>
 
   <Tab label="Standalone CLI">
     Create a Redis 6.0 Standalone mode instance using CLI:
 
     ```bash
-    cat << EOF | kubectl -n default create -f -
+    $ cat << EOF | kubectl -n default create -f -
     apiVersion: middleware.alauda.io/v1
     kind: Redis
     metadata:
@@ -173,18 +165,22 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
       version: "6.0"
     EOF
     ```
+
+    Refer to the [Redis API documentation](../apis/kubernetes_apis/redis/redis.mdx) for field descriptions.
   </Tab>
 
   <Tab label="Web Console">
-    1. In the left navigation bar, click **Redis**.
+    1. Enter Alauda Application Services view.
 
-    2. Click ***Namespace name***.
+    1. In the left navigation bar of Alauda Application Services view, click **Redis**.
 
-    3. Click **Create Redis Instance**.
+    1. Click ***Namespace name***.
 
-    4. Select an architecture type.
+    1. Click **Create Redis Instance**.
 
-    5. Refer to the instructions below to complete the relevant configurations.
+    1. Select an architecture type.
+
+    1. Refer to the instructions below to complete the relevant configurations.
 
            <table border="">
              <tr>
@@ -196,29 +192,29 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
              <tr>
                <td><b>Parameter Configuration</b></td>
                <td><b>Parameter Template</b></td>
-               <td>You can choose between system or custom parameter templates. For custom parameter templates please refer to <a href="../../unified-om/para-template-mgt/index">Parameter Templates</a>.</td>
+               <td>You can choose between system or custom parameter templates. For custom parameter templates please refer to <ExternalSiteLink name="acp" href="/appservice/unified-om/para-template-mgt/index" children="Parameter Template Management" />.</td>
              </tr>
 
              <tr>
                <td rowspan="3"><b>Connection Configuration</b></td>
-               <td><b>Set Password</b></td>
-               <td>To ensure the security of the environment, it is recommended that you set a password in a timely manner. <ul><li>If no password is set, the instance can be accessed without a password.</li><li>Once set, please keep your password secure. To reduce the risk of password leakage, it is recommended to <a href="../functions/20-user">update the password</a> regularly.</li></ul></td>
+               <td><b>Set Default Password</b></td>
+               <td>It is recommended to set a password for redis `default` user when startup instance. If no password is set, refer to <a href="../functions/20-user">User Management</a> to reset the password or create extra accounts.</td>
              </tr>
 
              <tr>
-               <td><b>External Access to Cluster</b></td>
-               <td><b>Sentinel Mode</b>: Once the instance is created, this configuration can no longer be modified. <br /><b>Cluster Mode</b>: Provides two external access modes: cluster mode and standalone mode. Cluster mode is recommended for its superior performance and stability.</td>
+               <td><b>Access Method</b></td>
+               <td>If applications and Redis instances resize in different business clusters, use <b>external access</b> method. <b>External access</b> method supports `LoadBalancer` and `NodePort` where `LoadBalancer` is recommended for production environments. If applications and Redis instances resize in the same business cluster, use <b>Within the Cluster</b> access method.</td>
              </tr>
 
              <tr>
                <td><b>Specify Host Port</b></td>
-               <td>When enabling specified host ports for external access, you can designate service port numbers. <br /><b>Sentinel Mode</b>: When updating the instance, ports cannot be swapped; if you need to swap ports, update to another unoccupied port first, then re-specify. <br /><b>Cluster Mode</b>: When updating the instance, if you only need to replace one port, you can re-enter or modify the corresponding node port in YAML.</td>
+               <td>When using NodePort for external access, you can specify the service nodeport numbers. <br /><b>Sentinel Mode</b>: When updating the instance, ports cannot be swapped; if you need to swap ports, update to another unoccupied port first, then re-specify. <br /><b>Cluster Mode</b>: When updating the instance, if you only need to replace one port, you can re-enter or modify the corresponding node port in YAML.</td>
              </tr>
 
              <tr>
                <td rowspan="3"><b>Scheduling Configuration</b></td>
                <td><b>Anti-Affinity Policy</b></td>
-               <td>To meet the demands for high reliability and high availability under different business scenarios, the platform provides an anti-affinity policy for <b>Cluster Mode</b>, where <b>intra-shard master-slave anti-affinity</b> is the default applied anti-affinity policy. <br /><b>Note</b>: Once the instance is created, this configuration can no longer be modified.</td>
+               <td>To meet the demands for high reliability and high availability under different business scenarios, the platform provides an anti-affinity policy for <b>Cluster Mode</b>, where <b>Force anti-affinity</b> is the default applied anti-affinity policy. <br /><b>Note</b>: Once the instance is created, this configuration can no longer be modified.</td>
              </tr>
 
              <tr>
@@ -234,7 +230,7 @@ In the current version, the following Redis versions are supported: `5.0`, `6.0`
 
        > The current Web Console does not support creating `standalone` (Redis single-node architecture).
 
-    6. Click **Create**.
+    1. Click **Create**.
 
        Once the instance status changes to **Running**, the instance has been successfully created.
   </Tab>
@@ -256,14 +252,14 @@ standalone   standalone   6.0                  Initializing             4.0.1   
 
 The meanings of the output table fields are as follows:
 
-| Field           | Description                                                                                                                                                                                 |                                      |
-| :------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| NAME           | Instance name                                                                                                                                                                               |                                      |
-| ARCH           | This value corresponds to the architecture of Redis. <ul><li>`cluster`: Cluster mode</li><li> `sentinel`: Sentinel mode </li><li>`standalone`: Single-node Redis</li></ul>                                                                | This field indicates whether this CR resource manages a standalone, Sentinel, or Cluster mode of Redis. |
-| VERSION        | Currently supports only the 3 versions: `5.0`, `6.0`, `7.2`                                                                                                                                       |                                      |
-| ACCESS         | The access methods supported by the instance. <ul><li>` `: The instance provides services via ClusterIP</li><li>`NodePort`: The instance provides services via NodePort</li><li>`LoadBalancer`: The instance provides services via LoadBalancer</li></ul> |                                      |
-| STATUS         | The current status of the instance, which may include the following states: <ul><li>`Initializing`: The instance is initializing or updating</li><li>`Rebalancing`: The cluster instance is scaling up or down</li><li>`Error`: The instance has encountered a non-recoverable error</li><li>`Paused`: The instance has been manually paused</li><li>`Ready`: The instance is ready</li></ul> |                                      |
-| MESSAGE        | The reason for the instance being in its current status                                                                                                                                           |                                      |
-| BUNDLE VERSION | The version number of the operator managing the instance                                                                                                                                         |                                      |
-| AUTOUPGRADE    | Whether automatic upgrades are enabled for the instance                                                                                                                                         |                                      |
-| AGE            | How long ago the instance was created                                                                                                                                                        |                                      |
+| Field           | Description                                                                                                                                                                                 |
+| :------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NAME           | Instance name                                                                                                                                                                               |
+| ARCH           | This value corresponds to the architecture of Redis. <ul><li>`cluster`: Cluster mode</li><li> `sentinel`: Sentinel mode </li><li>`standalone`: Single-node Redis</li></ul>  This field indicates whether this CR resource manages a standalone, Sentinel, or Cluster mode of Redis. |
+| VERSION        | Currently supports only the 3 versions: `5.0`, `6.0`, `7.2`                                                                                                                                       |
+| ACCESS         | The access methods supported by the instance. <ul><li>` `: The instance provides services via ClusterIP</li><li>`NodePort`: The instance provides services via NodePort</li><li>`LoadBalancer`: The instance provides services via LoadBalancer</li></ul> |
+| STATUS         | The current status of the instance, which may include the following states: <ul><li>`Initializing`: The instance is initializing or updating</li><li>`Rebalancing`: The cluster instance is scaling up or down</li><li>`Error`: The instance has encountered a non-recoverable error</li><li>`Paused`: The instance has been manually paused</li><li>`Ready`: The instance is ready</li></ul> |
+| MESSAGE        | The reason for the instance being in its current status                                                                                                                                           |
+| BUNDLE VERSION | The version number of the operator managing the instance                                                                                                                                         |
+| AUTOUPGRADE    | Whether automatic upgrades are enabled for the instance                                                                                                                                         |
+| AGE            | How long ago the instance was created                                                                                                                                                        |

@@ -22,7 +22,7 @@ View all users associated with the instance.
     > This applies only to non-Redis 5.0 instances.
 
     ```bash
-    kubectl -n default get redisuser -l middleware.instance/name=<instance_name>
+    $ kubectl -n default get redisuser -l middleware.instance/name=<instance_name>
     ```
 
     An example of retrieving user information for the instance `s6` is as follows:
@@ -71,7 +71,7 @@ View all users associated with the instance.
 <Tabs>
   <Tab label="CLI">
     <Directive type="info" title="Tip">
-      The following operations are applicable only to Redis >= 6.0 instances.
+      The following operations apply only to Redis 6.0 or later versions.
     </Directive>
 
     1. Find the user to be updated from the list.
@@ -95,7 +95,7 @@ View all users associated with the instance.
         managed-by: redis-operator
         middleware.instance/name: s6
       name: rfr-acl-s6-default
-      namespace: hfxia-dev
+      namespace: default
       ownerReferences:
       - apiVersion: databases.spotahome.com/v1
         blockOwnerDeletion: true
@@ -144,7 +144,7 @@ View all users associated with the instance.
         managed-by: redis-operator
         middleware.instance/name: s6
       name: redis-s6-2hqxb
-      namespace: hfxia-dev
+      namespace: default
       ownerReferences:
       - apiVersion: redis.middleware.alauda.io/v1
         blockOwnerDeletion: true
@@ -185,13 +185,13 @@ View all users associated with the instance.
     1. Create a Secret that holds the new password.
 
     ```bash
-    kubectl -n default create secret generic new-redis-password --from-literal=password=admin@123456
+    $ kubectl -n default create secret generic new-redis-password --from-literal=password=admin@123456
     ```
 
     2. Update the new Secret in the instance's `spec.passwordSecret` field.
 
     ```bash
-    kubectl -n default patch redis s5 --type=merge --patch='{"spec": {"passwordSecret": "new-redis-password"}}'
+    $ kubectl -n default patch redis s5 --type=merge --patch='{"spec": {"passwordSecret": "new-redis-password"}}'
     ```
 
     After execution, the status of the instance changes to `Initializing`. You can check the status by the following name:
@@ -199,9 +199,9 @@ View all users associated with the instance.
     ```
     $ kubectl -n default get redis -w
     NAME ARCH       VERSION   ACCESS     STATUS         MESSAGE   BUNDLE VERSION   AUTOUPGRADE   AGE
-    c6   cluster    6.0                  Ready                    3.18.19          false         125m
-    s5   sentinel   5.0                  Initializing             3.18.19          false         8h
-    s6   sentinel   6.0                  Ready                    3.18.19          false         124m
+    c6   cluster    6.0                  Ready                    4.0.1            false         125m
+    s5   sentinel   5.0                  Initializing             4.0.1            false         8h
+    s6   sentinel   6.0                  Ready                    4.0.1            false         124m
     ```
   </Tab>
 
@@ -234,7 +234,7 @@ Additionally, custom rules are supported. For custom rules, you can refer to the
 <Tabs>
   <Tab label="CLI">
     ```bash
-    kubectl -n default patch RedisUser s56 --type=merge --patch='{"spec": {"aclRules": "+@all ~*"}}'
+    $ kubectl -n default patch RedisUser s56 --type=merge --patch='{"spec": {"aclRules": "+@all ~*"}}'
     ```
 
     After successful creation, the user randomly enters the `Pending` state. Wait for it to change to the `Success` state, indicating that the update has been successful.
@@ -260,7 +260,7 @@ Additionally, custom rules are supported. For custom rules, you can refer to the
     Create for the Redis cluster instance.
 
     ```bash
-    cat << EOF | kubectl -n default create -f -
+    $ cat << EOF | kubectl -n default create -f -
     apiVersion: redis.middleware.alauda.io/v1
     kind: RedisUser
     metadata:

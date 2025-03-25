@@ -1,6 +1,6 @@
 title: Alauda Cache Service for Redis OSS
 logoText: Alauda Cache Service for Redis OSS
-lang: zh
+lang: en
 api:
   crds:
     - docs/shared/crds/*.yaml

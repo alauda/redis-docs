@@ -7,8 +7,6 @@ sourceSHA: 09d30a449de6e32a7dfeda47a6415f58ebfde2b6e1d6324f4a5910230b141f89
 
 The monitoring data embedded in the panel can be used for monitoring and alerting Redis from the perspectives of resources, performance, etc., and it supports configuring notification strategies.
 
-The intuitively presented monitoring data can provide decision support for operation and maintenance inspections or performance tuning, and a complete alert and notification mechanism will help ensure the stable operation of the database.
-
 ## Monitoring
 
 The platform by default collects common monitoring indicators for Redis related to resources and performance. In the instance's **Monitoring** tab, you can view real-time monitoring data for these indicators.
@@ -21,11 +19,11 @@ The platform by default collects common monitoring indicators for Redis related 
 
 ## Alerts
 
-To create alerting policies for Redis, go to the **Alerts** > **Alert Policies** page in the Application Service (you can also use the platform's universal alerting function to create alerts).
+To create alerting rules for Redis, go to the **Alerts** > **Rules** page in the Alauda Application Service.
 
-### Configuring Alert Policies
+### Configuring Alert Rules
 
-To enable alerts, you must first create an alert policy in the Application Service. An alert policy describes the objects you want to monitor, under what conditions you wish to receive alerts, and how you will be notified about the relevant alerts.
+To enable alerts, you must first create an alert rule in the Application Service. An alert rule describes the objects you want to monitor, under what conditions you wish to receive alerts, and how you will be notified about the relevant alerts.
 
 The platform has the following built-in alert indicators:
 
@@ -42,7 +40,7 @@ The platform has the following built-in alert indicators:
 | Node Memory Utilization  | > 80%, sustained for 30 seconds | Monitors memory usage in real-time; if memory utilization is too high, immediate scaling is required. |
 | Node Storage Utilization  | > 80%, sustained for 30 seconds | Monitors storage space in real-time; if utilization is too high, scaling considerations are necessary. |
 
-With the above alert indicators, quick creation of alert policies is achievable. In addition to built-in alert indicators, custom alert indicators can also be defined in the following format:
+With the above alert indicators, quick creation of alert rules is achievable. In addition to built-in alert indicators, custom alert indicators can also be defined in the following format:
 
 ```yaml
 (1/(1+(avg(irate(redis_keyspace_misses_total{namespace=~"<namespace>", pod=~"<podname prefix>-.*"}[5m])) by(namespace,service) / (avg(irate(redis_keyspace_hits_total{namespace=~"<namespace>", pod=~"<podname prefix>-.*"}[5m])) by(namespace,service)+1))))
@@ -50,4 +48,4 @@ With the above alert indicators, quick creation of alert policies is achievable.
 
 In this context, `redis_keyspace_misses_total` is the name of the metric collected by Prometheus, `<namespace>` is used to filter the command space where the resources are located, and `<podname prefix>` is the prefix for Pods, used to match Pods created by `Deployment` or `StatefulSet`. For more detailed information on writing metrics, please refer to the [PromQL Official Documentation](https://prometheus.io/docs/prometheus/latest/querying/basics/).
 
-For more information about configuring and using alerts, please refer to <ExternalSiteLink name="acp" href="appservice/unified-om/alert-policy-mgt/index" children="Alert Policy Management" />.
+For more information about configuring and using alerts, please refer to <ExternalSiteLink name="acp" href="appservice/unified-om/alert-policy-mgt/index" children="Alert Management" />.

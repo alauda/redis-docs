@@ -3,7 +3,7 @@ weight: 10
 sourceSHA: 8d2151682104e1e65faa160d54d853b87de317af58aaefca665a71e5f17ec779
 ---
 
-# How to Access Sentinel Instances
+# How to Access Sentinel Instance
 
 This example demonstrates how to access Redis (in Sentinel mode) using the [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson) clients. For more optional clients, [view the Redis community client recommendations](https://redis.io/clients).
 
@@ -21,27 +21,26 @@ This example demonstrates how to access Redis (in Sentinel mode) using the [go-r
 
 ### For Internal Cluster Access
 
-Once the instance is created, you can find the information used for **internal cluster access** in the **Access Method** tab under the **Internal Cluster Access** section.
+Once the instance is created, you can find the information used for internal cluster access in the **Access Method** tab under the **Access within the Cluster** section.
 
-| Parameter                   | Description                           |
-|-----------------------------|---------------------------------------|
-| **Connection Address (by Internal Routing Name)** | Sentinel internal routing name and port. |
-| **Connection Address (by Internal Routing IP)**   | IP address and port of the internal routing. |
+| Parameter                | Description                           |
+|--------------------------|---------------------------------------|
+| **Connection Address**   | Service name and port pair list. |
 
 ### For External Cluster Access
 
-If **External Cluster Access** was enabled when creating the instance, clients can connect to Redis through the node access addresses via the **External Cluster Access** section in the instance **Access Method** tab.
+If **Outside the Cluster** access method was enabled when creating the instance, clients can connect to Redis through the addresses via the **Access from outside the Cluster** section in the instance **Access Method** tab.
 
 | Parameter                  | Description                                               |
 |----------------------------|-----------------------------------------------------------|
-| **Sentinel Node Access Address** | Used for accessing the instance from outside the cluster, including the IP addresses and port numbers of the corresponding internal routes of the sentinels. |
+| **Sentinel Node Access Address** | Used for accessing the instance from outside the cluster, including the IP addresses and ports of the corresponding services of the sentinels. |
 
 ## Debugging Redis
 
 On the instance details page, click the **Terminal Console** in the upper right corner, and use the `redis-cli` command to connect to each Redis node.
 
 ```
-redis-cli -h {IP corresponding to port 6379} -p 6379
+redis-cli -h <IP corresponding to port 6379> -p 6379
 ```
 
 A debugging example is shown below.
