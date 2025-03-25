@@ -5,13 +5,13 @@ sourceSHA: 557c597bff3320f247fbe0b09e136ebd5a54dc722ab616592a0dce0154e98d50
 
 # Scheduling Configuration
 
-When the node taints change, adding, modifying, or deleting Pod tolerations is supported. Updating the scheduling configuration will not affect the normal provision of services.
+Alauda Cache Service for Redis OSS supports dynamic updates to Pod scheduling configurations when node taints change. You can add, modify, or remove Pod tolerations without disrupting the ongoing Redis service.
 
-## Precautions
+## Considerations
 
-- Pod migration is not supported. After changing the Pod tolerations, the selected nodes must include the nodes that were present before the update.
+- **Pod Relocation Limitations**: Pod migration is not supported during scheduling configuration updates. When modifying Pod tolerations, ensure that the nodes selected post-update include all nodes that were part of the deployment prior to the update.
 
-- If you have configured node labels, the number of nodes matching the Pod tolerations and node taints must be greater than or equal to the number of replicas. Additionally, the changed available nodes must either match the previously available nodes or include new nodes added to the original available nodes for the scheduling configuration to update correctly.
+- **Node Availability Requirements**: If you have configured node labels for scheduling, the number of nodes matching both Pod tolerations and node taints must be greater than or equal to the replica count. Additionally, the updated node selection must either match the previously available nodes or include new nodes in addition to the original node set for the scheduling configuration to update successfully.
 
 ## Steps
 
@@ -25,8 +25,13 @@ When the node taints change, adding, modifying, or deleting Pod tolerations is s
 
     4. Click on the **Actions** button in the upper right corner > **Update Scheduling Configuration**.
 
-    5. Modify the configuration as needed.
+    5. Modify the scheduling configuration as needed:
+       - Update node labels to refine the selection of eligible nodes
+       - Add or modify tolerations to accommodate changes in node taints
+       - Adjust affinity rules to optimize instance placement
 
-    6. Click **Update**.
+    6. Click **Update** to apply the changes.
   </Tab>
 </Tabs>
+
+After updating the scheduling configuration, the system will apply the changes while maintaining service continuity. The Redis Operator will respect the new scheduling parameters when creating or replacing Pods during subsequent operations.

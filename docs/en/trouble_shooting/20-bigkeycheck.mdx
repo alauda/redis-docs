@@ -5,32 +5,32 @@ sourceSHA: a5430ce1de789daa18528a9e251c3937beb4a5b3e8b1db2729dc53d1b0e21bf5
 
 # Discovery and Handling of BigKey
 
-The presence of BigKey can impact the performance and stability of Redis services, potentially leading to service failures. This document primarily introduces the concept, detection methods, and handling techniques for BigKey.
+BigKeys can significantly impact Redis service performance and stability, potentially leading to service degradation or outages. This document introduces the concept of BigKeys, detection methodologies, and best practices for handling them in production environments.
 
 ## What is BigKey
 
-A BigKey does not refer to the Key being large, but rather the value associated with the Key being large. Generally, it is evaluated based on the memory occupation size of the value and the number of members. For example:
+A BigKey in Redis refers not to the key itself being large, but rather to the size of the value associated with the key. BigKeys are generally evaluated based on two criteria: memory consumption and element count. Common thresholds include:
 
-- String: Size exceeds 5MB.
-- List: The number of elements exceeds 20,000.
-- Set: The number of elements exceeds 10,000.
-- Sorted Set: The number of elements exceeds 10,000.
-- Hash: The number of fields exceeds 10,000.
+- **String**: Size exceeds 5MB
+- **List**: Element count exceeds 20,000
+- **Set**: Element count exceeds 10,000
+- **Sorted Set**: Element count exceeds 10,000
+- **Hash**: Field count exceeds 10,000
 
-> The above standards are for reference only.
+> Note: These thresholds are provided as guidelines and may need adjustment based on your specific environment and requirements.
 
 ## Impact of BigKey
 
-BigKey can affect the performance and stability of Redis services, mainly reflected in the following aspects:
+BigKeys can adversely affect Redis service performance and stability in several ways:
 
-- **Blocking Threads**: Since Redis data processing is single-threaded, executing a time-consuming command will block the execution of other commands, resulting in a decrease in Redis service performance.
-- **Client Timeouts**: Due to Redis's single-threaded nature, operations on large keys can take a long time, leading to unresponsive clients.
-- **Network Bandwidth Consumption**: The transmission of BigKey consumes a significant amount of network bandwidth, causing excessive network transmission pressure on Redis services. If the size of a key is 1MB and the access frequency is 1000 per second, it results in 1000MB of traffic per second, which is catastrophic for a typical Gigabit NIC server.
+- **Thread Blocking**: Redis processes data using a single thread model. Operations on BigKeys can be time-consuming, blocking the execution of other commands and degrading overall service performance.
+- **Client Timeouts**: Due to the single-threaded architecture, operations on BigKeys may cause Redis to become unresponsive to client requests, leading to connection timeouts.
+- **Network Bandwidth Saturation**: Transmitting BigKeys consumes substantial network bandwidth. For example, a 1MB key accessed 1,000 times per second would generate 1GB/s of network traffic, potentially overwhelming standard network infrastructure.
 
-Specifically, in cluster mode, the following impacts may occur:
+In cluster deployments, additional concerns arise:
 
-- **Uneven Memory Distribution**: BigKey may lead to excessive memory consumption in one node of the cluster, while other nodes consume less memory, resulting in uneven memory distribution within the cluster.
-- **High Data Migration Pressure**: During scaling operations in cluster mode, migrating BigKey can block Redis for an extended period, affecting normal business access and reducing cluster stability, potentially leading to service failures.
+- **Memory Imbalance**: BigKeys can cause disproportionate memory consumption on individual nodes, resulting in suboptimal resource utilization across the cluster.
+- **Migration Bottlenecks**: During scaling operations, migrating BigKeys can block Redis for extended periods, disrupting normal operations and potentially compromising cluster stability.
 
 ## Detection of BigKey
 

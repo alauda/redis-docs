@@ -4,70 +4,98 @@ weight: 20
 
 # Shard Scaling in Cluster Mode
 
-Redis cluster mode achieves high availability and scalability by distributing data shards across multiple nodes. In practical applications, the Redis cluster may need to increase or decrease shards based on business requirements. This document details the prerequisites, resource requirements, service access policies, and the time required for shard changes.
+Redis Cluster architecture provides horizontal scalability through data distribution across multiple shards. As workload requirements evolve, you may need to adjust the shard count to optimize performance, resource utilization, and data distribution. This document outlines the technical considerations, resource requirements, and implementation guidelines for shard scaling operations.
 
 ## Prerequisites
 
-Before changing shards in a Redis cluster, the following conditions must be ensured:
+Before modifying the shard configuration in a Redis Cluster, ensure the following conditions are met:
 
-- The status of the cluster instances must be running.
-- It must be ensured that there is sufficient memory resource for the shards before and after scaling.
-- The operations should be performed during off-peak business hours to avoid impacting the business.
-- It must be confirmed that the network bandwidth of the nodes where the Pods are located is sufficient before and after the changes to avoid shard change failures due to insufficient network bandwidth.
-- The reliability of the infrastructure must be ensured to prevent issues such as data loss or shard loss due to server failures or power outages.
+- **Operational Status**: The cluster must be in a stable `Running` state with all nodes functioning correctly.
+- **Resource Availability**: Sufficient memory resources must be available across the cluster to accommodate data redistribution during the scaling process.
+- **Maintenance Window**: Schedule scaling operations during periods of low traffic to minimize potential service impact.
+- **Network Capacity**: Verify adequate network bandwidth between Redis nodes to support efficient data migration.
+- **Infrastructure Stability**: Ensure the underlying infrastructure is stable to prevent node failures during the scaling operation, which could compromise data integrity.
 
 ## Resource Requirements
 
-When changing shards, it is essential to ensure that the resources of the cluster instances are sufficient to guarantee the successful completion of the shard changes.
+Proper resource planning is critical for successful shard scaling operations. The following memory-related concepts are important to understand:
 
-The definitions of memory-related concepts are as follows:
+| Term | Definition | Notes |
+| :--- | :--------- | :---- |
+| Data Memory | Actual memory consumed by Redis dataset | Observable via `info memory` command; this value fluctuates as Redis performs memory optimization and garbage collection |
+| Maximum Data Memory | Highest memory consumption observed across all Redis nodes | Used as a reference point for capacity planning |
+| Maximum Running Memory | Maximum Data Memory ÷ 0.8 | The coefficient (0.8) represents the recommended ratio between `maxmemory` and total instance memory allocation; lower ratios increase overhead margin but reduce memory efficiency |
+| Migration Data Memory | Aggregate data volume from shards being decommissioned | During scale-down operations, this data must be redistributed across remaining shards |
 
-| Name           | Definition                               | Description                                                                                                                                                                      |
-| :------------- | :--------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Data Memory    | Memory actually occupied by data in Redis | In Redis, this can be checked using `info memory`. Since the redis-server continually optimizes and cleans up data, this value is constantly changing.                                                                 |
-| Maximum Data Memory | Maximum value of memory occupied by data across all Redis nodes | In Redis, this can also be checked using `info memory`.                                                                                                                                 |
-| Maximum Running Memory | Maximum Data Memory / 0.8                     | `0.8` is the ratio of `maxmemory` to instance memory specifications, and `0.8` is the ideal maximum value. `maxmemory` includes not only data memory but also buffer memory, etc. Therefore, in actual production, it is recommended that this ratio range is 0.5-0.8; the smaller the value, the larger the required instance specification, the lower the possibility of Redis encountering OOM. |
-| Migration Data Memory | Sum of the data memory to be deleted in all shards after scaling down | During the scaling-down process, the data in the shards that need to be deleted must be migrated to other shards, and it is possible that all data ends up being migrated to one of the shards.                                                                                                     |
+### Scale-Up Operations
 
-### Increasing Shards
+When increasing the number of shards, each instance should satisfy:
 
-Memory specification calculation formula: `instance specification size >= Maximum Running Memory`
+```
+Instance Memory Allocation ≥ Maximum Running Memory
+```
 
-This formula ensures the successful addition of shards when data is reasonably balanced. If **data is unbalanced** or there are BigKeys, it is likely that all data will migrate to a particular shard, which would require significant resources; **therefore, no hard limits are imposed, and actual conditions must be evaluated**.
+This formula ensures successful shard addition under balanced data distribution scenarios. In environments with **data imbalance** or presence of BigKeys, additional capacity planning is required as data migration patterns may concentrate load on specific shards.
 
-### Decreasing Shards
+### Scale-Down Operations
 
-Memory specification calculation formula: `instance specification size >= (Maximum Data Memory of the retained shards after scaling + Migration Data Memory) / 0.8`
+When decreasing the number of shards, each remaining instance should satisfy:
 
-This formula ensures the successful removal of shards when data is reasonably balanced. If **data is unbalanced** or there are BigKeys, it is likely that all data will migrate to a particular shard; however, unlike adding shards, reducing shards should be conducted during a sustained low-load period for the business, with significant memory being free, thus a **hard limit on resource requirements** is imposed for unbalanced data scaling down.
+```
+Instance Memory Allocation ≥ (Maximum Data Memory of Retained Shards + Migration Data Memory) ÷ 0.8
+```
+
+This formula accounts for the redistribution of data from decommissioned shards. Unlike scale-up operations, scale-down processes impose **strict resource requirements** to accommodate potential data concentration scenarios, even with unbalanced data distribution.
 
 ## Steps
 
 <Tabs>
   <Tab label="CLI">
-    Shard changes involve increasing or decreasing the number of shards and can be controlled through the field `spec.replicas.cluster.shard` (refer to the [API documentation](../../apis/kubernetes_apis/redis/redis) for more details)
-
+    Shard scaling is controlled through the `spec.replicas.cluster.shard` field in the Redis custom resource (see [API documentation](../../apis/kubernetes_apis/redis/redis) for detailed parameter specifications).
+    
     ```bash
-    # Set the number of shards for the cluster to 4
+    # Configure the cluster to use 4 shards
     $ kubectl -n default patch redis c6 --type=merge --patch='{"spec": {"replicas":{"cluster":{"shard": 4}}}}'
     ```
+    
+    To monitor the scaling operation progress:
+    
+    ```bash
+    $ kubectl -n default get redis c6 -w
+    ```
   </Tab>
-
+  
   <Tab label="Web Console">
-    1. On the instance details page, click **Shard Changes**.
-
-    2. Enter the new number of shards and click **Update**.
+    1. Navigate to the **Redis** instance details page.
+    
+    2. Click **Shard Changes** in the action menu.
+    
+    3. Enter the desired number of shards and click **Update** to initiate the scaling operation.
   </Tab>
 </Tabs>
 
-After submitting shard changes, the system will automatically perform the shard change operations, and during the change process, the instance status will display as `Data Balancing`. While in this status, all operations except **deleting** the instance are prohibited.
+After submitting the shard configuration change, the system transitions the instance to `Data Balancing` state and autonomously manages the slot migration process. While in this state, all instance modifications except deletion are restricted.
 
-## Service Access Strategy During Shard Changes
+## Client Connectivity During Scaling
 
-During the shard change process, if a specific slot is marked as migrating and the Key under that slot is being migrated, Redis will return a `MOVED` error, and the client needs to resend the request. If it has not yet been migrated, it will still be processed on the original shard. Therefore, the client needs to handle the `MOVED` error and resend the request to the new shard.
+During shard redistribution, Redis slot migration affects client request handling as follows:
 
-> Note: Performing shard changes during peak business hours may result in a doubled client request load, causing network bandwidth pressure; thus, it is recommended to conduct shard changes during off-peak business hours.
+1. When a client requests access to a key in a slot marked for migration:
+   - If the key has already migrated to the target shard, Redis returns a `MOVED` redirection error
+   - If the key has not yet migrated, it will be processed by the original shard
 
-## Time Required for Shard Changes
+2. Redis Cluster-aware clients automatically handle these redirection errors by reissuing the request to the appropriate shard
 
-The time required for shard changes depends on various factors including the amount of data, network bandwidth, and instance specifications. Generally, the time for shard changes ranges from twenty minutes to several hours. The larger the data, the longer the shard change time.
+> **Performance Advisory**: Shard scaling during high-traffic periods may double the effective client request volume due to redirections, potentially creating network congestion. Schedule scaling operations during periods of reduced activity whenever possible.
+
+## Operation Duration
+
+The time required to complete shard scaling operations depends on multiple factors:
+
+- Total data volume being redistributed
+- Network throughput between nodes
+- Instance resource specifications
+- Presence of BigKeys requiring migration
+- Ongoing workload intensity
+
+Typically, shard scaling operations take between 20 minutes and several hours to complete. Larger datasets and more complex migration patterns extend this duration.

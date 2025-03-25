@@ -1,31 +1,29 @@
 ---
 weight: 20
-sourceSHA: e22c31ef3e1ea89d24da859f746aec03741d6d6df5e8428ae0996ec4f6a3cbce
+sourceSHA: 61c675408c9f407eb59a83e9d7e89ce5fbade5061f180536c205066361b540d8
 ---
 
 # 用户管理
 
-为确保 Redis 环境的安全性，务必设置密码并妥善保管。如果存在泄漏风险，请及时更新密码。在不使用的业务场景下，可以创建不同的用户以实现权限分离，从而提升安全性。
+实施适当的身份验证和访问控制对保护您的 Redis 环境至关重要。本节涵盖了 Redis 实例的密码管理和基于角色的访问控制配置。
 
-<Directive type="info" title="提示">
-  Redis 5 仅支持单一密码验证，并且不支持自定义用户。Redis 6.0 及以后的版本引入了 ACL 支持，并包含一个默认用户以兼容旧版本客户端。
+<Directive type="info" title="版本兼容性说明">
+  Redis 5.0 仅支持使用一组凭据进行基本密码身份验证，而 Redis 6.0 及后续版本实现了全面的访问控制列表 (ACL) 系统，支持多个具有细粒度权限的用户。Redis 6.0 及以上版本为向后兼容旧客户端保留了默认用户。
 </Directive>
 
 ## 查看用户
 
-查看与实例关联的所有用户。
+以下方法允许您查看与 Redis 实例相关的所有用户。
 
 <Tabs>
-  <Tab label="CLI">
-    实例用户关联的 CR 资源类型为 `RedisUser`。您可以使用以下命令查看与实例关联的所有用户：
-
-    > 仅适用于非 Redis 5.0 实例。
+  <Tab label="命令行界面">
+    Redis 实例 (版本 6.0+) 利用 `RedisUser` 自定义资源 (CR) 来管理用户账户。列出与特定实例关联的所有用户：
 
     ```bash
     $ kubectl -n default get redisuser -l middleware.instance/name=<实例名称>
     ```
 
-    检索实例 `s6` 的用户信息示例如下：
+    例如，要列出名为 `s6` 的实例的所有用户：
 
     ```bash
     $ kubectl -n test get redisuser -l middleware.instance/name=s6
@@ -37,45 +35,47 @@ sourceSHA: e22c31ef3e1ea89d24da859f746aec03741d6d6df5e8428ae0996ec4f6a3cbce
     rfr-acl-s6-operator   s6         operator   Success   3m17s
     ```
 
-    输出字段的说明如下：
+    输出字段提供以下信息：
 
-    | 字段    | 说明                                                                                                                                                                                                                                                     |
-    | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | NAME     | RedisUser CR 资源的名称                                                                                                                                                                                                                           |
-    | INSTANCE | 与 RedisUser CR 资源关联的 Redis 实例的名称                                                                                                                                                                                        |
-    | USERNAME | 在 Redis 中注册的用户名                                                                                                                                                                                                                              |
-    | PHASE    | RedisUser CR 资源的状态，包括 <ul><li>`Success`: 用户成功同步到所有 Redis 节点</li><li>`Fail`: 用户在所有 Redis 节点同步失败</li><li>`Pending`: 关联的 Redis 实例尚未就绪</li></ul> |
+    | 字段    | 描述                                                                                                                                                                                                                 |
+    | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | NAME     | RedisUser 自定义资源标识符                                                                                                                                                                                                 |
+    | INSTANCE | 关联的 Redis 实例名称                                                                                                                                                                                                 |
+    | USERNAME | 在 Redis 中注册的用户名                                                                                                                                                                                               |
+    | PHASE    | 同步状态：<ul><li>`Success`: 用户配置成功同步到所有 Redis 节点</li><li>`Fail`: 在一个或多个 Redis 节点上的用户同步失败</li><li>`Pending`: 关联的 Redis 实例尚未就绪或同步正在进行中</li></ul> |
 
-    <Directive type="warning" title="operator 账户说明">
-      一个 **operator** 用户内置于实例中用于集群构建，此用户在实例创建时自动创建。该用户拥有实例的所有权限（包括创建新用户的权限），并设置有复杂的 64 位密码。
+    <Directive type="warning" title="系统操作员账户说明">
+      每个 Redis 实例都包括一个内置的 **operator** 用户，该用户在实例创建期间自动生成。此系统账户具有全面的权限（包括用户管理功能），并使用复杂的 64 字符密码进行保护。
 
-      此账户仅供 operator 自身使用，不可用于业务用途；该账户的任何信息都无法更新或修改，修改任何信息将导致实例故障且无法恢复。
+      该账户仅供系统操作使用，切勿用于应用程序访问。对该账户配置的任何修改可能导致实例严重不稳定，并可能导致无法恢复的故障状态。
     </Directive>
   </Tab>
 
-  <Tab label="Web Console">
-    1. 单击左侧导航栏中的 **Redis**。
-    2. 单击 ***命名空间名称***。
-    3. 单击 ***实例名称***。
-    4. 您可以在实例的 **用户管理** 页签中查看所有管理此实例的用户信息。
+  <Tab label="Web 控制台">
+    1. 在左侧导航栏中导航到 **Redis**。
+    2. 选择包含您实例的 ***命名空间名称***。
+    3. 单击 ***实例名称*** 以访问其详细信息。
+    4. 打开 **用户管理** 选项卡以查看为该实例配置的所有用户的全面列表。
   </Tab>
 </Tabs>
 
 ## 更新密码
 
-### 操作步骤
+以下步骤允许您更新用户密码以增强安全性。定期更换密码被认为是安全的最佳实践。
+
+### 步骤
 
 <Tabs>
-  <Tab label="CLI">
-    <Directive type="info" title="提示">
-      以下操作仅适用于 Redis 6.0 或更高版本。
+  <Tab label="命令行界面">
+    <Directive type="info" title="版本兼容性说明">
+      以下操作仅适用于 Redis 6.0 或更高版本。对于 Redis 5.0，请参考 "Redis 5.0 CLI" 选项卡。
     </Directive>
 
-    1. 从列表中找到要更新的用户。
+    1. 从 RedisUser 列表中识别目标用户。
 
-      假设我们要更新实例 `s6` 的 `default` 用户密码。
+       在此示例中，我们将更新实例 `s6` 的 `default` 用户的密码。
 
-    2. 获取与用户关联的 secret 资源。
+    2. 检索 RedisUser 资源以识别关联的密码 Secret：
 
     ```bash
     $ kubectl -n default get RedisUser rfr-acl-s6-default -o yaml
@@ -120,9 +120,9 @@ sourceSHA: e22c31ef3e1ea89d24da859f746aec03741d6d6df5e8428ae0996ec4f6a3cbce
       lastUpdateSuccess: "2025-02-28T02:16:28Z"
     ```
 
-    各字段的详细说明可以在 [RedisUser API](../apis/kubernetes_apis/redis/redisuser) 中找到。
+    从 `spec.passwordSecrets[0]` 字段可以看出，密码存储在 Secret `redis-s6-2hqxb` 中。
 
-    从字段 `spec.passwordSecrets[0]` 得知 `default` 用户的密码存储在 Secret `redis-s6-2hqxb` 中。
+    3. 检查当前的密码 Secret：
 
     ```bash
     $ kubectl -n default get secret redis-s6-2hqxb -o yaml
@@ -154,101 +154,104 @@ sourceSHA: e22c31ef3e1ea89d24da859f746aec03741d6d6df5e8428ae0996ec4f6a3cbce
     type: Opaque
     ```
 
-    > 输出信息中，`password` 是一个固定字段名，由 operator 使用，不可更改。其值为 Base64 编码的密文。
+    > 注意：`password` 键是 Redis Operator 使用的保留字段名，其值以 base64 编码的字符串形式存储。
 
-    使用以下命令更新 `password` 为新密码：
+    4. 使用新密码更新 Secret：
 
     ```bash
     $ kubectl -n default patch secret redis-s6-2hqxb --type=merge --patch='{"stringData": {"password": "admin@12345"}}'
     ```
 
-    使用以下命令确认密码更新成功：
+    5. 验证密码更新：
 
     ```bash
     $ kubectl -n default get secret redis-s6-2hqxb -o jsonpath='{.data.password}' | base64 -d
     admin@12345
     ```
 
-    更新密码后，RedisUser 实例将进入 `Pending` 状态。待更新完成，
+    在更新密码后，RedisUser 资源将暂时进入 `Pending` 状态，直到更改在所有 Redis 节点上传播。一旦同步，状态将恢复为 `Success`。
   </Tab>
 
   <Tab label="Redis 5.0 CLI">
-    Redis 5 不支持 ACL，因此没有 RedisUser 资源来管理 Redis 用户。对于 Redis 实例，有字段 `spec.passwordSecret` 用于记录当前实例的密码（具体文档参考：[Redis API 文档](../apis/kubernetes_apis/redis/redis)）。
+    Redis 5.0 不支持 ACL 系统，因此没有 RedisUser 资源来管理用户。密码通过 Redis CR 中的 `spec.passwordSecret` 字段进行管理（请参阅 [Redis API 文档](../apis/kubernetes_apis/redis/redis)）。
 
-    <Directive type="warning" title="警告">
-      更新密码将导致实例重启，可能会造成服务中断。建议避免在业务敏感期执行此操作。
+    <Directive type="warning" title="服务影响警告">
+      更新 Redis 5.0 实例的密码需要完全重启实例，这可能会导致服务中断。请在维护窗口或流量较低的时段安排此操作。
     </Directive>
 
-    1. 创建保存新密码的 Secret。
+    1. 创建一个 Secret 以包含新密码：
 
     ```bash
     $ kubectl -n default create secret generic new-redis-password --from-literal=password=admin@123456
     ```
 
-    2. 将新 Secret 更新到实例的 `spec.passwordSecret` 字段。
+    2. 将 Redis CR 更新为引用新 Secret：
 
     ```bash
     $ kubectl -n default patch redis s5 --type=merge --patch='{"spec": {"passwordSecret": "new-redis-password"}}'
     ```
 
-    执行后，实例的状态将变为 `Initializing`。您可以通过以下命令查看状态：
+    3. 在更新过程中监控实例状态：
 
-    ```
+    ```bash
     $ kubectl -n default get redis -w
     NAME ARCH       VERSION   ACCESS     STATUS         MESSAGE   BUNDLE VERSION   AUTOUPGRADE   AGE
     c6   cluster    6.0                  Ready                    4.0.1            false         125m
     s5   sentinel   5.0                  Initializing             4.0.1            false         8h
     s6   sentinel   6.0                  Ready                    4.0.1            false         124m
     ```
+
+    一旦密码更改完成，实例将过渡到 `Ready` 状态。
   </Tab>
 
-  <Tab label="Web Console">
-    1. 选择对应的用户信息，点击扩展按钮。
-    2. 选择 **重置密码**，输入新密码，再次输入以确认。
-    3. 等待更新完成即可。
+  <Tab label="Web 控制台">
+    1. 在 **用户管理** 选项卡中，选择目标用户并单击扩展按钮以查看用户详细信息。
+    2. 在操作菜单中单击 **重置密码**。
+    3. 输入新密码并再次确认。
+    4. 单击 **更新**，等待同步过程完成。
   </Tab>
 </Tabs>
 
 ## 更新权限
 
-Web Console 提供以下预定义权限集：
+Redis 6.0+ 通过其 ACL 系统支持细粒度的访问控制。该平台提供了常见用例的预定义权限配置：
 
-| 权限集       | ACL 规则                                   | 描述                                                       |
-|:-------------|:-------------------------------------------|:-----------------------------------------------------------|
-| NotDangerous | +@all -@dangerous ~*                       | 允许对所有 KEYS 执行除 dangerous 类外的所有命令。         |
-| ReadWrite    | -@all +@write +@read -@dangerous ~*       | 允许在所有 KEYS 上执行除 dangerous 类别外的所有读写命令。 |
-| ReadOnly     | -@all +@read -keys ~*                      | 允许对所有 KEYS 执行所有读取类命令。                     |
-| Administrator | +@all -acl ~*                             | 允许对所有 KEYS 执行所有命令。                           |
+| 权限配置       | ACL 规则                             | 描述                                                                                            |
+| :------------- | :------------------------------------ | :---------------------------------------------------------------------------------------------------- |
+| NotDangerous   | `+@all -@dangerous ~*`               | 允许对所有键执行所有命令，但不包括被标记为潜在危险的操作                                           |
+| ReadWrite      | `-@all +@write +@read -@dangerous ~*`| 允许在所有键上进行读写操作，但阻止危险命令                                                      |
+| ReadOnly       | `-@all +@read -keys ~*`              | 限制访问所有键的只读操作                                                                          |
+| Administrator   | `+@all -acl ~*`                       | 提供对所有 Redis 功能的全面访问，但不包括 ACL 管理命令                                                   |
 
-此外，还支持自定义规则。有关自定义规则的信息，请参见 Redis 社区文档中的 [ACL 规则](https://redis.io/topics/acl)。
+对于高级用例，支持自定义 ACL 规则。有关详细语法和功能，请参阅 [Redis ACL 文档](https://redis.io/topics/acl)。
 
-> 重要的是，内置的 ACL 规则和自定义规则均会强制收回执行 ACL 命令的权限。用户的更改只能在此进行。
+> 注意：所有权限配置，包括自定义配置，明文撤销 ACL 管理权限。用户修改必须通过平台的用户管理接口进行。
 
-### 操作步骤
+### 步骤
 
 <Tabs>
-  <Tab label="CLI">
+  <Tab label="命令行界面">
     ```bash
     $ kubectl -n default patch RedisUser s56 --type=merge --patch='{"spec": {"aclRules": "+@all ~*"}}'
     ```
 
-    成功创建后，该用户将随机进入 `Pending` 状态。等待其变为 `Success` 状态，即表示更新成功。
+    成功创建后，用户将随机进入 `Pending` 状态。等待其变为 `Success` 状态，表示更新成功。
   </Tab>
 
-  <Tab label="Web Console">
-    1. 选择对应的用户信息，点击扩展按钮。
+  <Tab label="Web 控制台">
+    1. 选择对应用户信息并单击扩展按钮。
     2. 选择 **更新权限**。
-    3. 选择权限集或点击自定义输入自定义规则。
-    4. 点击 **更新**，等待更新完成。
+    3. 选择权限集或单击自定义输入自定义规则。
+    4. 单击 **更新**，等待更新完成。
   </Tab>
 </Tabs>
 
 ## 创建用户
 
-### 操作步骤
+### 步骤
 
 <Tabs>
-  <Tab label="CLI">
+  <Tab label="命令行界面">
     为 Redis 集群实例创建用户。
 
     ```bash
@@ -270,13 +273,13 @@ Web Console 提供以下预定义权限集：
     ```
   </Tab>
 
-  <Tab label="Web Console">
-    1. 点击 **创建用户**。
+  <Tab label="Web 控制台">
+    1. 单击 **创建用户**。
     2. 输入用户名。
     3. 输入密码并重复输入以确认。
-    4. 选择权限集或点击自定义输入自定义规则。
-    5. 点击 **确认** 以创建用户。
-    6. 选择用户，点击用户名可查看用户状态。
+    4. 选择权限集或单击自定义输入自定义规则。
+    5. 单击 **确认** 创建用户。
+    6. 选择用户，您可以通过单击用户名查看用户状态。
 
     一旦资源状态变为 **正常**，您可以使用新密码进行调试连接。
   </Tab>

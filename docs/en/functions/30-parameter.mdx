@@ -5,32 +5,32 @@ sourceSHA: 308585571db88077bffd035151f6160f84c24c6ffd00a0ffdcf91d9a017b364b
 
 # Parameter Configuration
 
-When creating a Redis instance, the system parameter template is used by default.
+When creating a Redis instance, the system's default parameter template is applied. 
 
-Alauda Application Services provides three parameter templates for different scenarios for each version of Redis (only two for 5.0) to facilitate users in quickly creating instances.
+Alauda Application Services provides specialized parameter templates for each Redis version (three templates for version 6.0+ and two for version 5.0) to accommodate different operational requirements.
 
-| Parameter Template  | Description                                                                                                                                                                                | Notes                                              |
-| :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ |
-| RDB Parameter Template | **RDB Persistence Parameter Template** This parameter template configures Redis to work with RDB persistence. RDB persistence saves the in-memory dataset to disk in binary format at specified time intervals. It is suitable for resource-limited scenarios that require a balance of performance and data reliability, with an acceptable level of data loss within minutes. In this mode, Redis can be used as a storage database. | Data reliability is provided based on the configured `save` parameter, which defaults to minute-level reliability.            |
-| AOF Parameter Template | **AOF Persistence Parameter Template** This parameter template configures Redis to work with AOF persistence. AOF persistence records all write operations to a log file (in append mode) to ensure data safety. When Redis restarts, operations in the AOF file will be replayed to rebuild the dataset. It is suitable for resource-rich scenarios that do not have high performance requirements but need sufficient data safety. In this mode, Redis can also be used as a storage database. | Frequent data log persistence requires high disk performance and may reduce Redis’s overall performance, but can provide second-level reliability. |
-| Diskless Parameter Template | **Diskless Parameter Template** This parameter template disables Redis's persistence functionality. In this configuration, Redis only serves as a cache layer to speed up application access, with all data stored in memory. This means that all data will be lost upon Redis restart or failure. This configuration is suitable for high-performance requirements, but less concern for business data interruption. | All data is stored in memory, so performance is not affected by storage. However, if all nodes fail, all data will be lost.         |
+| Parameter Template | Description | Considerations |
+| :---------------- | :---------- | :------------- |
+| RDB Parameter Template | **RDB Persistence Parameter Template** configures Redis with RDB persistence, which serializes the in-memory dataset to disk as binary snapshots at configured intervals. This approach is ideal for environments with limited resources that require a balance between performance and data durability, where minute-level data loss is acceptable. Redis can function as a persistent data store in this mode. | Data durability depends on the `save` parameter configuration, which typically provides minute-level recovery point objectives (RPOs). |
+| AOF Parameter Template | **AOF Persistence Parameter Template** configures Redis with Append-Only File persistence, which logs all write operations sequentially to ensure data integrity. During instance recovery, Redis replays operations from the AOF file to reconstruct the dataset. This approach is suitable for environments with sufficient resources where data safety takes precedence over performance considerations. Redis can function as a persistent data store in this mode. | The frequent fsync operations required for AOF persistence necessitate high-performance storage infrastructure and may impact overall Redis performance, but provide second-level RPOs. |
+| Diskless Parameter Template | **Diskless Parameter Template** disables Redis persistence mechanisms entirely. In this configuration, Redis functions purely as an in-memory cache to accelerate application performance. All data resides in memory with no disk persistence, resulting in data loss upon Redis restart or failure. This configuration maximizes performance but sacrifices data durability. | Data exists solely in memory, eliminating storage-related performance overhead. However, the failure of all Redis nodes results in complete data loss. |
 
-When creating instance, you can select one of the above templates which matches most your business in the **Create Redis Instance** page for field **Parameter Templates**.
+When creating a Redis instance, select the template that best aligns with your business requirements in the **Parameter Templates** field of the **Create Redis Instance** page.
 
-You can also create customize configurations in the parameter template for reuse.
+You can also create custom parameter templates for reuse across multiple instances.
 
-Redis parameter configuration is divided into three categories:
+Redis parameters fall into three categories based on how changes take effect:
 
-| Name        | Parameters                                                                                          | Description                                |
-| :------     | :------------------------------------------------------------------------------------------         | :----------------------------------------- |
-| Hot Update Parameters  |                                                                                             | Take effect immediately after setting, no need to restart the instance.     |
-| Restart Update Parameters | `databases`, `rename-command`, `rdbchecksum`, `tcp-backlog`, `io-threads`, `io-threads-do-reads` | Require instance restart to take effect after updating.       |
-| Non-Support Update Parameters | `bind`, `protected-mode`, `port`, `supervised`, `pidfile`, `dir`, etc.                           | Some parameters are built-in parameters, or updating parameters after instance initialization may cause exceptions, thus cannot be changed. |
+| Category | Parameters | Behavior |
+| :------- | :--------- | :------- |
+| Hot Update Parameters | Various parameters that support dynamic reconfiguration | Changes take effect immediately without requiring an instance restart. |
+| Restart Update Parameters | `databases`, `rename-command`, `rdbchecksum`, `tcp-backlog`, `io-threads`, `io-threads-do-reads` | Changes require a full instance restart to take effect. |
+| Non-Modifiable Parameters | `bind`, `protected-mode`, `port`, `supervised`, `pidfile`, `dir`, etc. | These parameters are either built-in system configurations or their modification after instance initialization could cause operational instability. |
 
-When updating parameters, please pay attention to the following details:
+When modifying Redis parameters, consider the following best practices:
 
-- Before updating parameters, ensure whether the parameters are hot update parameters. If the parameters to be updated include those that require a restart to take effect, it is recommended to take proper data backups.
-- After upgrading the Redis version, if there are parameters to be deleted, deprecated, or changed, please consult the corresponding modifications on the [Redis official website](https://redis.io/topics/config).
+- Before implementing parameter changes, determine whether the parameters support hot updates. For parameters requiring instance restart, perform appropriate data backups prior to modification.
+- After upgrading Redis versions, review parameter compatibility in the [Redis configuration documentation](https://redis.io/topics/config) to identify deprecated, removed, or modified parameters.
 
 ## Steps
 
