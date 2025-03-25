@@ -1,6 +1,6 @@
 ---
 weight: 20
-sourceSHA: 7ecda9569433f070ad4a86ab5e07448a3376e3e85a7009ffe69b4c3347d39405
+sourceSHA: e22c31ef3e1ea89d24da859f746aec03741d6d6df5e8428ae0996ec4f6a3cbce
 ---
 
 # 用户管理
@@ -92,7 +92,7 @@ sourceSHA: 7ecda9569433f070ad4a86ab5e07448a3376e3e85a7009ffe69b4c3347d39405
         managed-by: redis-operator
         middleware.instance/name: s6
       name: rfr-acl-s6-default
-      namespace: hfxia-dev
+      namespace: default
       ownerReferences:
       - apiVersion: databases.spotahome.com/v1
         blockOwnerDeletion: true
@@ -141,7 +141,7 @@ sourceSHA: 7ecda9569433f070ad4a86ab5e07448a3376e3e85a7009ffe69b4c3347d39405
         managed-by: redis-operator
         middleware.instance/name: s6
       name: redis-s6-2hqxb
-      namespace: hfxia-dev
+      namespace: default
       ownerReferences:
       - apiVersion: redis.middleware.alauda.io/v1
         blockOwnerDeletion: true

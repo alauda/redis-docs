@@ -1,6 +1,6 @@
 ---
 weight: 20
-sourceSHA: 84681f824c7f267c2ec25413135419e3073d364adfb8d46bc5587c0c24d2ad3a
+sourceSHA: 9919ad5dd438a40c47ead16b8696ef119c250acbd547dec0543211c256ae6016
 ---
 
 # BigKey 的发现与处理
@@ -44,7 +44,7 @@ Alauda 应用服务提供了 **巡检** 功能，使您能够检测 Redis 实例
 
 ```bash
 # 首先检查 RdsInstaller 配置
-$ kubectl -n operators get RdsInstaller rds -o yaml
+$ kubectl -n rds-system get RdsInstaller rds -o yaml
 ```
 
 输出如下：
@@ -65,14 +65,14 @@ spec:
     imagePullPolicy: Always
     instanceReportLimit: "10"
     name: inspection-operator
-    namespace: operators
+    namespace: rds-system
     ......
 ```
 
 2. 修改 `ENABLE_REDIS_KEYS_INDICATOR` 环境变量的值并保存。
 
 ```bash
-$ kubectl -n operators edit RdsInstaller rds
+$ kubectl -n rds-system edit RdsInstaller rds
 ```
 
 将 `spec.inspection.env` 中的 `ENABLE_REDIS_KEYS_INDICATOR` 的值更改为 `1`。修改后的实例如下：
@@ -94,20 +94,20 @@ spec:
     imagePullPolicy: Always
     instanceReportLimit: "10"
     name: inspection-operator
-    namespace: operators
+    namespace: rds-system
     ......
 ```
 
 保存之后，巡检工具将重启。您可以使用以下命令检查重启进度：
 
 ```bash
-$ kubectl -n operators get pods -l name.operator=inspection-operator
+$ kubectl -n rds-system get pods -l name.operator=inspection-operator
 ```
 
 输出如下：
 
 ```bash
-$ kubectl -n operators get pods -l name.operator=inspection-operator
+$ kubectl -n rds-system get pods -l name.operator=inspection-operator
 NAME                                   READY   STATUS    RESTARTS   AGE
 inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
 ```
@@ -116,7 +116,7 @@ inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
 
 3. 执行巡检
 
-在 **Redis** -> **实例详情** 页面，点击 **巡检** 按钮以启动实例的巡检。
+在 **Redis** -> **详情信息** 页面，点击 **巡检** 按钮以启动实例的巡检。
 
 一旦巡检开始，按钮将显示 **巡检中...**，完成后巡检按钮将变为可点击状态。
 
@@ -124,7 +124,7 @@ inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
 
 4. 查看巡检结果
 
-巡检完成后，您可以在 **Redis** -> **实例详情** 页面中的巡检报告点击 **查询** 按钮，以查看巡检结果。
+巡检完成后，您可以在 **Redis** -> **详情信息** 页面中的巡检报告点击 **查询** 按钮，以查看巡检结果。
 
 ![BigKey检测报告查看入口](../assets/44redis-bigkey-inspect-report-entry.png)
 

@@ -44,7 +44,7 @@ On the cluster where the instance is located, edit the RdsInstaller function to 
 
 ```bash
 # First check the RdsInstaller configuration
-$ kubectl -n operators get RdsInstaller rds -o yaml
+$ kubectl -n rds-system get RdsInstaller rds -o yaml
 ```
 
 The output is as follows:
@@ -65,14 +65,14 @@ spec:
     imagePullPolicy: Always
     instanceReportLimit: "10"
     name: inspection-operator
-    namespace: operators
+    namespace: rds-system
     ......
 ```
 
 2. Modify the value of the `ENABLE_REDIS_KEYS_INDICATOR` environment variable and save.
 
 ```bash
-$ kubectl -n operators edit RdsInstaller rds
+$ kubectl -n rds-system edit RdsInstaller rds
 ```
 
 Change the value of `ENABLE_REDIS_KEYS_INDICATOR` in `spec.inspection.env` to `1`. The modified instance is as follows:
@@ -94,20 +94,20 @@ spec:
     imagePullPolicy: Always
     instanceReportLimit: "10"
     name: inspection-operator
-    namespace: operators
+    namespace: rds-system
     ......
 ```
 
 After saving, the inspection Operator tool will restart. You can check the restart progress with the following command:
 
 ```bash
-$ kubectl -n operators get pods -l name.operator=inspection-operator
+$ kubectl -n rds-system get pods -l name.operator=inspection-operator
 ```
 
 The output is as follows:
 
 ```bash
-$ kubectl -n operators get pods -l name.operator=inspection-operator
+$ kubectl -n rds-system get pods -l name.operator=inspection-operator
 NAME                                   READY   STATUS    RESTARTS   AGE
 inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
 ```
