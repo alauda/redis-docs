@@ -5,47 +5,47 @@ sourceSHA: 09d30a449de6e32a7dfeda47a6415f58ebfde2b6e1d6324f4a5910230b141f89
 
 # Monitoring and Alerts
 
-The monitoring data embedded in the panel can be used for monitoring and alerting Redis from the perspectives of resources, performance, etc., and it supports configuring notification strategies.
+The platform provides comprehensive monitoring capabilities with integrated dashboards for Redis instances. These monitoring features enable performance analysis, resource utilization tracking, and configurable alerting mechanisms for proactive management.
 
 ## Monitoring
 
-The platform by default collects common monitoring indicators for Redis related to resources and performance. In the instance's **Monitoring** tab, you can view real-time monitoring data for these indicators.
+The platform automatically collects key performance metrics for Redis instances related to resource utilization and operational performance. These metrics can be viewed in real-time through the instance's **Monitoring** tab.
 
-| Category             | Indicator               |
-| -------------------- | ----------------------- |
-| **Cluster Status Monitoring** | Key count statistics, command statistics, etc. |
-| **Resource Monitoring**       | Memory usage, network traffic, etc.      |
-| **Performance Monitoring**    | Connection count, network I/O, etc. |
+| Category | Metrics |
+| -------- | ------- |
+| **Cluster Status Monitoring** | Key count statistics, command execution metrics, replication lag, etc. |
+| **Resource Monitoring** | Memory utilization, network traffic patterns, storage consumption, etc. |
+| **Performance Monitoring** | Connection count, network I/O throughput, command latency, etc. |
 
 ## Alerts
 
-To create alerting rules for Redis, go to the **Alerts** > **Rules** page in the Alauda Application Service.
+To configure alerting rules for Redis instances, navigate to the **Alerts** > **Rules** page in Alauda Application Service.
 
 ### Configuring Alert Rules
 
-To enable alerts, you must first create an alert rule in the Application Service. An alert rule describes the objects you want to monitor, under what conditions you wish to receive alerts, and how you will be notified about the relevant alerts.
+Implementing alerts requires the creation of an alert rule in Alauda Application Service. An alert rule defines the monitoring targets, threshold conditions that trigger notifications, and the notification delivery mechanisms.
 
-The platform has the following built-in alert indicators:
+The platform provides the following pre-configured alert indicators:
 
-| Name                     | Recommended Trigger Condition | Description                                       |
-| :---------------------- | :---------------------------- | :------------------------------------------------ |
-| Instance Status         | !=1, sustained for 30 seconds | Monitors the availability of the cluster          |
-| Key Access Hit Rate     | < 80%, sustained for 30 seconds | Monitors the hit rate of keys; a low hit rate indicates that the accessed keys do not exist, necessitating adjustments to the cache strategy, and increasing the cache TTL, etc. |
-| Average Response Time    | >0.1s, sustained for 30 seconds | Long response times can lead to decreased processing capacity; check if there is a CPU bottleneck, excessive request volume, or issues with Big Keys. |
-| Master-Slave Switch     | =1, sustained for 30 seconds  | If a master-slave switch occurs, it may indicate a K8s cluster node failure or Redis node issues. |
-| Single Node Input Bandwidth   | Judged based on hardware conditions | Monitors bandwidth in real-time to prevent bandwidth resource occupation from causing other business anomalies. |
-| Single Node Output Bandwidth  | Judged based on hardware conditions | Monitors bandwidth in real-time to prevent bandwidth resource occupation from causing other business anomalies. |
-| Single Node Client Connection Count | Judged based on resource conditions | Used to monitor abnormal connection situations.   |
-| Node CPU Utilization    | > 80%, sustained for 30 seconds | Monitors CPU usage in real-time; if CPU utilization is too high, scaling considerations are necessary. |
-| Node Memory Utilization  | > 80%, sustained for 30 seconds | Monitors memory usage in real-time; if memory utilization is too high, immediate scaling is required. |
-| Node Storage Utilization  | > 80%, sustained for 30 seconds | Monitors storage space in real-time; if utilization is too high, scaling considerations are necessary. |
+| Indicator | Recommended Threshold | Description |
+| :-------- | :------------------- | :---------- |
+| Instance Status | !=1, sustained for 30 seconds | Monitors instance availability and operational state |
+| Key Access Hit Rate | < 80%, sustained for 30 seconds | Monitors cache efficiency; low hit rates may indicate cache misses requiring strategy adjustments (increasing TTL values, optimizing key patterns, etc.) |
+| Average Response Time | >0.1s, sustained for 30 seconds | Monitors command execution latency; prolonged response times may indicate CPU constraints, excessive workload, or BigKey operations |
+| Master-Slave Failover | =1, sustained for 30 seconds | Detects master-slave role transitions that may indicate underlying infrastructure issues or Redis node failures |
+| Inbound Bandwidth per Node | Environment-specific thresholds | Monitors network ingress in real-time to prevent bandwidth saturation affecting service availability |
+| Outbound Bandwidth per Node | Environment-specific thresholds | Monitors network egress in real-time to prevent bandwidth saturation affecting service availability |
+| Client Connections per Node | Environment-specific thresholds | Monitors connection patterns to detect potential connection leaks or abnormal access patterns |
+| CPU Utilization per Node | > 80%, sustained for 30 seconds | Monitors CPU consumption; sustained high utilization may require capacity planning and scaling |
+| Memory Utilization per Node | > 80%, sustained for 30 seconds | Monitors memory usage; approaching capacity limits requires immediate scaling to prevent eviction or OOM conditions |
+| Storage Utilization per Node | > 80%, sustained for 30 seconds | Monitors persistent storage usage for RDB/AOF configurations; high utilization requires capacity expansion |
 
-With the above alert indicators, quick creation of alert rules is achievable. In addition to built-in alert indicators, custom alert indicators can also be defined in the following format:
+These pre-configured indicators facilitate rapid alert rule implementation. For advanced monitoring requirements, custom alert indicators can be defined using Prometheus query syntax:
 
 ```yaml
 (1/(1+(avg(irate(redis_keyspace_misses_total{namespace=~"<namespace>", pod=~"<podname prefix>-.*"}[5m])) by(namespace,service) / (avg(irate(redis_keyspace_hits_total{namespace=~"<namespace>", pod=~"<podname prefix>-.*"}[5m])) by(namespace,service)+1))))
 ```
 
-In this context, `redis_keyspace_misses_total` is the name of the metric collected by Prometheus, `<namespace>` is used to filter the command space where the resources are located, and `<podname prefix>` is the prefix for Pods, used to match Pods created by `Deployment` or `StatefulSet`. For more detailed information on writing metrics, please refer to the [PromQL Official Documentation](https://prometheus.io/docs/prometheus/latest/querying/basics/).
+In this example, `redis_keyspace_misses_total` represents a Prometheus-collected metric, `<namespace>` filters resources by namespace, and `<podname prefix>` specifies the Pod name pattern for resources managed by `Deployment` or `StatefulSet`. For comprehensive information on metric queries, refer to the [PromQL Official Documentation](https://prometheus.io/docs/prometheus/latest/querying/basics/).
 
-For more information about configuring and using alerts, please refer to <ExternalSiteLink name="acp" href="appservice/unified-om/alert-policy-mgt/index" children="Alert Management" />.
+For detailed guidance on alert configuration and management, see <ExternalSiteLink name="acp" href="appservice/unified-om/alert-policy-mgt/index" children="Alert Management" />.

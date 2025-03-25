@@ -1,56 +1,61 @@
 ---
 weight: 40
-sourceSHA: cd261a7d25f757999162d3c0e4dfa3ea03968e3451bd9c82fe7377138bc76a84
+sourceSHA: 295c8a9bf567144efbaf22e70fa4604ad208e22913f3ff86b648bebd7406a298
 ---
 
 # 访问方式
 
-业务应用访问 Redis 实例时有多种连接方式，本节描述了如何选择连接地址，并通过连接地址访问到哨兵模式或集群模式 Redis 实例。
+灵雀云 Cache Service for Redis OSS 提供多种连接策略，供应用程序访问 Redis 实例。本节描述了如何获取适当的连接地址，并在哨兵模式和集群模式下建立与 Redis 实例的连接。
 
 ## 如何获取访问地址
 
-Redis 实例支持多种访问地址来满足不同场景的需求。这里介绍的访问方式都是指 Redis 标准的访问方式。具体可查看社区文档：
+Redis 实例支持多种访问方法，以满足不同的部署场景。这些访问方法符合标准的 Redis 连接协议。有关详细信息，请参见官方 Redis 文档：
 
 - [Redis 集群模式规范](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)
 - [Redis 哨兵模式客户端规范](https://redis.io/docs/latest/develop/reference/sentinel-clients/)
 
 ### 集群内访问地址
 
-集群内访问只可用于 Kubernetes 网络内部访问。连接的地址有两个选择：
+集群内访问提供了 Kubernetes 网络环境内的连接性。可供选择的连接方式有两种：
 
-1. 内部路由 (即通过 DNS 方式)
-2. 内部路由的 IP
+1. **基于 DNS 的内部路由**：使用 Kubernetes 服务发现机制
+2. **基于 IP 的内部路由**：使用直接 IP 地址
 
-这两种方式都能实现访问 Redis 集群模式或者哨兵模式。
+这两种方法都支持连接到配置为集群模式或哨兵模式的 Redis 实例。
 
-地址获取路径：**实例详情** > **访问方式** > **集群内访问**
+要获取内部访问地址：导航到 **实例详情** > **访问方式** > **集群内访问**
 
 ### 集群外访问地址
 
-集群外访问可用于 Kubernetes 网络外部访问，比如从另一个 Kubernetes 集群访问（也可用于 Kubernetes 集群内部访问，这个还需要确认防火墙规则，是否允许）。
+集群外访问允许从 Kubernetes 网络环境外部进行连接，例如从运行在不同集群或外部系统中的应用程序。这种方法在网络策略允许时也可用于集群内部访问。
 
-目前支持 NodePort 和 LoadBalancer 两种集群外访问方式。
+支持两种外部访问方法：
 
-地址获取路径：**实例详情** > **访问方式** > **集群外访问**
+- **NodePort**：在每个 Kubernetes 节点上暴露 Redis 的静态端口
+- **LoadBalancer**：提供外部负载均衡器以将流量路由到 Redis 实例
 
-<Directive type="warning" title="NodePort 访问说明">
-在 Kubernetes 集群外访问 NodePort，需要确保防火墙已放行相应的 IP 和 NodePort。由于 Redis 哨兵和集群的架构限制，业务与 NodePort 之间需要确保网络联通，不支持将实例的 NodePort 地址通过负载均衡器（Load Balancer，LB）做代理转发。
+要获取外部访问地址：导航到 **实例详情** > **访问方式** > **集群外访问**
 
-在多网卡情况下，Redis 哨兵和集群会选择节点的默认网卡 IP 来初始化各个 Redis 节点访问地址，因此不支持通过节点的非默认 IP + 暴露的端口访问。这种情况下建议使用负载均衡器访问方式来创建实例。
+<Directive type="warning" title="NodePort 访问注意事项">
+  在利用 NodePort 从外部网络访问时，确认网络防火墙允许访问相应的 IP 地址和 NodePort 范围。由于 Redis 哨兵和集群协议的架构限制，客户端应用程序与 NodePort 端点之间需要直接的网络连接。不支持通过额外的负载均衡器代理 NodePort 连接。
+
+  在多网卡环境中，Redis 哨兵和集群将使用每个节点的默认网络接口初始化节点地址。因此，使用非默认网络接口结合暴露端口访问 Redis 不受支持。对于多网卡部署，建议使用 LoadBalancer 访问方式。
 </Directive>
 
-## 连接访问
+## 连接方式
 
-举例展示了 Jedis、Lettuce、Redisson 和 go-redis 客户端如何访问 Redis 实例。更多客户端连接示例请参考社区。
+以下部分描述了如何根据架构与 Redis 实例建立连接。
 
 ### 哨兵模式
 
-每个哨兵实例对应的集群名称都是 `mymaster`。
+在哨兵模式部署中，所有哨兵实例在固定名称 `mymaster` 下注册 Redis 主从组。客户端应用程序在通过哨兵协议连接时必须使用此名称。
 
-Redis 实例的连接示例请参考 [访问实例（哨兵模式）](../how_to/access/10-sentinel.mdx)
+有关流行客户端库的详细连接示例，请参阅 [访问实例（哨兵模式）](../how_to/access/10-sentinel.mdx)
 
 ### 集群模式
 
-客户端连接集群的任意节点之后，会去查询集群的槽分布。在数据访问时，客户端需要直连每个 Pod 来访问。为了连接的可靠性，建议在客户端填写所有 Pod 的访问地址。
+在集群模式部署中，客户端应用程序最初连接到集群中的任何节点以检索集群拓扑信息（槽分布）。在后续操作中，客户端必须根据密钥哈希槽映射直接连接到相应的 Redis Pods。
 
-Redis 实例的连接示例请参考 [访问实例（集群模式）](../how_to/access/20-cluster.mdx)
+为了优化可靠性，客户端应用程序应使用所有集群节点的地址初始化连接。
+
+有关流行客户端库的详细连接示例，请参阅 [访问实例（集群模式）](../how_to/access/20-cluster.mdx)
