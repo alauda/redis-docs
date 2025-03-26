@@ -5,45 +5,47 @@ sourceSHA: 8d2151682104e1e65faa160d54d853b87de317af58aaefca665a71e5f17ec779
 
 # How to Access Sentinel Instance
 
-This example demonstrates how to access Redis (in Sentinel mode) using the [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson) clients. For more optional clients, [view the Redis community client recommendations](https://redis.io/clients).
+This guide demonstrates how to establish connections to Redis Sentinel instances using industry-standard client libraries. The examples cover configuration details for [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson). For additional client options, refer to [Connect with Redis client API libraries](https://redis.io/clients).
 
-## Obtaining Access Information
+## Authentication Requirements
 
-- If you have set a password for Redis, you need to use that password.
+Redis Sentinel instances implement the following authentication options:
 
-- If you have disabled **Set Password**, you can access the instance without a password.<br />
+- **Password Authentication**: When configured with a password, all client connections must provide valid credentials
+- **Password-less Access**: If the **Set Password** option is disabled during instance creation, clients can connect without authentication
 
-<Directive type="warning" title="Note">
-  **Tip**: To ensure environment security, it is recommended that you refer to [User Management](../../functions/20-user) to set a password and use the configured password to access Redis.
+<Directive type="warning" title="Security Best Practice">
+  For production environments, implementing password authentication is strongly recommended to protect your data. Refer to [User Management](../../functions/20-user) for detailed instructions on configuring and maintaining secure credentials.
 </Directive>
 
-## Obtaining Connection Information
+## Connection Endpoint Reference
 
-### For Internal Cluster Access
+### Internal Cluster Access
 
-Once the instance is created, you can find the information used for internal cluster access in the **Access Method** tab under the **Access within the Cluster** section.
+For applications deployed within the same Kubernetes cluster, internal access endpoints are available through the **Access Method** tab under the **Access within the Cluster** section.
 
 | Parameter                | Description                           |
 |--------------------------|---------------------------------------|
-| **Connection Address**   | Service name and port pair list. |
+| **Connection Address**   | Kubernetes service name and port combinations for Redis Sentinel. |
 
 ### For External Cluster Access
 
-If **Outside the Cluster** access method was enabled when creating the instance, clients can connect to Redis through the addresses via the **Access from outside the Cluster** section in the instance **Access Method** tab.
+For applications connecting from outside the Kubernetes environment, external access endpoints are available when configured during instance creation. These endpoints can be found in the **Access Method** tab under the **Access from outside the Cluster** section.
 
 | Parameter                  | Description                                               |
 |----------------------------|-----------------------------------------------------------|
-| **Sentinel Node Access Address** | Used for accessing the instance from outside the cluster, including the IP addresses and ports of the corresponding services of the sentinels. |
+| **Sentinel Node Access Address** | External IP addresses and ports for pods of sentinel in Redis Sentinel, enabling connectivity from outside the Kubernetes network. |
 
-## Debugging Redis
+## Interactive Debugging
 
 On the instance details page, click the **Terminal Console** in the upper right corner, and use the `redis-cli` command to connect to each Redis node.
 
 ```
-redis-cli -h <IP corresponding to port 6379> -p 6379
+redis-cli -h <internal-routing-ip> -p 6379
 ```
 
 A debugging example is shown below.
+Example debugging session demonstrating set/get:
 
 ```
 192.168.0.10:6379> set a 1
@@ -53,11 +55,11 @@ OK
 192.168.0.10:6379>
 ```
 
-## Connecting to Redis
+## Client Integration Examples
 
-The following lists common example codes for connecting to Redis for reference.
+The following examples demonstrate best practices for connecting to Redis Sentinel instances with various client libraries.
 
-> **Note**: The master-slave cluster name registered in Sentinel mode is fixed as `mymaster`.
+> **Note**: The master-slave cluster name registered in Sentinel mode is fixed to `mymaster`.
 
 <Tabs>
   <Tab label="go-redis">

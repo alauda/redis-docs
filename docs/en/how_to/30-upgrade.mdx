@@ -4,68 +4,78 @@ weight: 30
 
 # Patch Version Upgrade
 
-With the need for vulnerability fixes or new feature releases, patch version upgrades of middleware will occur. During the patch version upgrade process, Pods will be restarted one by one, which may cause a brief interruption of service. Therefore, it is recommended to choose an appropriate time window for the upgrade. When a patch version is available for upgrade, it is advisable to upgrade as soon as possible to apply the latest fixes to the components.
+Redis patch version upgrades provide security fixes and stability improvements. The upgrade process utilizes a rolling update strategy, sequentially restarting pods to maintain service availability throughout the operation. Strategic scheduling of upgrades during maintenance windows is recommended to minimize potential impact on production workloads.
 
-## Setup Patch Version Upgrade Strategy
+When patch versions become available, prompt adoption is advised to ensure your Redis instances benefit from the latest security patches and feature enhancements.
 
-### Steps
+## Configure Upgrade Strategy
 
-<Tabs>
-  <Tab label="Web Console">
-    1. Go to the instance detail page.
-
-    2. Click on **Patch Version Upgrade Policy**.
-
-    3. Choose **Manual** or **Automatic**.
-
-    4. Click on **Update** to complete the settings.
-  </Tab>
-
-</Tabs>
-
-## Upgrade one by one
-
-### Prerequisites
-
-When a patch version is available, the instance list page will display an upgrade icon, and the instance detail page will show an upgrade prompt.
+You can define how patch upgrades are applied to your Redis instances by configuring the upgrade policy.
 
 ### Steps
 
 <Tabs>
   <Tab label="Web Console">
-    1. Go to the instance detail page.
+    1. Navigate to the instance details page.
 
-    2. Click **Upgrade Now** next to the upgrade prompt.
+    2. Select **Patch Version Upgrade Policy** from the action menu.
 
-    3. Read the upgrade prompt to understand the version changes of components and plugins.
+    3. Choose the appropriate upgrade strategy:
+       - **Manual**: Upgrades require explicit administrator approval
+       - **Automatic**: Upgrades are automatically applied during maintenance windows
 
-    4. Click **Upgrade Now**.
-
-    5. Wait for the instance status to change to Running, indicating the upgrade was successful.
+    4. Click **Update** to apply the configuration.
   </Tab>
 </Tabs>
 
-## Bulk Upgrade
+## Perform Individual Instance Upgrade
+
+Individual instance upgrades provide granular control over the upgrade process, allowing for targeted validation before deploying changes across your environment.
 
 ### Prerequisites
 
-Users must have platform administrator rights.
+- Available patch version upgrade is indicated by an upgrade icon in the instance list
+- Instance status must be `Running` before initiating the upgrade
 
 ### Steps
 
 <Tabs>
   <Tab label="Web Console">
-    1. Click on **Upgrade Management** in the left navigation bar.
+    1. Access the instance details page.
 
-    2. Select the **operator** you need to operate on, and go to the operator detail page.
+    2. Click **Upgrade Now** adjacent to the version upgrade notification.
 
-    3. Select the instances you want to upgrade and click **Bulk Upgrade**.
+    3. Review the comprehensive changelog detailing component and plugin version modifications.
 
-    4. Read the upgrade prompt to understand the version changes of components and plugins.
+    4. Click **Upgrade Now** to initiate the process.
 
-    5. Click **Upgrade Now**.
-
-    6. Wait for the instance status to change to Running, indicating the upgrade was successful.
+    5. Monitor the instance status until it returns to `Running`, confirming successful upgrade completion.
   </Tab>
+</Tabs>
 
+## Execute Bulk Upgrade Operation
+
+The bulk upgrade feature enables efficient management of upgrades across multiple Redis instances, streamlining the maintenance process for large deployments.
+
+### Prerequisites
+
+- Platform administrator privileges
+- Target instances must be in `Running` state
+
+### Steps
+
+<Tabs>
+  <Tab label="Web Console">
+    1. Navigate to **Upgrade Management** in the left navigation panel.
+
+    2. Select the appropriate **operator** to access its management interface.
+
+    3. Select the target instances for upgrade and click **Bulk Upgrade**.
+
+    4. Review the detailed version change information for all affected components.
+
+    5. Click **Upgrade Now** to begin the coordinated upgrade process.
+
+    6. Monitor the upgrade progress until all instances return to `Running` state.
+  </Tab>
 </Tabs>
