@@ -1,95 +1,92 @@
 ---
 weight: 15
-title: Install
-i18n:
-  title:
-    en: Installation
+title: 安装
 sourceSHA: ed8a4f5ddbd4aa2697e63110ab8e61126214c0b99af7cbcbf6d0510f67c194c0
 ---
 
 # 安装
 
-本指南概述了 Alauda Cache Service for Redis OSS 的安装过程，包括其所需依赖项。请按以下步骤顺序操作，以确保正确部署。
+本指南概述了 Alauda Cache Service for Redis OSS 的安装过程，包括其所需的依赖项。请按顺序执行以下步骤，以确保正确部署。
 
-## 安装 Alauda Application Services Essentials
+## 安装 Alauda 应用服务基础组件
 
 ::: tip 可选
-Alauda Application Services Essentials 提供 Web Console 管理界面组件。如果您的环境仅使用 CLI，您可以跳过此步骤。
+Alauda 应用服务基础组件提供了 Web 控制台管理界面组件。对于仅使用 CLI 管理的环境，可以跳过此安装。
 :::
 
-### 前提条件
+### 先决条件
 
-1. 获取与您的平台版本兼容的 Alauda Application Services Essentials 安装包。
-2. 使用平台的应用发布功能将 Alauda Application Services Essentials 发布到 `global` 集群。
+1. 获取与您的平台版本兼容的 Alauda 应用服务基础组件安装包。
+2. 使用平台的应用发布功能将 Alauda 应用服务基础组件发布到 `global` 集群。
 
-### 操作步骤
+### 步骤
 
 <Tabs>
-  <Tab label="Web Console">
-    1. 在平台的左侧导航面板中，导航到 **市场** > **集群插件**。
+  <Tab label="Web 控制台">
+    1. 在平台的左侧导航面板中，导航到 **Marketplace** > **Cluster Plugins**。
     2. 从集群选择器中选择 `global` 集群。
-    3. 在插件列表中找到 **Alauda Application Services Essentials** 并点击 **安装**。
+    3. 在插件列表中找到 **Alauda 应用服务基础组件**，并点击 **安装**。
   </Tab>
 </Tabs>
 
-## 安装 Alauda Application Services RDS Framework
+## 安装 Alauda 应用服务 RDS 框架
 
 ::: tip 可选
-Alauda Application Services RDS Framework 提供 API 服务管理层。如果您的环境仅使用 CLI，您可以跳过此步骤。
+Alauda 应用服务 RDS 框架提供了 API 服务管理层。对于仅使用 CLI 管理的环境，可以跳过此安装。
 :::
 
-### 前提条件
+### 先决条件
 
-1. 获取与您的平台版本兼容的 Alauda Application Services RDS Framework 安装包。
-2. 使用平台的应用发布功能将 Alauda Application Services RDS Framework 发布到任何需要 Alauda Application Services Web Console 能力的集群。
+1. 获取与您的平台版本兼容的 Alauda 应用服务 RDS 框架安装包。
+2. 使用平台的应用发布功能将 Alauda 应用服务 RDS 框架发布到希望具备 Alauda 应用服务 Web 控制台功能的任意集群。
 
-### 操作步骤
+### 步骤
 
 <Tabs>
-  <Tab label="Web Console">
+  <Tab label="Web 控制台">
     1. 访问 **平台管理** 界面。
-    2. 在左侧导航栏中，导航到 **市场** > **操作员中心**。
-    3. 找到 **Alauda Application Services RDS Framework** 并点击 **安装** 以访问部署配置页面。
+    2. 在左侧导航面板中，导航到 **Marketplace** > **Operator Hub**。
+    3. 找到 **Alauda 应用服务 RDS 框架**，点击 **安装** 以访问部署配置页面。
 
-    配置安装参数如下：
+    按如下方式配置安装参数：
 
-    | 参数                     | 推荐配置                                                                                                                |
-    | :---------------------- | :------------------------------------------------------------------------------------------------------------------- |
-    | **频道**                 | **stable** - 生产就绪的分发频道                                                                                     |
-    | **版本**                 | 最新可用版本（默认选择）                                                                                            |
-    | **安装模式**             | **集群** - 提供单个 Operator 实例，管理所有命名空间中的 Redis 资源，优化资源利用率                                   |
-    | **安装位置**             | **推荐命名空间** - 如果不存在，系统将自动创建适当的命名空间                                                        |
-    | **升级策略**             | **手动** - Operator 升级需要明确批准，以提供受控的更新管理                                                          |
+    | 参数                      | 推荐配置                                                                                                                  |
+    | :----------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+    | **渠道**                 | **stable** - 生产就绪的发行渠道                                                                                        |
+    | **版本**                 | 最新可用版本（默认选中）                                                                                              |
+    | **安装模式**             | **Cluster** - 提供一个单独的 Operator 实例，管理跨所有命名空间的 Redis 资源，优化资源利用率                               |
+    | **安装位置**             | **推荐命名空间** - 如果适当的命名空间不存在，系统将自动创建                                                          |
+    | **升级策略**             | **Manual** - Operator 升级需要明确批准，提供受控的更新管理                                                              |
 
-    4. 在安装对话框中查看配置设置，点击 **安装** 部署 RDS Framework Operator。
+    4. 在安装对话框中审核配置设置，然后点击 **安装** 部署 RDS 框架 Operator。
   </Tab>
 </Tabs>
 
 ## 安装 Alauda Cache Service for Redis OSS
 
-### 前提条件
+### 先决条件
 
 1. 获取与您的平台版本兼容的安装包。
-2. 上传插件到任何计划利用 Alauda Cache Service for Redis OSS 商业组件能力的集群。
+2. 将插件上传到任何计划利用 Alauda Cache Service for Redis OSS 业务组件功能的集群。
 
-### 操作步骤
+### 步骤
 
 <Tabs>
-  <Tab label="Web Console">
+  <Tab label="Web 控制台">
     1. 访问 **平台管理** 界面。
-    2. 在左侧导航栏中，导航到 **市场** > **操作员中心**。
-    3. 找到 **Alauda Cache Service for Redis OSS** 并点击 **安装** 以访问部署配置页面。
+    2. 在左侧导航面板中，导航到 **Marketplace** > **Operator Hub**。
+    3. 找到 **Alauda Cache Service for Redis OSS**，点击 **安装** 以访问部署配置页面。
 
-    配置安装参数如下：
+    按如下方式配置安装参数：
 
-    | 参数                     | 推荐配置                                                                                                                |
-    | :---------------------- | :------------------------------------------------------------------------------------------------------------------- |
-    | **频道**                 | 根据您的平台版本自动选择适当的频道                                                                                   |
-    | **版本**                 | 最新可用版本（默认选择）                                                                                            |
-    | **安装模式**             | **集群** - 提供单个 Operator 实例，管理所有命名空间中的 Redis 资源，优化资源利用率                                   |
-    | **安装位置**             | **推荐命名空间** - 如果不存在，系统将自动创建适当的命名空间                                                        |
-    | **升级策略**             | **手动** - Operator 升级需要明确批准，以提供受控的更新管理                                                          |
+    | 参数                      | 推荐配置                                                                                                                  |
+    | :----------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+    | **渠道**                 | 根据您的平台版本自动选择合适的渠道                                                                                    |
+    | **版本**                 | 最新可用版本（默认选中）                                                                                              |
+    | **安装模式**             | **Cluster** - 提供一个单独的 Operator 实例，管理跨所有命名空间的 Redis 资源，优化资源利用率                               |
+    | **安装位置**             | **推荐命名空间** - 如果适当的命名空间不存在，系统将自动创建                                                          |
+    | **升级策略**             | **Manual** - Operator 升级需要明确批准，提供受控的更新管理                                                              |
 
-    4. 在安装对话框中查看配置设置，点击 **安装** 部署 Alauda Cache Service for Redis OSS。
+    4. 在安装对话框中审核配置设置，然后点击 **安装** 部署 Alauda Cache Service for Redis OSS。
   </Tab>
 </Tabs>
