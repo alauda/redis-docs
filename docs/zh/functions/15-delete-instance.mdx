@@ -1,6 +1,6 @@
 ---
 weight: 15
-sourceSHA: 5bc269b63d329ff3dcd404f153d96cf7176a1b29a3453d4bb7a947b0ad13e4be
+sourceSHA: ef2aef06cd3431e378151268388c920f2264cf1b12e102e3d492c97c776d43ff
 ---
 
 # 删除实例
@@ -11,24 +11,24 @@ sourceSHA: 5bc269b63d329ff3dcd404f153d96cf7176a1b29a3453d4bb7a947b0ad13e4be
 
 <Tabs>
   <Tab label="CLI">
-    如果实例没有启用持久化或者您需要保留实例的持久数据，请执行以下命令以删除实例：
+    如果实例没有启用持久化，或者您需要保留实例的持久数据，请执行以下命令以删除实例：
 
     ```bash
-    # delete redis instance directly
+    # 直接删除 redis 实例
     $ kubectl -n default delete redis <实例名称>
     ```
 
-    如果您希望删除实例的同时也删除其持久卷声明，可以执行以下命令：
+    如果您希望在删除实例的同时也删除其持久卷声明，可以执行以下命令：
 
     ```bash
-    # patch finalizer `delete-pvc` to instance
+    # 为实例打补丁 finalizer `delete-pvc`
     $ kubectl -n default patch redis <实例名称> --type='merge' -p '{"metadata": {"finalizers": ["delete-pvc"]}}'
 
-    # delete redis instance with pvc
+    # 删除带有 pvc 的 redis 实例
     $ kubectl -n default delete redis <实例名称>
     ```
 
-    > `delete-pvc` 是 Operator 内置的关键词，用于指示 Operator 在删除实例时也删除持久卷存储。
+    > `delete-pvc` 是 Operator 内置的关键词，用于指示 Operator 在删除实例时同时删除持久卷存储。
   </Tab>
 
   <Tab label="Web Console">
@@ -36,13 +36,13 @@ sourceSHA: 5bc269b63d329ff3dcd404f153d96cf7176a1b29a3453d4bb7a947b0ad13e4be
 
     2. 单击 ***命名空间的名称***。
 
-    3. 在实例列表中选择要删除的实例，进入实例详情页面。
+    3. 在实例列表中选择要删除的实例，以进入实例详情页面。
 
     4. 在 **实例详情** 页面的右上角，点击 **操作** 按钮以展开菜单选项。
 
-    5. 点击菜单中的 **删除**，弹出删除确认框。
+    5. 点击菜单中的 **删除**，将弹出删除确认框。
 
-    6. 对于启用数据持久化的实例，您可以勾选“删除 PVC”以释放存储，或不勾选以保留数据。
+    6. 对于启用数据持久化的实例，您可以勾选“删除 PVC”以释放存储，或者不勾选以保留数据。
 
     7. 在弹出框中输入您希望删除的实例名称。
 

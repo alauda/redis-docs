@@ -10,15 +10,15 @@ This guide outlines the installation process for Alauda Cache Service for Redis 
 ## Installing Alauda Application Services Essentials
 
 ::: tip Optional
-Alauda Application Services Essentials provides the `Web Console` management interface components. This installation can be skipped for environments using CLI-only administration.
+Alauda Application Services Essentials provides the Web Console management interface components. This installation can be skipped for environments using CLI-only administration.
 :::
 
 ### Prerequisites
 
 1. Obtain the Alauda Application Services Essentials installation package compatible with your platform version.
-2. Ensure you have sufficient privileges to deploy cluster-level plugins in the `global` cluster namespace.
+2. Use the platform's application publishing capability to publish Alauda Application Services Essentials to the `global` cluster.
 
-### Steps
+### Procedure
 
 <Tabs>
   <Tab label="Web Console">
@@ -31,15 +31,15 @@ Alauda Application Services Essentials provides the `Web Console` management int
 ## Installing Alauda Application Services RDS Framework
 
 ::: tip Optional
-Alauda Application Services RDS Framework provides the database service management layer. This installation can be skipped for environments using CLI-only administration.
+Alauda Application Services RDS Framework provides the api service management layer. This installation can be skipped for environments using CLI-only administration.
 :::
 
 ### Prerequisites
 
 1. Obtain the Alauda Application Services RDS Framework installation package compatible with your platform version.
-2. Ensure you have sufficient privileges to deploy Operators in your target cluster.
+2. Use the platform's application publishing capability to publish Alauda Application Services RDS Framework to any cluster where Alauda Application Services Web Console capabilities are desired.
 
-### Steps
+### Procedure
 
 <Tabs>
   <Tab label="Web Console">
@@ -65,10 +65,10 @@ Alauda Application Services RDS Framework provides the database service manageme
 
 ### Prerequisites
 
-1. Obtain the Alauda Cache Service for Redis OSS Operator installation package compatible with your platform version.
-2. Ensure the Alauda Application Services RDS Framework has been successfully deployed in your target cluster.
+1. Obtain the installation package compatible with your platform version.
+2. Upload the plugin to any cluster that intends to utilize the business component capabilities of Alauda Cache Service for Redis OSS.
 
-### Steps
+### Procedure
 
 <Tabs>
   <Tab label="Web Console">
@@ -86,6 +86,6 @@ Alauda Application Services RDS Framework provides the database service manageme
     | **Installation Location** | **Recommended Namespace** - The system will automatically create the appropriate namespace if it doesn't exist |
     | **Upgrade Strategy** | **Manual** - Operator upgrades require explicit approval, providing controlled update management |
 
-    4. Review the configuration settings in the installation dialog and click **Install** to deploy the Redis OSS Operator.
+    4. Review the configuration settings in the installation dialog and click **Install** to deploy Alauda Cache Service for Redis OSS.
   </Tab>
 </Tabs>

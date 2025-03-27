@@ -4,7 +4,7 @@ title: Install
 i18n:
   title:
     en: Installation
-sourceSHA: f879fa206be509cfef0dab5f860c4256ca44c31c9e410f591e752d874440436c
+sourceSHA: ed8a4f5ddbd4aa2697e63110ab8e61126214c0b99af7cbcbf6d0510f67c194c0
 ---
 
 # 安装
@@ -14,13 +14,13 @@ sourceSHA: f879fa206be509cfef0dab5f860c4256ca44c31c9e410f591e752d874440436c
 ## 安装 Alauda Application Services Essentials
 
 ::: tip 可选
-Alauda Application Services Essentials 提供 `Web Console` 管理界面组件。如果您的环境仅使用 CLI，您可以跳过此步骤。
+Alauda Application Services Essentials 提供 Web Console 管理界面组件。如果您的环境仅使用 CLI，您可以跳过此步骤。
 :::
 
 ### 前提条件
 
 1. 获取与您的平台版本兼容的 Alauda Application Services Essentials 安装包。
-2. 确保您具有在 `global` 集群命名空间中部署集群级插件的足够权限。
+2. 使用平台的应用发布功能将 Alauda Application Services Essentials 发布到 `global` 集群。
 
 ### 操作步骤
 
@@ -35,13 +35,13 @@ Alauda Application Services Essentials 提供 `Web Console` 管理界面组件�
 ## 安装 Alauda Application Services RDS Framework
 
 ::: tip 可选
-Alauda Application Services RDS Framework 提供数据库服务管理层。如果您的环境仅使用 CLI，您可以跳过此步骤。
+Alauda Application Services RDS Framework 提供 API 服务管理层。如果您的环境仅使用 CLI，您可以跳过此步骤。
 :::
 
 ### 前提条件
 
 1. 获取与您的平台版本兼容的 Alauda Application Services RDS Framework 安装包。
-2. 确保您具有在目标集群中部署 Operators 的足够权限。
+2. 使用平台的应用发布功能将 Alauda Application Services RDS Framework 发布到任何需要 Alauda Application Services Web Console 能力的集群。
 
 ### 操作步骤
 
@@ -69,8 +69,8 @@ Alauda Application Services RDS Framework 提供数据库服务管理层。如�
 
 ### 前提条件
 
-1. 获取与您的平台版本兼容的 Alauda Cache Service for Redis OSS Operator 安装包。
-2. 确保 Alauda Application Services RDS Framework 已在目标集群中成功部署。
+1. 获取与您的平台版本兼容的安装包。
+2. 上传插件到任何计划利用 Alauda Cache Service for Redis OSS 商业组件能力的集群。
 
 ### 操作步骤
 
@@ -90,6 +90,6 @@ Alauda Application Services RDS Framework 提供数据库服务管理层。如�
     | **安装位置**             | **推荐命名空间** - 如果不存在，系统将自动创建适当的命名空间                                                        |
     | **升级策略**             | **手动** - Operator 升级需要明确批准，以提供受控的更新管理                                                          |
 
-    4. 在安装对话框中查看配置设置，点击 **安装** 部署 Redis OSS Operator。
+    4. 在安装对话框中查看配置设置，点击 **安装** 部署 Alauda Cache Service for Redis OSS。
   </Tab>
 </Tabs>
