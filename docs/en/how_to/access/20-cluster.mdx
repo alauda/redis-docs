@@ -5,47 +5,51 @@ sourceSHA: e92b2df1a4f608644c23e6da475b09dbc1239192dcda2a944925e2a1dd1a75d0
 
 # How to Access Cluster Instance
 
-This example demonstrates how to access Redis (Cluster Mode) using the [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson) clients. For more optional clients, [see Redis Community Client Recommendations](https://redis.io/clients).
+This guide demonstrates how to establish connections to Redis Cluster instances using industry-standard client libraries. The examples cover configuration details for [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core), and [Redisson](https://github.com/redisson/redisson). For additional client options, refer to [Connect with Redis client API libraries](https://redis.io/clients).
 
-## Obtain Access Information
+## Authentication Requirements
 
-- If you have set a password for Redis, you will need to use that password.
+Redis Cluster instances implement the following authentication options:
 
-- If you have disabled **Set Password**, you can access the instance without a password. <br />
+- **Password Authentication**: When configured with a password, all client connections must provide valid credentials
+- **Password-less Access**: If the **Set Password** option is disabled during instance creation, clients can connect without authentication
 
-<Directive type="warning" title="Note">
-  **Tip**: To ensure environment security, it is recommended that you refer to [User Management](../../functions/20-user) to set a password and access Redis using the set password.
+<Directive type="warning" title="Security Best Practice">
+  For production environments, implementing password authentication is strongly recommended to protect your data. Refer to [User Management](../../functions/20-user) for detailed instructions on configuring and maintaining secure credentials.
 </Directive>
 
-## Obtain Connection Information
+## Connection Endpoint Reference
 
-### For Internal Cluster Access
+### Internal Cluster Access
 
-Once the instance is created, you can find the information used for internal cluster access in the **Access Method** tab under the **Access within the Cluster** section.
+For applications deployed within the same Kubernetes cluster, internal access endpoints are available through the **Access Method** tab under the **Access within the Cluster** section.
 
-| Parameter                        | Description                     |
-| ------------------------------- | ------------------------------- |
-| **Connection Address (By the Services of each shard)** | Service name and port pair list. |
+| Parameter                | Description                           |
+| ------------- | ----------- |
+| **Connection Address** | Kubernetes service name and port combinations for each shard in the Redis Cluster |
 
-### For External Cluster Access
+### External Cluster Access
 
-If **Outside the Cluster** access method was enabled when creating the instance, clients can connect to Redis through the addresses via the **Access from outside the Cluster** section in the instance **Access Method** tab.
+For applications connecting from outside the Kubernetes environment, external access endpoints are available when configured during instance creation. These endpoints can be found in the **Access Method** tab under the **Access from outside the Cluster** section.
 
-| Parameter         | Description                                               |
-|-------------------|-----------------------------------------------------------|
-| **Shard Address** | Used for accessing the instance from outside the cluster, including the IP addresses and ports of the corresponding services of each shard. |
+| Endpoint Type | Description |
+| ------------- | ----------- |
+| **Shard Address** | External IP addresses and ports for pods of shard in the Redis Cluster, enabling connectivity from outside the Kubernetes network |
 
-## Debugging Redis
+## Interactive Debugging
 
-On the instance details page, click on the **Terminal Console** at the top right, and connect to each Redis node using the `redis-cli -c` command.
+For administrative operations and troubleshooting, the Redis CLI provides direct access to cluster nodes:
 
+1. Access the **Terminal Console** from the instance details page
+2. Connect to any node using the cluster-aware client mode:
+
+```bash
+redis-cli -c -h <internal-routing-ip> -p 6379
 ```
-redis-cli -c -h <IP of internal routing> -p 6379
-```
 
-An example of debugging is shown below.
+Example debugging session demonstrating slot-based redirection:
 
-```
+```bash
 192.168.0.10:6379> set a 1
 -> Redirected to slot [15495] located at 192.168.0.10:6379
 OK
@@ -54,9 +58,11 @@ OK
 192.168.0.10:6379>
 ```
 
-## Connect to Redis
+The `-c` flag enables automatic following of `MOVED` and `ASK` redirections, which is essential when working with Redis Cluster.
 
-The following lists common Redis instance code for reference.
+## Client Integration Examples
+
+The following examples demonstrate best practices for connecting to Redis Cluster instances with various client libraries.
 
 <Tabs>
   <Tab label="go-redis">

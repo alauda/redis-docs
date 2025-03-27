@@ -6,22 +6,25 @@ weight: 80
 
 Understand the logs of instance operations from the container level, such as Redis error logs. Proper use of logs can help you quickly locate issues and handle faults and exceptions.
 
-## Steps
+## Procedure
 
 <Tabs>
   <Tab label="Web Console">
-    1. Click on **Redis** in the left navigation menu.
-
-    2. Click on ***Name of the Namespace***.
-
-    3. Click on ***Name of the Instance***.
-
-    4. On the **Realtime Log** tab, set the search criteria.
-
-       - To find logs for a specific Pods, in the **Pod** option, select a Pod.
-
-    5. Wait a moment and review the results.
-
-    6. (Optional) Click <span style={{display: 'inline-block'}}>![](../assets/44buttonexport.png)</span> to export the logs.
+    1. Navigate to **Redis** in the left navigation menu.
+    
+    2. Select the ***namespace*** containing your instance.
+    
+    3. Click on the ***instance name*** to access its details.
+    
+    4. Open the **Realtime Log** tab to view the live log stream.
+    
+    5. Apply filtering options to focus on relevant information:
+       - Select a specific **Pod** from the dropdown menu to isolate logs from individual nodes
+       - Enter search terms to filter log entries by content
+       - Adjust the time range to narrow the analysis window
+    
+    6. Review the filtered logs to identify patterns or anomalies related to your investigation.
+    
+    7. For further analysis or documentation purposes, click the export button <span style={{display: 'inline-block'}}>![Export Icon](../assets/44buttonexport.png)</span> to download the log data.
   </Tab>
 </Tabs>
