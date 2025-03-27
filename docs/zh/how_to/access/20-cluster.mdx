@@ -1,66 +1,71 @@
 ---
 weight: 20
-sourceSHA: 98556624a076b02dc848a2beb07aa84ebe60dcf5f3122d544376f1e9c33f0b02
+sourceSHA: 0b3baf38526ebaf359b0f8c305016fc29490a45507d33e3c007842559df06d35
 ---
 
 # 如何访问集群实例
 
-示例展示了如何使用 [go-redis](https://github.com/redis/go-redis)、[Jedis](https://github.com/redis/jedis)、[Lettuce](https://github.com/lettuce-io/lettuce-core) 和 [Redisson](https://github.com/redisson/redisson) 客户端访问 Redis（集群模式）。更多可选客户端，请 [查看 Redis 社区客户端推荐](https://redis.io/clients)。
+本指南演示了如何使用行业标准客户端库连接到 Redis 集群实例。示例涵盖了 [go-redis](https://github.com/redis/go-redis)、[Jedis](https://github.com/redis/jedis)、[Lettuce](https://github.com/lettuce-io/lettuce-core) 和 [Redisson](https://github.com/redisson/redisson) 的配置细节。有关更多客户端选项，请参阅 [Redis 客户端 API 库](https://redis.io/clients)。
 
-## 获取访问信息
+## 身份验证要求
 
-* 如果您已为 Redis 设置密码，需使用该密码。
+Redis 集群实例实现以下身份验证选项：
 
-* 如果您已禁用 **设置密码**，则可无密码访问实例。<br/>
+- **密码身份验证**：当配置了密码时，所有客户端连接必须提供有效的凭证
+- **无密码访问**：如果在实例创建期间禁用了 **设置密码** 选项，则客户端可以无身份验证地连接
 
-<Directive type="warning" title="注意">
-  **提示**：为确保环境安全，建议您参考 [用户管理](../../functions/20-user) 设置密码，并使用已设置的密码访问 Redis。
+<Directive type="warning" title="安全最佳实践">
+  对于生产环境，强烈建议实现密码身份验证以保护您的数据。有关配置和维护安全凭证的详细说明，请参阅 [用户管理](../../functions/20-user)。
 </Directive>
 
-## 获取连接信息
+## 连接端点参考
 
-### 用于集群内访问
+### 内部集群访问
 
-实例创建完毕后，可在实例的 **访问方式** 页签中查询用于 **集群内访问** 的信息。
+对于部署在同一 Kubernetes 集群内的应用程序，内部访问端点可通过 **访问方式** 标签在 **集群内访问** 部分查看。
 
-| 参数 | 说明 |
-| --- | --- |
-| **连接地址（通过各分片的服务）** | 服务名称和端口 pair 列表。 |
+| 参数             | 描述                                                                 |
+| ---------------- | ------------------------------------------------------------------------ |
+| **连接地址**     | Redis 集群中每个分片的 Kubernetes 服务名称和端口组合                  |
 
-### 用于集群外访问
+### 外部集群访问
 
-如果在实例创建时启用了 **集群外访问** 访问方式，客户端可通过实例 **访问方式** 页签下的 **集群外访问** 区域内的地址连接 Redis。
+对于从 Kubernetes 环境外部连接的应用程序，外部访问端点在实例创建时进行配置并可用。这些端点可在 **访问方式** 标签的 **集群外访问** 部分找到。
 
-| 参数 | 说明 |
-| --- | --- |
-| **分片地址** | 用于从集群外访问实例，包括各分片对应服务的 IP 地址和端口。 |
+| 端点类型        | 描述                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **分片地址**    | Redis 集群中分片的外部 IP 地址和端口，允许从 Kubernetes 网络外部进行连接                                                       |
 
-## 调试 Redis
+## 互动调试
 
-在实例详细信息页，单击右上角 **终端控制台**，通过 `redis-cli -c` 命令连接 Redis 各节点。
+对于管理操作和故障排除，Redis CLI 提供直接访问集群节点的功能：
 
+1. 从实例详细信息页面访问 **终端控制台**
+2. 使用集群感知客户端模式连接到任何节点：
+
+```bash
+redis-cli -c -h <internal-routing-ip> -p 6379
 ```
-redis-cli -c -h <内部路由的 IP> -p 6379
-```
 
-调试示例如下。
+示例调试会话演示了基于槽的重定向：
 
-```
+```bash
 192.168.0.10:6379> set a 1
--> Redirected to slot [15495] located at 192.168.0.10:6379
+-> 重定向到槽 [15495] 位于 192.168.0.10:6379
 OK
 192.168.0.10:6379> get a
 "1"
 192.168.0.10:6379>
 ```
 
-## 连接 Redis
+`-c` 标志启用自动跟踪 `MOVED` 和 `ASK` 重定向，这在使用 Redis 集群时是必需的。
 
-以下列出了常用 Redis 实例代码，仅供参考。
+## 客户端集成示例
+
+以下示例演示了使用各种客户端库连接到 Redis 集群实例的最佳实践。
 
 <Tabs>
-
-<Tab label="go-redis">
+  <Tab label="go-redis">
     ```go
     package main
 
@@ -85,7 +90,7 @@ OK
             ClientName: "go-demo",
             // 使用 Context 进行超时控制
             ContextTimeoutEnabled: true,
-            // 在遇到 MOVED 或 ASK 时，最大重定向次数
+            // 最大重定向次数
             MaxRedirects: 3,
             // 最大重试次数
             MaxRetries: 3,
@@ -121,10 +126,11 @@ OK
         }
     }
     ```
-    更多详细配置，请参考 [社区文档](https://redis.uptrace.dev/guide/go-redis-cluster.html)
-</Tab>
 
-<Tab label="Jedis">
+    更多详细配置，请参考 [社区文档](https://redis.uptrace.dev/guide/go-redis-cluster.html)
+  </Tab>
+
+  <Tab label="Jedis">
     ```java
     package io.alauda.demo.redis;
 
@@ -193,10 +199,11 @@ OK
         }
     }
     ```
-    更多详细配置，请参考 [社区文档](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html)
-</Tab>
 
-<Tab label="Lettuce">
+    更多详细配置，请参考 [社区文档](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html)
+  </Tab>
+
+  <Tab label="Lettuce">
     ```java
     package io.alauda.demo.redis;
 
@@ -248,7 +255,6 @@ OK
                     .connectTimeout(Duration.ofSeconds(10))
                     .tcpNoDelay(true)
                     // 开启 TCP keepalive，用于快速发现无效连接
-                    // 该值在非 pub/sub 类型的请求上不是必须的；可通过及时释放空闲连接来实现连接的探活
                     .keepAlive(true)
                     .build();
 
@@ -259,7 +265,6 @@ OK
                     // 自动重连 (默认值)
                     .autoReconnect(true)
                     // 配置在连接断开时，客户端的行为。
-                    // DEFAULT - autoReconnect = true 时，命令不会被拒绝；否则命令将被拒绝
                     .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
                     // 配置 Socket 参数，lettuce 默认不开启 keepalive, 对于需要长连接的业务需要开启此项
                     .socketOptions(socketOptions)
@@ -304,10 +309,11 @@ OK
         }
     }
     ```
-    更多详细配置，请参考 [社区文档](https://lettuce.io/core/release/reference/#redis-cluster)
-</Tab>
 
-<Tab label="Redisson">
+    更多详细配置，请参考 [社区文档](https://lettuce.io/core/release/reference/#redis-cluster)
+  </Tab>
+
+  <Tab label="Redisson">
     ```java
     package io.alauda.demo.redis;
 
@@ -331,7 +337,7 @@ OK
                     .useClusterServers()
                     .addNodeAddress(nodes.toArray(new String[0]))
                     .setPassword("<password>")
-                    // 检查集群 Slots 状态
+                    // 检查集群槽状态
                     .setCheckSlotsCoverage(true)
                     // 每次扫描集群拓扑的时间间隔
                     .setScanInterval(5000)
@@ -340,7 +346,6 @@ OK
                     // 命令超时时间
                     .setTimeout(10000)
                     // 每 30 秒测试一次连接，用于检测连接可用性
-                    // 如果开启了 KeepAlive，该值的时间可以相应延长
                     .setPingConnectionInterval(30000)
                     // 超过 60 秒的空闲连接将被丢弃，默认的 10 秒太短
                     .setIdleConnectionTimeout(60000)
@@ -367,6 +372,7 @@ OK
         }
     }
     ```
+
     更多详细配置，请参考 [社区文档](https://redisson.org/docs/configuration/#cluster-mode)
-</Tab>
+  </Tab>
 </Tabs>

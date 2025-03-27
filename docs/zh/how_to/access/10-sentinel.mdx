@@ -1,49 +1,50 @@
 ---
 weight: 10
-sourceSHA: 7dbad43d5b14803a9dfc467f53502b2b669af44c36d98ad2bc8a7e6a33678193
+sourceSHA: 055d80c2092ca98bdaae710110c20ea1ccadf2cf3b1a4ba1384b5286fa9bfbb7
 ---
 
 # 如何访问哨兵实例
 
-示例展示了如何使用 [go-redis](https://github.com/redis/go-redis)、[Jedis](https://github.com/redis/jedis)、[Lettuce](https://github.com/lettuce-io/lettuce-core) 和 [Redisson](https://github.com/redisson/redisson) 客户端访问 Redis（哨兵模式）。更多可选客户端，请 [查看 Redis 社区客户端推荐](https://redis.io/clients)。
+本指南展示了如何使用行业标准的客户端库连接 Redis 哨兵实例。示例包括 [go-redis](https://github.com/redis/go-redis)、[Jedis](https://github.com/redis/jedis)、[Lettuce](https://github.com/lettuce-io/lettuce-core) 和 [Redisson](https://github.com/redisson/redisson) 的配置细节。有关其他客户端选项，请参见 [Redis 客户端兼容矩阵](https://redis.io/clients)。
 
-## 获取访问信息
+## 认证要求
 
-* 如果您已为 Redis 设置密码，需使用该密码。
+Redis 哨兵实例实现以下认证选项：
 
-* 如果您已禁用 **设置密码**，则可无需密码访问实例。<br/>
+- **密码认证**：当配置了密码时，所有客户端连接必须提供有效的凭证。
+- **无密码访问**：如果在实例创建时禁用了 **设置密码** 选项，客户端可以无认证连接。
 
-<Directive type="warning" title="注意">
-**提示**：为确保环境安全，建议您参考 [用户管理](../../functions/20-user) 设置密码，并使用已配置的密码访问 Redis。
+<Directive type="warning" title="安全最佳实践">
+  在生产环境中，强烈建议实现密码认证以保护您的数据。有关配置和维护安全凭证的详细说明，请参见 [用户管理](../../functions/20-user)。
 </Directive>
 
-## 获取连接信息
+## 连接端点参考
 
-### 用于集群内访问
+### 内部集群访问
 
-实例创建完毕后，可在实例的 **访问方式** 页签中的 **集群内访问** 区域查询用于 **集群内** 访问的信息。
+对于部署在相同 Kubernetes 集群的应用程序，可以通过 **访问方式** 页签下的 **集群内访问** 部分获取内部访问端点。
 
-| 参数               | 说明                                                         |
-| ------------------ | ------------------------------------------------------------ |
-| **连接地址**       | 服务名称与端口对的列表。                                   |
+| 参数                  | 说明                                         |
+|---------------------|---------------------------------------------|
+| **连接地址**          | Kubernetes 服务名称与 Redis 哨兵的端口组合。 |
 
-### 用于集群外访问
+### 外部集群访问
 
-若创建实例时已启用 **集群外访问** 方法，客户端可通过实例 **访问方式** 页签中的 **集群外访问** 区域内的地址连接 Redis。
+如果在创建实例时启用了 **外部访问** 方法，客户端可以通过实例 **访问方式** 页签下的 **外部访问** 部分的地址连接到 Redis。
 
-| 参数                       | 说明                                                                                                       |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **哨兵节点访问地址**      | 用于从集群外访问实例，包括对应的哨兵服务的 IP 地址和端口。                                           |
+| 参数                       | 说明                                                                                             |
+|--------------------------|--------------------------------------------------------------------------------------------------|
+| **哨兵节点访问地址**       | Redis 哨兵中 Pods 的外部 IP 地址和端口，允许从 Kubernetes 网络外部进行连接。                                        |
 
-## 调试 Redis
+## 交互式调试
 
-在实例详细信息页，单击右上角的 **终端控制台**，并通过 `redis-cli` 命令连接每个 Redis 节点。
+在实例详细信息页面，单击右上角的 **终端控制台**，并使用 `redis-cli` 命令连接每个 Redis 节点。
 
 ```
-redis-cli -h <对应端口 6379 的 IP> -p 6379
+redis-cli -h <内部路由 IP> -p 6379
 ```
 
-调试示例如下所示。
+下面是一个调试示例。演示 set/get 的调试会话：
 
 ```
 192.168.0.10:6379> set a 1
@@ -53,9 +54,9 @@ OK
 192.168.0.10:6379>
 ```
 
-## 连接 Redis
+## 客户端集成示例
 
-以下列出了常用的 Redis 连接示例代码，仅供参考。
+以下示例展示了如何使用各种客户端库连接 Redis 哨兵实例的最佳实践。
 
 > **注意**：哨兵模式中注册的主从集群名称固定为 `mymaster`。
 
@@ -226,7 +227,7 @@ OK
             redisUriBuilder.withTimeout(Duration.ofSeconds(2));
             RedisURI redisUri = redisUriBuilder.build();
 
-            // Configure SocketOptions
+            // 配置 SocketOptions
             SocketOptions socketOptions = SocketOptions.builder()
                 // 设置连接超时时间
                 .connectTimeout(Duration.ofSeconds(10))
@@ -247,7 +248,7 @@ OK
             RedisClient redisClient = RedisClient.create(redisUri);
             redisClient.setOptions(clientOptions);
 
-            // Pool configuration
+            // 连接池配置
             GenericObjectPoolConfig<StatefulRedisConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
             // 连接池大小，不可太大，不然会造成服务器连接资源的浪费，甚至造成连接数耗尽，导致实例自身的探活失败。
             // 需要预估自己的业务并发，建议并发量为自己业务规模的 1.2-1.5 倍
