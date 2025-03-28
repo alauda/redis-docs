@@ -86,8 +86,8 @@ spec:
             script: |
               # set -x
               export YARN_GLOBAL_FOLDER=/workspace/yarn_cache/global
-
-              yarn config set npmRegistryServer https://internal-mirrors.alauda.cn/repository/npm
+              npx cnpm sync @alauda/doom
+              yarn config set npmRegistryServer https://build-nexus.alauda.cn/repository/cnpm
               yarn --immutable
               git reset --hard
     - name: modify-build-config
@@ -106,11 +106,11 @@ spec:
             imagePullPolicy: Always
             workingDir: $(workspaces.source.path)
             command:
-            - xonsh
-            - /apps/modify_build_config.xsh
+              - xonsh
+              - /apps/modify_build_config.xsh
             args:
-            - --base=redis
-            - --branch=$(params.branch)
+              - --base=redis
+              - --branch=$(params.branch)
     - name: build-online-docs
       runAfter:
         - modify-build-config
@@ -129,7 +129,7 @@ spec:
             workingDir: $(workspaces.source.path)
             env:
               - name: NODE_OPTIONS
-                value: "--max_old_space_size=14336" 
+                value: --max_old_space_size=14336
             resources:
               requests:
                 cpu: 2
@@ -156,7 +156,7 @@ spec:
             workingDir: $(workspaces.source.path)
             env:
               - name: NODE_OPTIONS
-                value: "--max_old_space_size=14336" 
+                value: --max_old_space_size=14336
             resources:
               requests:
                 cpu: 2
@@ -189,7 +189,7 @@ spec:
             workingDir: $(workspaces.source.path)
             env:
               - name: NODE_OPTIONS
-                value: "--max_old_space_size=14336" 
+                value: --max_old_space_size=14336
             resources:
               requests:
                 cpu: 2
@@ -242,9 +242,9 @@ spec:
                     name: product-docs-minio-credentials
                     key: bucket
             command:
-            - xonsh
-            - /apps/upload_doc_artifacts.xsh
+              - xonsh
+              - /apps/upload_doc_artifacts.xsh
             args:
-            - --base=redis
-            - --branch=$(params.branch)
-            - --commit=$(params.commit)
+              - --base=redis
+              - --branch=$(params.branch)
+              - --commit=$(params.commit)
