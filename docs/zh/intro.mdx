@@ -1,6 +1,6 @@
 ---
 weight: 10
-sourceSHA: c9e41e9fcfa6a6c7c22eb9fe34d184c2ca8854458db3549dc45cb7cf92ef2f5c
+sourceSHA: b790b372cd4252deb774a10e87157d96534d12d83237f5a70aa9caf3a8337a5e
 ---
 
 # 介绍
@@ -8,6 +8,7 @@ sourceSHA: c9e41e9fcfa6a6c7c22eb9fe34d184c2ca8854458db3549dc45cb7cf92ef2f5c
 ## 什么是 Redis OSS？
 
 **Redis OSS** 是一款开源的 **内存数据结构存储系统**，支持多种数据结构（如字符串、哈希、列表、集合、有序集合等），并提供持久化、高可用、分布式集群等功能。凭借其高性能和低延迟的特性，Redis 被广泛应用于缓存、消息队列、实时数据分析等场景。其核心部署模式包括：
+
 - **Standalone**：单节点部署，适用于开发和测试环境。
 - **Sentinel**：基于 Sentinel 的高可用架构，提供自动故障转移和监控。
 - **Cluster**：分布式分片集群，支持横向扩展和数据自动分区。
@@ -19,6 +20,7 @@ sourceSHA: c9e41e9fcfa6a6c7c22eb9fe34d184c2ca8854458db3549dc45cb7cf92ef2f5c
 ### 核心功能
 
 1. **多架构支持**
+
    - 支持 **Standalone**、**Sentinel** 和 **Cluster** 三种部署模式，覆盖开发、测试及生产需求。
 
    | 模式         | 适用场景                        |
@@ -49,9 +51,9 @@ sourceSHA: c9e41e9fcfa6a6c7c22eb9fe34d184c2ca8854458db3549dc45cb7cf92ef2f5c
    - 支持 **NodeSelector**、**Toleration** 和 **Affinity**，灵活控制 Pods 调度逻辑。
 
 8. **自动化运维能力**
-   - ​**滚动扩缩容**：根据配置调整分片或副本数量，自动处理数据重分布（Cluster）或主从关系（Sentinel）。
-   - ​**无中断升级**：逐个节点替换与同步数据，确保服务连续性。
-   - ​**配置热更新**：修改 ConfigMap 后自动注入新配置，无需重启实例。
+   - **滚动扩缩容**：根据配置调整分片或副本数量，自动处理数据重分布（集群）或主从关系（哨兵）。
+   - **无中断升级**：逐个节点替换与同步数据，确保服务连续性。
+   - **配置热更新**：修改 ConfigMap 后自动注入新配置，无需重启实例。
 
 ## 为什么选择 Alauda Cache Service for Redis OSS
 
