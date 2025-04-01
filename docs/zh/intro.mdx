@@ -1,27 +1,27 @@
 ---
 weight: 10
-sourceSHA: b790b372cd4252deb774a10e87157d96534d12d83237f5a70aa9caf3a8337a5e
+sourceSHA: 61dd63f69b3e618db8b60905b03ebbcb41617d58ec4f61b5f5ab062423c08470
 ---
 
 # 介绍
 
-## 什么是 Redis OSS？
+## Redis OSS 介绍
 
-**Redis OSS** 是一款开源的 **内存数据结构存储系统**，支持多种数据结构（如字符串、哈希、列表、集合、有序集合等），并提供持久化、高可用、分布式集群等功能。凭借其高性能和低延迟的特性，Redis 被广泛应用于缓存、消息队列、实时数据分析等场景。其核心部署模式包括：
+**Redis OSS** 是一款开源的 **内存数据结构存储系统**，支持多种数据结构（如字符串、哈希、列表、集合、有序集合等），并提供持久化、高可用性和分布式集群等功能。凭借其高性能和低延迟特点，Redis 被广泛应用于缓存、消息队列、实时数据分析等场景。其核心部署模式包括：
 
-- **Standalone**：单节点部署，适用于开发和测试环境。
+- **Standalone**：单节点部署，适合开发和测试环境。
 - **Sentinel**：基于 Sentinel 的高可用架构，提供自动故障转移和监控。
-- **Cluster**：分布式分片集群，支持横向扩展和数据自动分区。
+- **Cluster**：分布式分片集群，支持横向扩展和自动数据分区。
 
-## 什么是 Alauda Cache Service for Redis OSS？
+## Alauda Cache Service for Redis OSS 介绍
 
-**Alauda Cache Service for Redis OSS** 基于 Kubernetes（K8s）自定义了多个控制器（Operators），专为简化 Redis 实例在 Kubernetes 集群中的生命周期管理而设计。它通过扩展 Kubernetes API，提供声明式配置和自动化运维能力，使用户能够以云原生的方式高效部署和管理 Redis 集群，同时保障生产环境的稳定性和可扩展性。
+**Alauda Cache Service for Redis OSS** 基于 Kubernetes（K8s）自定义了多个控制器（Operators），专为简化 Redis 实例在 Kubernetes 集群中的生命周期管理而设计。它扩展了 Kubernetes API，提供声明式配置和自动化运维能力，使用户能够以云原生的方式高效部署和管理 Redis 集群，同时确保生产环境的稳定性和可扩展性。
 
-### 核心功能
+### 关键特性
 
 1. **多架构支持**
 
-   - 支持 **Standalone**、**Sentinel** 和 **Cluster** 三种部署模式，覆盖开发、测试及生产需求。
+   - 支持 **Standalone**、**Sentinel** 和 **Cluster** 部署模式，覆盖开发、测试及生产需求。
 
    | 模式         | 适用场景                        |
    |--------------|-------------------------------|
@@ -29,12 +29,12 @@ sourceSHA: b790b372cd4252deb774a10e87157d96534d12d83237f5a70aa9caf3a8337a5e
    | Sentinel     | 读写分离/热备                    |
    | Cluster      | 海量数据/水平扩展                |
 
-2. **版本兼容性**
+2. **版本支持**
    - 支持 Redis `5.0`、`6.0`、`7.2`。
 
 3. **访问控制与安全**
    - 支持 TLS 加密。
-   - 集成 **Redis ACL**（访问控制列表），支持细粒度的用户权限管理（此功能在 Redis 5.0 中不支持）。
+   - 集成 **Redis ACL**（访问控制列表），支持细粒度用户权限管理（此功能在 Redis 5.0 中不支持）。
 
 4. **网络与访问方式**
    - 支持服务暴露类型的 **NodePort** 和 **LoadBalancer**，可指定 NodePort 端口。
@@ -55,6 +55,6 @@ sourceSHA: b790b372cd4252deb774a10e87157d96534d12d83237f5a70aa9caf3a8337a5e
    - **无中断升级**：逐个节点替换与同步数据，确保服务连续性。
    - **配置热更新**：修改 ConfigMap 后自动注入新配置，无需重启实例。
 
-## 为什么选择 Alauda Cache Service for Redis OSS
+## Alauda Cache Service for Redis OSS 优势
 
-Alauda Cache Service for Redis OSS 将 Redis 的复杂运维逻辑（如集群拓扑管理、版本升级和扩缩容）抽象为 Kubernetes 原生资源，使运维人员能够通过简单的 YAML 声明式配置完成操作。它显著降低了在 Kubernetes 中管理 Redis 的复杂度，同时兼顾灵活性、安全性及生产级稳定性，成为云原生场景下管理 Redis 实例的理想工具。
+Alauda Cache Service for Redis OSS 抽象了 Redis 的复杂运维逻辑（如集群拓扑管理、版本升级和扩缩容）为 Kubernetes 原生资源，使运维人员能够通过简单的 YAML 声明式配置完成操作。它显著降低了在 Kubernetes 中管理 Redis 的复杂度，同时兼顾灵活性、安全性及生产级稳定性，成为云原生场景下管理 Redis 实例的理想工具。
