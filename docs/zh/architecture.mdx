@@ -1,11 +1,15 @@
 ---
 weight: 40
-sourceSHA: 33ee1b9913e2579dc9f63bd33daec2957624c72eb9a0c9042d31e1b770943918
+i18n:
+  title:
+    zh: 架构
+title: 架构
+sourceSHA: a91ff46f1fd36dacaddb34213deabc5814e434e15628110ee01619765f315a96
 ---
 
-# 架构
+## 架构
 
-灵雀云的 Redis OSS 缓存服务提供了两种独特的部署架构，旨在满足特定的性能、可扩展性和高可用性要求。
+Alauda Cache Service for Redis OSS 提供了两种独特的部署架构，旨在满足特定的性能、可扩展性和高可用性要求。
 
 - **哨兵模式**：一种高可用配置，由一个主 Redis 实例和可配置的从节点组成。从节点提供读取可扩展性，并与主节点保持同步以确保数据一致性。Redis Sentinel 监控实例健康状况，并在必要时组织自动故障切换。
 
