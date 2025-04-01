@@ -1,9 +1,11 @@
 ---
 weight: 10
-sourceSHA: 61dd63f69b3e618db8b60905b03ebbcb41617d58ec4f61b5f5ab062423c08470
+i18n:
+  title:
+    zh: 介绍
+title: 介绍
+sourceSHA: 33f9629f0dc7db25a08a2c7fd669f67c01196dbce1ce8ceaea8e7a05fb2de1f8
 ---
-
-# 介绍
 
 ## Redis OSS 介绍
 
@@ -51,7 +53,7 @@ sourceSHA: 61dd63f69b3e618db8b60905b03ebbcb41617d58ec4f61b5f5ab062423c08470
    - 支持 **NodeSelector**、**Toleration** 和 **Affinity**，灵活控制 Pods 调度逻辑。
 
 8. **自动化运维能力**
-   - **滚动扩缩容**：根据配置调整分片或副本数量，自动处理数据重分布（集群）或主从关系（哨兵）。
+   - **滚动扩缩容**：根据配置调整分片或副本数量，自动处理数据重分布（集群）或主从关系（Sentinel）。
    - **无中断升级**：逐个节点替换与同步数据，确保服务连续性。
    - **配置热更新**：修改 ConfigMap 后自动注入新配置，无需重启实例。
 
