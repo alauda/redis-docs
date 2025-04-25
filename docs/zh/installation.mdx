@@ -4,23 +4,23 @@ i18n:
   title:
     zh: 安装
 title: 安装
-sourceSHA: eb814075e9edc1e91f1e56b32969b488a7d0a38ce62acce281d78a4e8a38e035
+sourceSHA: af0708a3fae10d164717cdd32e9114c0187e05b7dcee04a7aabe9ef3eef3014f
 ---
 
 # 安装
 
 本指南概述了 Alauda Cache Service for Redis OSS 的安装过程，包括其所需的依赖项。请按顺序执行以下步骤，以确保正确部署。
 
-## 安装 Alauda 应用服务基础组件
+## 安装 Alauda 容器平台数据服务基础组件
 
 ::: tip 可选
-Alauda 应用服务基础组件提供了 Web 控制台管理界面组件。对于仅使用 CLI 管理的环境，可以跳过此安装。
+Alauda 容器平台数据服务基础组件提供了 Web 控制台管理界面组件。对于仅使用 CLI 管理的环境，可以跳过此安装。
 :::
 
 ### 先决条件
 
-1. 获取与您的平台版本兼容的 Alauda 应用服务基础组件安装包。
-2. 使用平台的应用发布功能将 Alauda 应用服务基础组件发布到 `global` 集群。
+1. 获取与您的平台版本兼容的 Alauda 容器平台数据服务基础组件安装包。
+2. 使用平台的应用发布功能将 Alauda 容器平台数据服务基础组件发布到 `global` 集群。
 
 ### 步骤
 
@@ -28,28 +28,28 @@ Alauda 应用服务基础组件提供了 Web 控制台管理界面组件。对�
   <Tab label="Web 控制台">
     1. 在平台的左侧导航面板中，导航到 **Marketplace** > **Cluster Plugins**。
     2. 从集群选择器中选择 `global` 集群。
-    3. 在插件列表中找到 **Alauda 应用服务基础组件**，并点击 **安装**。
+    3. 在插件列表中找到 **Alauda 容器平台数据服务基础组件**，并点击 **安装**。
   </Tab>
 </Tabs>
 
-## 安装 Alauda 应用服务 RDS 框架
+## 安装 Alauda 容器平台数据服务 RDS 框架
 
 ::: tip 可选
-Alauda 应用服务 RDS 框架提供了 API 服务管理层。对于仅使用 CLI 管理的环境，可以跳过此安装。
+Alauda 容器平台数据服务 RDS 框架提供了 API 服务管理层。对于仅使用 CLI 管理的环境，可以跳过此安装。
 :::
 
 ### 先决条件
 
-1. 获取与您的平台版本兼容的 Alauda 应用服务 RDS 框架安装包。
-2. 使用平台的应用发布功能将 Alauda 应用服务 RDS 框架发布到希望具备 Alauda 应用服务 Web 控制台功能的任意集群。
+1. 获取与您的平台版本兼容的 Alauda 容器平台数据服务 RDS 框架安装包。
+2. 使用平台的应用发布功能将 Alauda 容器平台数据服务 RDS 框架发布到希望具备 Alauda 应用服务 Web 控制台功能的任意集群。
 
 ### 步骤
 
 <Tabs>
   <Tab label="Web 控制台">
     1. 访问 **平台管理** 界面。
-    2. 在左侧导航面板中，导航到 **Marketplace** > **Operator Hub**。
-    3. 找到 **Alauda 应用服务 RDS 框架**，点击 **安装** 以访问部署配置页面。
+    2. 在左侧导航面板中，导航到 **Marketplace** > **OperatorHub**。
+    3. 找到 **Alauda 容器平台数据服务 RDS 框架**，点击 **安装** 以访问部署配置页面。
 
     按如下方式配置安装参数：
 
@@ -77,7 +77,7 @@ Alauda 应用服务 RDS 框架提供了 API 服务管理层。对于仅使用 CL
 <Tabs>
   <Tab label="Web 控制台">
     1. 访问 **平台管理** 界面。
-    2. 在左侧导航面板中，导航到 **Marketplace** > **Operator Hub**。
+    2. 在左侧导航面板中，导航到 **Marketplace** > **OperatorHub**。
     3. 找到 **Alauda Cache Service for Redis OSS**，点击 **安装** 以访问部署配置页面。
 
     按如下方式配置安装参数：
