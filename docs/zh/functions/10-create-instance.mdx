@@ -1,22 +1,22 @@
 ---
 weight: 10
-sourceSHA: 24223fb79c03ae7018dfa4e3c1b933d20b725849ccf0a903e7e263b15bc5e057
+sourceSHA: cdf96981f5cb237c9d76ab5ddf80a7c9d6ca13cd76eca1b7d3d125600bba62e1
 ---
 
 # 创建实例
 
 以下 Redis 版本被完全支持： `5.0`，`6.0`，`7.2`；其他版本默认不被支持。
 
-<Directive type="tip" title="版本选择建议">
+<Directive type="tip" title="版本建议">
 在生产环境中，建议优先选择 `7.2` 版本，其次 `6.0`。
 
-1. `7.2` 是社区仍在维护的版本，修复了 `6.0` 和 `5.0` 中的已知问题。而 `6.0` 和 `5.0` 版本已不再由社区维护。
+1. `7.2` 是社区仍在维护的版本，修复了 `6.0` 和 `5.0` 中的已知问题，而 `6.0` 和 `5.0` 版本已不再由社区维护。
 2. `7.2` 与 `6.0` 和 `5.0` 完全兼容。
 3. `7.2` 进一步改进了 ACL 功能。
-4. 不推荐使用 `5.0`，因为它不支持 ACL 等高级功能，缺乏用户管理能力；所有业务流程共享一个密码，存在潜在的安全风险；而且，修改密码需要重启所有节点。
+4. 不推荐使用 `5.0`，因为它并不支持 ACL 等高级功能，缺乏用户管理能力；所有业务流程共享单一密码，存在潜在安全风险；此外，修改密码需要重启所有节点。
 </Directive>
 
-<Directive type="note" title="架构选择建议">
+<Directive type="note" title="架构建议">
 `单节点架构`没有副本节点，缺乏故障转移能力，因此只应在开发和测试环境中使用。您可以根据业务的数据和并发需求选择 `哨兵架构` 或 `集群架构`。
 </Directive>
 
@@ -169,9 +169,9 @@ sourceSHA: 24223fb79c03ae7018dfa4e3c1b933d20b725849ccf0a903e7e263b15bc5e057
   </Tab>
 
   <Tab label="Web 控制台">
-    1. 进入 Alauda 应用服务视图。
+    1. 进入 Alauda 数据服务视图。
 
-    2. 在 Alauda 应用服务视图的左侧导航栏中，单击 **Redis**。
+    2. 在 Alauda 数据服务视图的左侧导航栏中，单击 **Redis**。
 
     3. 单击 ***命名空间名称***。
 
@@ -218,12 +218,12 @@ sourceSHA: 24223fb79c03ae7018dfa4e3c1b933d20b725849ccf0a903e7e263b15bc5e057
 
          <tr>
            <td><b>节点标签</b></td>
-           <td>通过标签筛选出当前集群内可用的节点。Pods 将被调度到可用节点。<br /><b>注意</b>：实例创建后，该配置都无法修改。</td>
+           <td>通过标签筛选出当前集群内可用的节点。Pods 将被调度到可用节点。<br /><b>注意</b>：实例创建后，该配置无法修改。</td>
          </tr>
 
          <tr>
            <td><b>Pod 容忍</b></td>
-           <td>如果可用节点设置了污点，只有设置了容忍的 Pods 才能容忍这些污点，并有可能被调度到与 Pod 容忍和节点污点匹配的节点。匹配规则如下：<ul><li><b>Equal</b>：当 Pod 容忍的 <i>key</i>、<i>value</i> 和 <i>effect</i> 与节点污点设置完全一致时，Pod 会容忍节点污点。</li><li><b>Exists</b>：当 Pod 容忍的 <i>key</i> 和 <i>effect</i> 与节点污点设置保持一致时，Pod 会容忍节点污点。</li></ul><br /><b>注意</b>：effect 决定了未容忍节点污点的 Pods 是否会被分配到有污点的节点上。例如，如果 effect 为 NoExecute，则只有容忍污点的 Pods（包括本 Redis 实例中的 Pods）才会被调度，而在该节点上未容忍污点的 Pods 会被驱逐（来自其他实例的 Pods）。有关匹配规则的更多信息，请参见 <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/">Kubernetes 社区文档</a>。</td>
+           <td>如果可用节点设置了污点，只有设置了容忍的 Pods 才能容忍这些污点，并可能被调度到与 Pod 容忍和节点污点匹配的节点。匹配规则如下：<ul><li><b>Equal</b>：当 Pod 容忍的 <i>key</i>、<i>value</i> 和 <i>effect</i> 与节点污点设置完全一致时，Pod 会容忍节点污点。</li><li><b>Exists</b>：当 Pod 容忍的 <i>key</i> 和 <i>effect</i> 与节点污点设置保持一致时，Pod 会容忍节点污点。</li></ul><br /><b>注意</b>：effect 决定了未容忍节点污点的 Pods 是否会被分配到有污点的节点上。例如，如果 effect 为 NoExecute，则只有容忍污点的 Pods（包括本 Redis 实例中的 Pods）才会被调度，而在该节点上未容忍污点的 Pods 会被驱逐（来自其他实例的 Pods）。有关匹配规则的更多信息，请参见 <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/">Kubernetes 社区文档</a>。</td>
          </tr>
        </table>
 
@@ -231,7 +231,7 @@ sourceSHA: 24223fb79c03ae7018dfa4e3c1b933d20b725849ccf0a903e7e263b15bc5e057
 
     7. 单击 **创建**。
 
-       一旦实例状态变为 **运行中**，实例即已成功创建。
+       一旦实例状态变为 **运行中**，该实例即已成功创建。
   </Tab>
 </Tabs>
 
@@ -254,7 +254,7 @@ standalone   standalone   6.0                  Initializing             4.0.1   
 | 字段           | 说明                                                                                                                                                                                                                                                                                                                                                                                   |
 |:---------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NAME           | 实例名称                                                                                                                                                                                                                                                                                                                                                                                 |
-| ARCH           | 该值对应 Redis 的架构。 <ul><li>`cluster`：集群模式</li><li> `sentinel`：哨兵模式</li><li>`standalone`：单节点 Redis</li></ul>  该字段指示此 CR 资源管理的是单实例、哨兵或集群模式的 Redis。                                                                                                                              |
+| ARCH           | 该值对应 Redis 的架构。 <ul><li>`cluster`：集群模式</li><li>`sentinel`：哨兵模式</li><li>`standalone`：单节点 Redis</li></ul>  该字段指示此 CR 资源管理的是单实例、哨兵或集群模式的 Redis。                                                                                                                                                  |
 | VERSION        | 当前仅支持以下 3 个版本：`5.0`，`6.0`，`7.2`                                                                                                                                                                                                                                                                                                                                           |
 | ACCESS         | 实例支持的访问方式。 <ul><li>` `: 实例通过 ClusterIP 提供服务</li><li>`NodePort`：实例通过 NodePort 提供服务</li><li>`LoadBalancer`：实例通过 LoadBalancer 提供服务</li></ul>                                                                                                                                                                                                   |
 | STATUS         | 实例当前状态，可能包括以下状态： <ul><li>`Initializing`：实例正在初始化或更新</li><li>`Rebalancing`：集群实例正在扩缩容</li><li>`Error`：实例遇到不可恢复的错误</li><li>`Paused`：实例已被手动暂停</li><li>`Ready`：实例已准备就绪</li></ul>                                                             |
