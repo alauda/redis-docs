@@ -1,0 +1,381 @@
+---
+weight: 20
+sourceSHA: 0b3baf38526ebaf359b0f8c305016fc29490a45507d33e3c007842559df06d35
+---
+
+# Как получить доступ к экземпляру кластера
+
+Этот документ демонстрирует, как установить соединения с экземплярами кластера Redis, используя клиентские библиотеки стандартов отрасли. Примеры охватывают детали конфигурации для [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core) и [Redisson](https://github.com/redisson/redisson). Для дополнительных клиентских опций см. [Подключение с помощью библиотек API клиентов Redis](https://redis.io/clients).
+
+## Требования к аутентификации
+
+Экземпляры кластера Redis реализуют следующие параметры аутентификации:
+
+- **Аутентификация по паролю**: Когда настроен пароль, все клиентские соединения должны предоставить действительные учетные данные.
+- **Доступ без пароля**: Если параметр **Установить пароль** отключен во время создания экземпляра, клиенты могут подключаться без аутентификации.
+
+<Directive type="warning" title="Лучшие практики безопасности">
+  Для производственных сред настоятельно рекомендуется реализовать аутентификацию по паролю для защиты ваших данных. См. [Управление пользователями](../../functions/20-user) для получения подробных инструкций по настройке и поддержанию безопасных учетных данных.
+</Directive>
+
+## Справочник по конечным точкам подключения
+
+### Внутренний доступ к кластеру
+
+Для приложений, развернутых в том же кластере Kubernetes, внутренние точки доступа доступны через вкладку **Метод доступа** в разделе **Доступ внутри кластера**.
+
+| Параметр              | Описание                                                                        |
+| --------------------- | --------------------------------------------------------------------------------|
+| **Адрес подключения** | Комбинации имени службы Kubernetes и портов для каждого шарда в кластере Redis  |
+
+### Внешний доступ к кластеру
+
+Для приложений, подключающихся извне среды Kubernetes, внешние точки доступа становятся доступными при конфигурации во время создания экземпляра. Эти точки доступа можно найти на вкладке **Метод доступа** в разделе **Доступ извне кластера**.
+
+| Тип конечной точки  | Описание                                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Адрес шарда**     | Внешние IP-адреса и порты для подов шардов в кластере Redis, позволяющие подключение из вне сети Kubernetes                   |
+
+## Интерактивная отладка
+
+Для административных операций и устранения неполадок Redis CLI предоставляет прямой доступ к узлам кластера:
+
+1. Получите доступ к **Терминальному консоли** с страницы деталей экземпляра
+2. Подключитесь к любому узлу, используя режим клиентской работы с кластером:
+
+```bash
+redis-cli -c -h <internal-routing-ip> -p 6379
+```
+
+Пример сеанса отладки, демонстрирующий перенаправление на основе слотов:
+
+```bash
+192.168.0.10:6379> set a 1
+-> Redirected to slot [15495] located at 192.168.0.10:6379
+OK
+192.168.0.10:6379> get a
+"1"
+192.168.0.10:6379>
+```
+
+Флаг `-c` включает автоматическое следование за перенаправлениями `MOVED` и `ASK`, что необходимо при работе с кластером Redis.
+
+## Примеры интеграции клиента
+
+Следующие примеры демонстрируют лучшие практики подключения к экземплярам кластера Redis с использованием различных клиентских библиотек.
+
+<Tabs>
+  <Tab label="go-redis">
+    ```go
+    package main
+
+    import (
+        "context"
+        "fmt"
+        "time"
+        // Рекомендуется периодически обновлять до последней версии клиента для исправления ошибок.
+        "github.com/redis/go-redis/v9"
+    )
+
+    func main() {
+        client := redis.NewClusterClient(&redis.ClusterOptions{
+            Addrs:    []string{"<address>"},
+            Password: "<password>",
+            OnConnect: func(ctx context.Context, conn *redis.Conn) error {
+                ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+                defer cancel()
+                return conn.Ping(ctx).Err()
+            },
+            // Имя клиента для целей отслеживания
+            ClientName: "go-demo",
+            // Используйте Context для управления тайм-аутом
+            ContextTimeoutEnabled: true,
+            // Максимальное количество перенаправлений в случае MOVED или ASK
+            MaxRedirects: 3,
+            // Максимальное количество попыток
+            MaxRetries: 3,
+            // Минимальный тайм-аут повторной попытки
+            MinRetryBackoff: 20 * time.Millisecond,
+            // Максимальный тайм-аут повторной попытки
+            MaxRetryBackoff: 200 * time.Millisecond,
+            // Тайм-аут соединения
+            DialTimeout: 3 * time.Second,
+            // Тайм-аут чтения
+            ReadTimeout: 5 * time.Second,
+            // Тайм-аут записи
+            WriteTimeout: 10 * time.Second,
+            // Размер пула соединений для каждого узла
+            PoolSize: 100,
+            // Максимальное время ожидания для доступных соединений в пуле
+            PoolTimeout: time.Second,
+            // Минимальное количество неактивных соединений для каждого узла
+            MinIdleConns: 5,
+            // Максимальное количество неактивных соединений для каждого узла
+            MaxIdleConns: 10,
+            // Максимальное количество активных соединений для каждого узла
+            MaxActiveConns: 100,
+            // Максимальное время ожидания для соединений
+            ConnMaxIdleTime: time.Minute * 5,
+        })
+        defer client.Close()
+
+        if val, err := client.Get(context.TODO(), "test").Result(); err != nil {
+            panic(err)
+        } else {
+            fmt.Println(val)
+        }
+    }
+    ```
+
+    Для более подробной конфигурации см. [Документация сообщества](https://redis.uptrace.dev/guide/go-redis-cluster.html)
+  </Tab>
+
+  <Tab label="Jedis">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять до последней версии клиента для исправления ошибок.
+    import redis.clients.jedis.DefaultJedisClientConfig;
+    import redis.clients.jedis.JedisSentinelPool;
+    import redis.clients.jedis.JedisPoolConfig;
+    import redis.clients.jedis.Jedis;
+    import redis.clients.jedis.HostAndPort;
+
+    import java.time.Duration;
+    import java.util.Set;
+    import java.util.HashSet;
+
+    public class Main {
+        public static void main(String []args) {
+            JedisPoolConfig poolConfig = new JedisPoolConfig();
+            // Установите размер пула соединений, -1 означает отсутствие ограничений. Если текущее количество соединений превышает это значение, новые соединения будут недоступны.
+            poolConfig.setMaxTotal(200);
+            // Установите максимальное количество неактивных соединений; неактивные соединения, превышающие это значение, будут сразу освобождены.
+            poolConfig.setMaxIdle(10);
+            // Установите минимальное количество неактивных соединений; неактивные соединения ниже этого значения будут созданы.
+            poolConfig.setMinIdle(3);
+            // Максимальное время ожидания, когда нет доступных соединений и достигнуто максимальное количество соединений.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // PING для проверки доступности соединения каждый раз, когда из пула берется соединение.
+            poolConfig.setTestOnBorrow(true);
+            // Проверка неактивных соединений для выявления недействительных и их освобождения; эта конфигурация будет действительна только если timeBetweenEvictionRunsMillis больше 1 мс.
+            poolConfig.setTestWhileIdle(true);
+            // Установите минимальное время неактивности для соединений; соединения, превышающие это время, будут освобождены; -1 означает, что не освобождать; эта конфигурация будет действительна только если timeBetweenEvictionRunsMillis больше 0. Значение по умолчанию составляет 30 минут.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Количество соединений, которые нужно проверить каждый раз при обнаружении неактивных соединений; -n означает 1/n соединений.
+            poolConfig.setNumTestsPerEvictionRun(-1);
+            // Интервал изъятия; -1 означает отключить.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+
+            DefaultJedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                    // Имя клиента для проверки источников соединения во время отладки.
+                    .clientName("demo-jedis")
+                    // Тайм-аут TCP-соединения.
+                    .connectionTimeoutMillis(2000)
+                    // Тайм-аут команд.
+                    .timeoutMillis(10000)
+                    .password("<password>")
+                    .build();
+
+            DefaultJedisClientConfig sentinelConfig = DefaultJedisClientConfig.builder()
+                    .connectionTimeoutMillis(2000)
+                    .timeoutMillis(10000)
+                    .build();
+
+            Set<HostAndPort> nodes =  new HashSet<>();
+            nodes.add(new HostAndPort("<ip1>", "<port1>"));
+            nodes.add(new HostAndPort("<ip2>", "<port2>"));
+            JedisSentinelPool pool = new JedisSentinelPool("mymaster", nodes, poolConfig, clientConfig, sentinelConfig);
+
+            try {
+                try (Jedis jedis = pool.getResource()) {
+                    String val = jedis.get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации см. [Документация сообщества](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html)
+  </Tab>
+
+  <Tab label="Lettuce">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять до последней версии клиента для исправления ошибок.
+    import io.lettuce.core.ClientOptions;
+    import io.lettuce.core.RedisURI;
+    import io.lettuce.core.SocketOptions;
+    import io.lettuce.core.TimeoutOptions;
+    import io.lettuce.core.cluster.ClusterClientOptions;
+    import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
+    import io.lettuce.core.cluster.RedisClusterClient;
+    import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+    import io.lettuce.core.support.ConnectionPoolSupport;
+    import org.apache.commons.pool2.impl.GenericObjectPool;
+    import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+    import java.time.Duration;
+    import java.util.List;
+    import java.util.ArrayList;
+
+    public class Main {
+        public static void main(String[] args) {
+            RedisURI node1 = RedisURI.create("<ip1>", "<port1>");
+            node1.setPassword("<password>");
+            node1.setClientName("demo-lettuce");
+
+            RedisURI node2 = RedisURI.create("<ip2>", "<port2>");
+            node2.setPassword("<password>");
+            node2.setClientName("demo-lettuce");
+
+            List<RedisURI> nodes = new ArrayList<>();
+            nodes.add(node1);
+            nodes.add(node2);
+
+            ClusterTopologyRefreshOptions refreshOptions = ClusterTopologyRefreshOptions.builder()
+                    // Интервал по умолчанию для обновления топологии составляет 60 секунд.
+                    .enablePeriodicRefresh()
+                    // Триггер обновления топологии при возникновении следующих ошибок: ASK_REDIRECT, MOVED_REDIRECT, PERSISTENT_RECONNECTS, UNCOVERED_SLOT, UNKNOWN_NODE
+                    .enableAllAdaptiveRefreshTriggers()
+                    .build();
+
+            TimeoutOptions timeoutOptions = TimeoutOptions.builder()
+                    // Устанавливает тайм-аут команд.
+                    .fixedTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            SocketOptions socketOptions = SocketOptions.builder()
+                    // Устанавливает тайм-аут соединения.
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .tcpNoDelay(true)
+                    // Включает поддержку TCP keepalive для быстрого выявления недействительных соединений.
+                    // Это значение не является обязательным для запросов, не относящихся к паб/sub; оно может управляться своевременным освобождением неактивных соединений.
+                    .keepAlive(true)
+                    .build();
+
+            ClusterClientOptions clusterClientOptions = ClusterClientOptions.builder()
+                    .topologyRefreshOptions(refreshOptions)
+                    // Устанавливает тайм-аут команд.
+                    .timeoutOptions(timeoutOptions)
+                    // Автоматическое повторное подключение (поведение по умолчанию).
+                    .autoReconnect(true)
+                    // Настройка поведения клиента при отключении.
+                    // DEFAULT - При autoReconnect = true команды не будут отклоняться, когда они поступают; в противном случае команды будут отклоняться.
+                    .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
+                    // Настройка параметров сокетов; lettuce не включает keepalive по умолчанию; это следует включить для долгосрочных соединений.
+                    .socketOptions(socketOptions)
+                    .build();
+
+            RedisClusterClient redisClient = RedisClusterClient.create(nodes);
+            redisClient.setOptions(clusterClientOptions);
+
+            GenericObjectPoolConfig<StatefulRedisClusterConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
+            // Размер пула соединений не должен быть слишком большим, чтобы избежать напрасной траты ресурсов соединения сервера, что приведет к истощению соединений и недоступности экземпляра.
+            // Рекомендуется оценивать вашу конкурентоспособность бизнеса, деля её на количество шардов; окончательное значение должно составлять 1,2-1,5 раз.
+            poolConfig.setMaxTotal(200);
+            // Минимальное количество неактивных соединений для резервирования для более быстрого отклика бизнеса.
+            poolConfig.setMinIdle(3);
+            // Максимальное количество неактивных соединений; превышение этого лимита будет сразу освобождать неактивные соединения.
+            poolConfig.setMaxIdle(10);
+            // Минимальная неактивность соединений.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Количество соединений для проверки во время каждой проверки неактивных соединений; -n означает 1/n соединений.
+            poolConfig.setNumTestsPerEvictionRun(3);
+            // Интервал изъятия; -1 означает отключить.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+            // Максимальное время ожидания при отсутствии доступных соединений и достижении максимального количества соединений.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // PING для проверки доступности соединения каждый раз, когда возникает заимствование соединения.
+            poolConfig.setTestOnBorrow(true);
+            // Проверка неактивных соединений для выявления недействительных и их освобождения; эта конфигурация будет действовать только тогда, когда timeBetweenEvictionRunsMillis больше 1 мс.
+            poolConfig.setTestWhileIdle(true);
+
+            GenericObjectPool<StatefulRedisClusterConnection<String, String>> pool = ConnectionPoolSupport
+                    .createGenericObjectPool(redisClient::connect, poolConfig);
+
+            try {
+                try (StatefulRedisClusterConnection<String, String> connection = pool.borrowObject()) {
+                    String val = connection.sync().get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации см. [Документация сообщества](https://lettuce.io/core/release/reference/#redis-cluster)
+  </Tab>
+
+  <Tab label="Redisson">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять до последней версии клиента для исправления ошибок.
+    import org.redisson.Redisson;
+    import org.redisson.api.RedissonClient;
+    import org.redisson.config.Config;
+
+    import java.util.List;
+    import java.util.ArrayList;
+
+    public class Main {
+        public static void main(String[] args) {
+            List<String> nodes = new ArrayList<>();
+            nodes.add("redis://<ip1>:<port1>");
+            nodes.add("redis://<ip2>:<port2>");
+
+            Config config = new Config();
+            config
+                    .setNettyThreads(64)
+                    .useClusterServers()
+                    .addNodeAddress(nodes.toArray(new String[0]))
+                    .setPassword("<password>")
+                    // Проверка состояния слотов кластера при запуске службы.
+                    .setCheckSlotsCoverage(true)
+                    // Интервал для сканирования топологии кластера.
+                    .setScanInterval(5000)
+                    // Тайм-аут соединения.
+                    .setConnectTimeout(10000)
+                    // Тайм-аут команд.
+                    .setTimeout(10000)
+                    // Каждые 30 секунд проверять соединение на доступность.
+                    // Если KeepAlive включен, этот тайм-аут может быть пропорционально увеличен.
+                    .setPingConnectionInterval(30000)
+                    // Тайм-аут неактивности соединения; отключать соединения, неактивные более 60 секунд, значение по умолчанию 10 секунд является слишком коротким.
+                    .setIdleConnectionTimeout(60000)
+                    // Размер пула соединений не должен быть слишком большим, чтобы избежать напрасной траты ресурсов соединения сервера, что приведет к истощению соединений и недоступности экземпляра.
+                    // Рекомендуется оценивать вашу конкурентоспособность бизнеса, деля её на количество шардов; окончательное значение должно составлять 1,2-1,5 раз.
+                    .setMasterConnectionPoolSize(200)
+                    // Минимальное количество неактивных соединений для резервирования для более быстрого отклика бизнеса.
+                    .setMasterConnectionMinimumIdleSize(10)
+                    // Количество попыток повторного выполнения для неудачных команд.
+                    .setRetryAttempts(3)
+                    // Интервал повторной попытки для неудачных команд.
+                    .setRetryInterval(1500)
+                    // Включить механизм TCP keepalive для быстрого выявления неожиданно отключенных соединений.
+                    .setKeepAlive(true)
+                    // TCP без задержек.
+                    .setTcpNoDelay(true)
+                    // Имя клиента для проверки источников соединения во время отладки.
+                    .setClientName("demo-redisson");
+            RedissonClient redissonClient = Redisson.create(config);
+
+            System.out.printf("%s", redissonClient.getBucket("test").get().toString());
+
+            redissonClient.shutdown();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации см. [Документация сообщества](https://redisson.org/docs/configuration/#cluster-mode)
+  </Tab>
+</Tabs>

@@ -1,0 +1,356 @@
+---
+weight: 10
+sourceSHA: 055d80c2092ca98bdaae710110c20ea1ccadf2cf3b1a4ba1384b5286fa9bfbb7
+---
+
+# Как получить доступ к экземпляру Sentinel
+
+Настоящее руководство демонстрирует, как установить соединение с экземплярами Redis Sentinel, используя стандартные библиотека клиента. В примерах представлены детали конфигурации для [go-redis](https://github.com/redis/go-redis), [Jedis](https://github.com/redis/jedis), [Lettuce](https://github.com/lettuce-io/lettuce-core) и [Redisson](https://github.com/redisson/redisson). Для получения дополнительных вариантов клиентов обратитесь к [Соединение с Redis API библиотеками клиентов](https://redis.io/clients).
+
+## Требования к аутентификации
+
+Экземпляры Redis Sentinel реализуют следующие варианты аутентификации:
+
+- **Аутентификация по паролю**: При настройке с паролем все клиентские соединения должны предоставлять действительные учетные данные
+- **Доступ без пароля**: Если опция **Установить пароль** отключена во время создания экземпляра, клиенты могут подключаться без аутентификации
+
+<Directive type="warning" title="Лучшие практики безопасности">
+  Для производственных сред настоятельно рекомендуется реализовать аутентификацию по паролю для защиты ваших данных. Обратитесь к [Управление пользователями](../../functions/20-user) для получения подробных инструкций по настройке и поддержанию безопасных учетных данных.
+</Directive>
+
+## Справочная информация о конечных точках подключения
+
+### Доступ во внутреннем кластере
+
+Для приложений, развернутых в одном и том же кластере Kubernetes, доступны внутренние конечные точки доступа через вкладку **Метод доступа** в разделе **Доступ внутри кластера**.
+
+| Параметр               | Описание                                                         |
+| ---------------------- | ----------------------------------------------------------------- |
+| **Адрес соединения**   | Имя сервиса Kubernetes и комбинации портов для Redis Sentinel. |
+
+### Для доступа из внешнего кластера
+
+Для приложений, подключающихся извне окружения Kubernetes, внешние конечные точки доступа доступны, если они настроены во время создания экземпляра. Эти конечные точки можно найти на вкладке **Метод доступа** в разделе **Доступ извне кластера**.
+
+| Параметр                         | Описание                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Адрес доступа к узлу Sentinel** | Внешние IP-адреса и порты для подов sentinel в Redis Sentinel, позволяя подключение извне сети Kubernetes. |
+
+## Интерактивная отладка
+
+На странице сведений об экземпляре нажмите **Терминальная консоль** в правом верхнем углу и используйте команду `redis-cli` для подключения к каждому узлу Redis.
+
+```
+redis-cli -h <internal-routing-ip> -p 6379
+```
+
+Вот пример отладки.
+Пример сессии отладки демонстрирует установку/получение:
+
+```
+192.168.0.10:6379> set a 1
+OK
+192.168.0.10:6379> get a
+"1"
+192.168.0.10:6379>
+```
+
+## Примеры интеграции клиента
+
+Следующие примеры демонстрируют лучшие практики для подключения к экземплярам Redis Sentinel с использованием различных библиотек клиент.
+
+> **Примечание**: Имя кластера master-slave, зарегистрированное в режиме Sentinel, фиксировано на `mymaster`.
+
+<Tabs>
+  <Tab label="go-redis">
+    ```go
+    package main
+
+    import (
+        "context"
+        "fmt"
+        "time"
+
+        // Рекомендуется периодически обновлять последнюю версию клиента для получения последних исправлений ошибок.
+        "github.com/redis/go-redis/v9"
+    )
+
+    func main() {
+        client := redis.NewFailoverClient(&redis.FailoverOptions{
+            SentinelAddrs: []string{"<address>"},
+            MasterName:    "mymaster",
+            Password:      "<password>",
+            OnConnect: func(ctx context.Context, conn *redis.Conn) error {
+                ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+                defer cancel()
+                return conn.Ping(ctx).Err()
+            },
+            // Имя клиента для идентификации и отслеживания
+            ClientName: "go-demo",
+            // Использование контекста для управления временем ожидания
+            ContextTimeoutEnabled: true,
+            // Максимальное количество попыток
+            MaxRetries: 3,
+            // Минимальное время ожидания при повторных попытках
+            MinRetryBackoff: 20 * time.Millisecond,
+            // Максимальное время ожидания при повторных попытках
+            MaxRetryBackoff: 200 * time.Millisecond,
+            // Время ожидания соединения
+            DialTimeout: 3 * time.Second,
+            // Время ожидания чтения
+            ReadTimeout: 5 * time.Second,
+            // Время ожидания записи
+            WriteTimeout: 10 * time.Second,
+            // Размер пула соединений для каждого узла
+            PoolSize: 100,
+            // Максимальное время ожидания для доступных соединений в пуле
+            PoolTimeout: time.Second,
+            // Минимальное количество неактивных соединений для каждого узла
+            MinIdleConns: 5,
+            // Максимальное количество неактивных соединений для каждого узла
+            MaxIdleConns: 10,
+            // Максимальное количество активных соединений для каждого узла
+            MaxActiveConns: 100,
+            // Максимальное время неактивности соединений
+            ConnMaxIdleTime: time.Minute * 5,
+        })
+        defer client.Close()
+
+        if val, err := client.Get(context.TODO(), "test").Result(); err != nil {
+            panic(err)
+        } else {
+            fmt.Println(val)
+        }
+    }
+    ```
+
+    Для более подробной конфигурации, пожалуйста, обратитесь к [документации сообщества](https://redis.uptrace.dev/guide/go-redis-sentinel.html).
+  </Tab>
+
+  <Tab label="Jedis">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять последнюю версию клиента для получения последних исправлений ошибок.
+    import redis.clients.jedis.DefaultJedisClientConfig;
+    import redis.clients.jedis.JedisSentinelPool;
+    import redis.clients.jedis.JedisPoolConfig;
+    import redis.clients.jedis.Jedis;
+    import redis.clients.jedis.HostAndPort;
+
+    import java.time.Duration;
+    import java.util.Set;
+    import java.util.HashSet;
+
+    public class Main {
+        public static void main(String []args) {
+            JedisPoolConfig poolConfig = new JedisPoolConfig();
+            // Установите максимальный размер пула соединений, -1 означает без ограничений. Если текущее количество соединений превышает это значение, новые соединения будут отклоняться.
+            poolConfig.setMaxTotal(200);
+            // Установите максимальное количество неактивных соединений; неактивные соединения, превышающие это количество, будут немедленно освобождены.
+            poolConfig.setMaxIdle(10);
+            // Установите минимальное количество неактивных соединений; если число упадет ниже этого, будут созданы новые неактивные соединения.
+            poolConfig.setMinIdle(3);
+            // Максимальное время ожидания запросов, когда нет доступных соединений и достигнуто максимальное количество соединений.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // Проверьте соединение, отправив ping при заимствовании из пула соединений.
+            poolConfig.setTestOnBorrow(true);
+            // Тестирование неактивных соединений, нахождение и освобождение недействительных соединений; эта конфигурация будет действовать только если timeBetweenEvictionRunsMillis больше 1 мс.
+            poolConfig.setTestWhileIdle(true);
+            // Установите минимальное время неактивности для соединений; соединения старше этого времени будут освобождены; -1 означает отсутствие освобождения, эта конфигурация будет действовать только если timeBetweenEvictionRunsMillis больше 0. Значение по умолчанию - 30 минут.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Количество соединений, проверяемых на каждой проверке неактивных соединений; -n означает 1/n от соединений.
+            poolConfig.setNumTestsPerEvictionRun(-1);
+            // Интервал времени между проверками; -1 означает отключение.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+
+            DefaultJedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                    // Имя клиента для отладки и отслеживания источника соединения.
+                    .clientName("demo-jedis")
+                    // Время ожидания TCP соединения
+                    .connectionTimeoutMillis(2000)
+                    // Время ожидания команды
+                    .timeoutMillis(10000)
+                    .password("<password>")
+                    .build();
+
+            DefaultJedisClientConfig sentinelConfig = DefaultJedisClientConfig.builder()
+                    .connectionTimeoutMillis(2000)
+                    .timeoutMillis(10000)
+                    .build();
+
+            Set<HostAndPort> nodes =  new HashSet<>();
+            nodes.add(new HostAndPort("<ip1>", "<port1>"));
+            nodes.add(new HostAndPort("<ip2>", "<port2>"));
+            JedisSentinelPool pool = new JedisSentinelPool("mymaster", nodes, poolConfig, clientConfig, sentinelConfig);
+
+            try {
+                try (Jedis jedis = pool.getResource()) {
+                    String val = jedis.get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации, пожалуйста, обратитесь к [документации сообщества](https://www.javadoc.io/doc/redis.clients/jedis/5.1.2/redis/clients/jedis/Jedis.html).
+  </Tab>
+
+  <Tab label="Lettuce">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять последнюю версию клиента для получения последних исправлений ошибок.
+    import io.lettuce.core.*;
+    import io.lettuce.core.api.StatefulRedisConnection;
+    import io.lettuce.core.support.ConnectionPoolSupport;
+    import org.apache.commons.pool2.impl.GenericObjectPool;
+    import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+    import java.time.Duration;
+    import java.util.List;
+
+    public class Main {
+        public static void main(String[] args) {
+            RedisURI.Builder redisUriBuilder = RedisURI.builder();
+            redisUriBuilder.withSentinel(RedisURI.create("<ip1>", "<port1>"));
+            redisUriBuilder.withSentinel(RedisURI.create("<ip2>", "<port2>"));
+            redisUriBuilder.withPassword("<password>");
+
+            // Имя клиента для отладки и отслеживания источника соединения.
+            redisUriBuilder.withClientName("demo-lettuce");
+            redisUriBuilder.withSentinelMasterId("mymaster");
+            // Установите время ожидания соединения клиента
+            redisUriBuilder.withTimeout(Duration.ofSeconds(2));
+            RedisURI redisUri = redisUriBuilder.build();
+
+            // Настройка SocketOptions
+            SocketOptions socketOptions = SocketOptions.builder()
+                // Установите время ожидания соединения
+                .connectTimeout(Duration.ofSeconds(10))
+                .tcpNoDelay(true)
+                // Включите поддержку TCP keepalive для быстрой проверки пробитых соединений
+                // Это значение не является строго обязательным для запросов, не связанных с pub/sub; соединение может поддерживаться путем своевременного освобождения неактивных соединений.
+                .keepAlive(true)
+                .build();
+
+            ClientOptions clientOptions = ClientOptions.builder()
+                .socketOptions(socketOptions)
+                // Автовосстановление соединения
+                .autoReconnect(true)
+                // Настройка поведения клиента, когда соединение разъединено
+                // DEFAULT - когда autoReconnect = true, оставшиеся команды не будут отклонены; в противном случае команды будут отклонены
+                .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
+                .build();
+            RedisClient redisClient = RedisClient.create(redisUri);
+            redisClient.setOptions(clientOptions);
+
+            // Конфигурация пула
+            GenericObjectPoolConfig<StatefulRedisConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
+            // Размер пула соединений не должен быть слишком большим, иначе он может потратить ресурсы соединений сервера или даже исчерпать количество соединений, что приведет к сбоям проверки работоспособности самого экземпляра.
+            // Оцените свою конкуренцию в бизнесе; рекомендуется уровень конкуренции 1.2-1.5 раз по сравнению с масштабами вашего бизнеса.
+            poolConfig.setMaxTotal(200);
+            // Минимальное количество неактивных соединений для быстрого ответа на бизнес.
+            poolConfig.setMinIdle(3);
+            // Максимальное количество неактивных соединений; неактивные соединения, превышающее это число, будут немедленно освобождены.
+            poolConfig.setMaxIdle(10);
+            // Установите минимальное время неактивности для соединений; соединения старше этого времени будут освобождены; -1 указывает на отсутствие освобождения; эта конфигурация будет действовать только если timeBetweenEvictionRunsMillis больше 0. Значение по умолчанию - 30 м.
+            poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
+            // Количество соединений, проверяемых на каждой проверке неактивных соединений; -n означает 1/n от соединений.
+            poolConfig.setNumTestsPerEvictionRun(3);
+            // Интервал времени между проверками; -1 указывает на отключение.
+            poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+            // Максимальное время ожидания бизнес-заказа, когда нет доступных соединений и достигнуто максимальное количество соединений.
+            poolConfig.setMaxWait(Duration.ofSeconds(1));
+            // Проверка соединения, отправив ping при заимствовании из пула соединений.
+            poolConfig.setTestOnBorrow(true);
+            // Тестирование неактивных соединений, нахождение и освобождение недействительных соединений; эта конфигурация будет действовать только если timeBetweenEvictionRunsMillis больше 1 мс.
+            poolConfig.setTestWhileIdle(true);
+
+            GenericObjectPool<StatefulRedisConnection<String, String>> pool = ConnectionPoolSupport.createGenericObjectPool(redisClient::connect, poolConfig);
+
+            try {
+                try (StatefulRedisConnection<String, String> connection = pool.borrowObject()) {
+                    String val = connection.sync().get("test");
+                    System.out.printf("%s", val);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            pool.close();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации, пожалуйста, обратитесь к [документации сообщества](https://lettuce.io/core/release/reference/#redis-sentinel).
+  </Tab>
+
+  <Tab label="Redisson">
+    ```java
+    package io.alauda.demo.redis;
+
+    // Рекомендуется периодически обновлять последнюю версию клиента для получения последних исправлений ошибок.
+    import org.redisson.Redisson;
+    import org.redisson.api.RedissonClient;
+    import org.redisson.config.Config;
+
+    import java.util.List;
+    import java.util.ArrayList;
+
+    public class Main {
+        public static void main(String[] args) {
+            List<String> nodes = new ArrayList<>();
+            nodes.add("redis://<ip1>:<port1>");
+            nodes.add("redis://<ip2>:<port2>");
+
+            Config config = new Config();
+            config.setNettyThreads(64)
+                    .useSentinelServers()
+                    .addSentinelAddress(nodes.toArray(new String[0]))
+                    .setPassword("<password>")
+                    .setMasterName("mymaster")
+                    // Включение обнаружения узлов sentinel.
+                    .setSentinelsDiscovery(true)
+                    // Проверка соединения каждые 30 секунд на доступность.
+                    // Если включен KeepAlive, это значение можно соответственно увеличить.
+                    .setPingConnectionInterval(30000)
+                    // Интервал для сканирования топологии кластера.
+                    .setScanInterval(2000)
+                    // Время ожидания соединения.
+                    .setConnectTimeout(10000)
+                    // Время ожидания команды.
+                    .setTimeout(10000)
+                    // Время ожидания неактивного соединения, установите на 60 секунд, чтобы избежать слишком короткого времени по умолчанию.
+                    .setIdleConnectionTimeout(60000)
+                    // Размер пула соединений не должен быть слишком большим, чтобы не тратить ресурсы серверных соединений или не исчерпывать количество соединений, что может привести к сбоям проверки работоспособности самого экземпляра.
+                    // Оцените свою конкуренцию в бизнесе; рекомендуется уровень конкуренции 1.2-1.5 раз по сравнению с масштабами вашего бизнеса.
+                    .setMasterConnectionPoolSize(200)
+                    // Минимальное количество неактивных соединений для быстрого ответа на бизнес.
+                    .setMasterConnectionMinimumIdleSize(3)
+                    // Количество повторных попыток для неудачных команд.
+                    .setRetryAttempts(3)
+                    // Интервал повторных попыток для неудачных команд.
+                    .setRetryInterval(1500)
+                    // Включение механизма TCP KeepAlive для быстрого обнаружения разъединенных соединений.
+                    .setKeepAlive(true)
+                    // Включение TCP без задержки.
+                    .setTcpNoDelay(true)
+                    // Имя клиента для отладки и отслеживания источника соединения.
+                    .setClientName("demo-redisson");
+
+            RedissonClient redissonClient = Redisson.create(config);
+
+            System.out.printf("%s", redissonClient.getBucket("test").get().toString());
+
+            redissonClient.shutdown();
+        }
+    }
+    ```
+
+    Для более подробной конфигурации, пожалуйста, обратитесь к [документации сообщества](https://redisson.org/docs/configuration/#sentinel-mode).
+  </Tab>
+</Tabs>
