@@ -5,7 +5,7 @@ sourceSHA: 308585571db88077bffd035151f6160f84c24c6ffd00a0ffdcf91d9a017b364b
 
 # Parameter Configuration
 
-When creating a Redis instance, the system's default parameter template is applied. 
+When creating a Redis instance, the system's default parameter template is applied.
 
 Alauda Application Services provides specialized parameter templates for each Redis version (three templates for version 6.0+ and two for version 5.0) to accommodate different operational requirements.
 
@@ -36,9 +36,7 @@ When modifying Redis parameters, consider the following best practices:
 
 <Tabs>
   <Tab label="CLI">
-    <br />
-
-    ##### Data Node Parameters
+    ### Data Node Parameters
 
     The data node parameter configuration for the instance is specified through the `spec.customConfig` field of the Redis CR resource. Refer to the [API documentation](../apis/kubernetes_apis/redis/redis) for detailed descriptions of the parameters.
 
@@ -47,7 +45,7 @@ When modifying Redis parameters, consider the following best practices:
     $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"customConfig": {"save":"600 1"}}}'
     ```
 
-    ##### Sentinel Node Parameters
+    ### Sentinel Node Parameters
 
     The parameter configuration for data nodes registering to sentinel nodes is as follows:
 
@@ -73,4 +71,3 @@ When modifying Redis parameters, consider the following best practices:
     6. Click **Update**.
   </Tab>
 </Tabs>
-
