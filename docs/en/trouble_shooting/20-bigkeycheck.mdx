@@ -40,97 +40,97 @@ Alauda Application Services provides **Inspections** for you to detect BigKey in
 
 1. Edit the inspection tool deployment configuration to enable BigKey detection.
 
-On the cluster where the instance is located, edit the RdsInstaller function to enable BigKey detection.
+    On the cluster where the instance is located, edit the RdsInstaller function to enable BigKey detection.
 
-```bash
-# First check the RdsInstaller configuration
-$ kubectl -n rds-system get RdsInstaller rds -o yaml
-```
+    ```bash
+    # First check the RdsInstaller configuration
+    $ kubectl -n rds-system get RdsInstaller rds -o yaml
+    ```
 
-The output is as follows:
+    The output is as follows:
 
-```yaml
-apiVersion: middleware.alauda.io/v1
-kind: RdsInstaller
-metadata:
-  name: rds
-spec:
-  ......
-  inspection:
-    concurrency: "10"
-    dependency: true
-    env:
-    - name: ENABLE_REDIS_KEYS_INDICATOR
-    image: xxx
-    imagePullPolicy: Always
-    instanceReportLimit: "10"
-    name: inspection-operator
-    namespace: rds-system
-    ......
-```
+    ```yaml
+    apiVersion: middleware.alauda.io/v1
+    kind: RdsInstaller
+    metadata:
+      name: rds
+    spec:
+      ......
+      inspection:
+        concurrency: "10"
+        dependency: true
+        env:
+        - name: ENABLE_REDIS_KEYS_INDICATOR
+        image: xxx
+        imagePullPolicy: Always
+        instanceReportLimit: "10"
+        name: inspection-operator
+        namespace: rds-system
+        ......
+    ```
 
 2. Modify the value of the `ENABLE_REDIS_KEYS_INDICATOR` environment variable and save.
 
-```bash
-$ kubectl -n rds-system edit RdsInstaller rds
-```
+    ```bash
+    $ kubectl -n rds-system edit RdsInstaller rds
+    ```
 
-Change the value of `ENABLE_REDIS_KEYS_INDICATOR` in `spec.inspection.env` to `1`. The modified instance is as follows:
+    Change the value of `ENABLE_REDIS_KEYS_INDICATOR` in `spec.inspection.env` to `1`. The modified instance is as follows:
 
-```yaml
-apiVersion: middleware.alauda.io/v1
-kind: RdsInstaller
-metadata:
-  name: rds
-spec:
-  ......
-  inspection:
-    concurrency: "10"
-    dependency: true
-    env:
-    - name: ENABLE_REDIS_KEYS_INDICATOR
-      value: "1"
-    image: xxx
-    imagePullPolicy: Always
-    instanceReportLimit: "10"
-    name: inspection-operator
-    namespace: rds-system
-    ......
-```
+    ```yaml
+    apiVersion: middleware.alauda.io/v1
+    kind: RdsInstaller
+    metadata:
+      name: rds
+    spec:
+      ......
+      inspection:
+        concurrency: "10"
+        dependency: true
+        env:
+        - name: ENABLE_REDIS_KEYS_INDICATOR
+          value: "1"
+        image: xxx
+        imagePullPolicy: Always
+        instanceReportLimit: "10"
+        name: inspection-operator
+        namespace: rds-system
+        ......
+    ```
 
-After saving, the inspection Operator tool will restart. You can check the restart progress with the following command:
+    After saving, the inspection Operator tool will restart. You can check the restart progress with the following command:
 
-```bash
-$ kubectl -n rds-system get pods -l name.operator=inspection-operator
-```
+    ```bash
+    $ kubectl -n rds-system get pods -l name.operator=inspection-operator
+    ```
 
-The output is as follows:
+    The output is as follows:
 
-```bash
-$ kubectl -n rds-system get pods -l name.operator=inspection-operator
-NAME                                   READY   STATUS    RESTARTS   AGE
-inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
-```
+    ```bash
+    $ kubectl -n rds-system get pods -l name.operator=inspection-operator
+    NAME                                   READY   STATUS    RESTARTS   AGE
+    inspection-operator-545468bd54-9g65p   1/1     Running   0          8s
+    ```
 
-> Note: The above modification is not permanently effective; the configuration will be overwritten during platform upgrades.
+    > Note: The above modification is not permanently effective; the configuration will be overwritten during platform upgrades.
 
 3. Execute the inspection
 
-In **Redis** -> **Details Info**, click the **Inspection** button to start the instance inspection.
+    In **Redis** -> **Details Info**, click the **Inspection** button to start the instance inspection.
 
-Once the inspection starts, the button will display **Inspecting...**. After completion, the inspection button will become clickable.
+    Once the inspection starts, the button will display **Inspecting...**. After completion, the inspection button will become clickable.
 
-> Due to the enabled BigKey detection function, the inspection tool will `SCAN` all data in the cache; hence, this process may take a considerable amount of time.
+    > Due to the enabled BigKey detection function, the inspection tool will `SCAN` all data in the cache; hence, this process may take a considerable amount of time.
 
 4. View the inspection results
 
-Upon completion of the inspection, you can click the **Query** button in the inspection report on the **Redis** -> **Detail Info** to view the inspection results.
+    Upon completion of the inspection, you can click the **Query** button in the inspection report on the **Redis** -> **Detail Info** to view the inspection results.
 
-![BigKey Detection Report View Entry](../assets/44redis-bigkey-inspect-report-entry.png)
+    ![BigKey Detection Report View Entry](../assets/44redis-bigkey-inspect-report-entry.png)
 
-If BigKey does indeed exist in the instance, the inspection result will list the `BigKey Top5` items, as shown in the figure below:
+    If BigKey does indeed exist in the instance, the inspection result will list the `BigKey Top5` items, as shown in the figure below:
 
-![BigKey Detection Report](../assets/44redis-bigkey-inspect-report.png)
+    ![BigKey Detection Report](../assets/44redis-bigkey-inspect-report.png)
 
 #### Usage Limitations
 
