@@ -1,0 +1,172 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: activeredisconnections.redis.middleware.alauda.io
+spec:
+  group: redis.middleware.alauda.io
+  names:
+    kind: ActiveRedisConnection
+    listKind: ActiveRedisConnectionList
+    plural: activeredisconnections
+    singular: activeredisconnection
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Redis Instance
+      jsonPath: .spec.instance
+      name: Instance
+      type: string
+    - description: ActiveRedisConnection status
+      jsonPath: .status.status
+      name: Status
+      type: string
+    - description: ActiveRedisConnection according message
+      jsonPath: .status.message
+      name: Message
+      type: string
+    - description: Time since creation
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ActiveRedisConnection is the Schema for the activeredisconnections
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ActiveRedisConnectionSpec defines the desired state of ActiveRedisConnection
+            properties:
+              activeRedisName:
+                description: DeActiveRedisName is the name of the readonly active
+                  redis.
+                type: string
+              addresses:
+                description: |-
+                  Addresses is a list of redis addresses for the active redis connection.
+                  It can be a single address or multiple addresses.
+                items:
+                  type: string
+                maxItems: 15
+                minItems: 1
+                type: array
+              enableTLS:
+                description: EnableTLS enable tls for redis connection.
+                type: boolean
+              instance:
+                description: Instance is the instance name of local redis.
+                minLength: 1
+                type: string
+              pause:
+                default: false
+                description: |-
+                  Pause is used to pause the active redis connection.
+                  When set to true, the active redis connection will not be established.
+                  This is useful for maintenance or temporary disabling of the connection.
+                type: boolean
+              secretName:
+                description: SecretName the secret name for redis authentication.
+                  for default user, the password field is required.
+                type: string
+            required:
+            - addresses
+            - instance
+            - secretName
+            type: object
+          status:
+            description: ActiveRedisConnectionStatus defines the observed state of
+              ActiveRedisConnection
+            properties:
+              activeRedisName:
+                description: ActiveRedisName
+                type: string
+              instance:
+                description: Instance is the instance name of local redis.
+                type: string
+              message:
+                description: Message
+                type: string
+              network:
+                description: Network is the network status for redis connection.
+                properties:
+                  delay:
+                    description: Delay is the network delay for ping in ms.
+                    format: int64
+                    type: integer
+                  'lastCheckTime ':
+                    description: LastCheckTime is the last check time for network.
+                    format: int64
+                    type: integer
+                type: object
+              shards:
+                description: |-
+                  Role          string  `json:"role,omitempty"`
+                  Shards is the shards status for peer redis.
+                items:
+                  properties:
+                    index:
+                      description: Index is the index of the shard.
+                      format: int32
+                      type: integer
+                    offset:
+                      description: Offset is the current offset sync from peer redis.
+                      type: string
+                    opId:
+                      description: OpId is the current opId sync from peer redis.
+                      type: string
+                    status:
+                      description: Status is the status of the shard.
+                      type: string
+                    syncStatus:
+                      description: SyncStatus is the sync status of the shard.
+                      type: string
+                  required:
+                  - index
+                  - status
+                  - syncStatus
+                  type: object
+                type: array
+              status:
+                description: Status is the status of the active redis connection.
+                type: string
+              upstreamPeer:
+                description: UpstreamPeer is the upstream peer redis.
+                properties:
+                  service_id:
+                    description: ServiceID is the service ID of the upstream peer
+                      redis.
+                    format: int32
+                    type: integer
+                  service_metadata:
+                    additionalProperties:
+                      type: string
+                    description: ServiceMetadata is the metadata of the upstream peer
+                      redis service.
+                    type: object
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

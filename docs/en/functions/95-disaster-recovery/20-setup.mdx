@@ -1,0 +1,174 @@
+---
+weight: 20
+i18n:
+  title:
+    zh: Setup Disaster Recovery Cluster
+title: Setup Disaster Recovery
+---
+
+# Setup Disaster Recovery
+
+Setting up a disaster recovery cluster involves two parts: enabling disaster recovery configuration for the Redis instance and establishing a connection between the standby instance and the source instance.
+
+<Directive type="info" title="Cluster Role Description">
+In a disaster recovery cluster, the role of each Redis instance is not fixed; it can be either a source or a standby. The standby does not restrict data writing, but data written to the standby will be overwritten by data synchronized from the source or cause synchronization failure due to data type conflicts.
+</Directive>
+
+## Source
+
+You need to create a Redis instance first.
+
+<Tabs>
+  <Tab label="CLI">
+###### Enable Disaster Recovery
+
+  ```bash
+  # Enable ActiveRedis
+  $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"activeRedis":{"serviceID":0 }}}'
+  ```
+
+  </Tab>
+  <Tab label="Web Console">
+###### Enable Disaster Recovery
+
+  1. Navigate to Redis in the left navigation bar.
+  1. Select the namespace name containing your instance.
+  1. Click on the instance name to access its details.
+  1. In the `Disaster Recovery` tab, click **configure a disaster recovery instance**.
+  1. Configure the parameters:
+     1. Input the `Cluster Id` which in range `[0-15]`
+     1. Select `Source side` for `Disaster recovery roles`
+  1. Click `Confirm` to apply changes.
+  </Tab>
+</Tabs>
+
+### Use LoadBalancer as the access address for the source Proxy
+
+After enabling disaster recovery support for the instance, the disaster recovery Proxy provides a NodePort access address by default. A single NodePort-based access address is not highly available. In a production environment, you can use a LoadBalancer address to provide access to the Proxy.
+
+<Tabs>
+<Tab label="CLI">
+```bash
+# Enable ActiveRedis with LoadBalancer as Proxy access type
+$ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"activeRedis":{"proxy": {"service": {"type": "LoadBalancer"}}}}}'
+```
+
+Each disaster recovery instance will create a Proxy Service with a name that follows this format: `activeredis-proxy-<instance-name>`.
+> For Sentinel instances, the instance name needs to be prefixed with `rfr-`
+
+</Tab>
+</Tabs>
+
+## Standby
+
+<Tabs>
+  <Tab label="CLI">
+###### Enable Disaster Recovery
+
+  ```bash
+  # Enable ActiveRedis
+  $ kubectl -n default patch redis s6-dest --type=merge --patch='{"spec": {"activeRedis":{"serviceID":0 }}}'
+  ```
+  <Directive type="warning">
+  The range of `serviceID` is `[0-15]`. In the same disaster recovery cluster, the serviceID cannot be repeated.
+  </Directive>
+
+###### Create a secret containing the password of the source `default` user
+
+  ```bash
+  $ kubectl -n default create secret generic s6-src-auth-cred --from-literal=password=abc@123
+  ```
+
+###### Configure Disaster Recovery Connection
+
+  ```bash
+  # create activeredisconnections
+  $ cat << EOF | kubectl -n default create -f -
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisConnection
+metadata:
+  name: conn-s6-dest-to-s6-src
+spec:
+  addresses:
+  - 192.168.1.10:30010
+  instance: s6-dest
+  secretName: s6-src-auth-cred
+EOF
+  ```
+  > Note to replace the source address and secret.
+
+##### Check Disaster Recovery Connection Status
+
+  ```bash
+  $ kubectl -n default get activeredisconnections conn-s6-dest-to-s6-src -o yaml
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisConnection
+metadata:
+  annotations:
+    cpaas.io/creator: admin
+    cpaas.io/updated-at: "2025-08-26T10:16:49Z"
+  creationTimestamp: "2025-08-26T10:16:49Z"
+  generation: 1
+  labels:
+    cpaas.io/activeredis: s6-dest-activeredis
+    cpaas.io/activeredis-instance: s6-dest
+  name: conn-s6-dest-to-s6-src
+  namespace: default
+  resourceVersion: "18872971"
+  uid: 283ac8fa-d693-46ff-989f-68d018888584
+spec:
+  addresses:
+  - 192.168.1.10:30010
+  instance: s6-dest
+  pause: false
+  secretName: s6-src-auth-cred
+status:
+  instance: s6-dest
+  shards:
+  - index: 0
+    offset: "0"
+    opId: "0"
+    status: Connected
+    syncStatus: PartialSync
+  status: Healthy
+  upstreamPeer:
+    service_id: 0
+    service_metadata:
+      instance: default/s6-src
+  ```
+
+  Here `status.shards[0].status` indicates the connection status of the shard, and `status.shards[0].syncStatus` indicates the data synchronization status. The synchronization status can be `PartialSync` (indicating incremental synchronization of Oplog) or `FullSync` (indicating that RDB is being synchronized).
+
+  > The native Redis Sentinel mode does not have the concept of shards. Here, a master-slave of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
+
+  </Tab>
+
+  <Tab label="Web Console">
+###### Enable Disaster Recovery
+
+  1. Navigate to Redis in the left navigation bar.
+  1. Select the namespace name containing your instance.
+  1. Click on the instance name to access its details.
+  1. In the `Disaster Recovery` tab, click **configure a disaster recovery instance**.
+  1. Configure the parameters:
+     1. Input the `Cluster Id` (Service ID) which in range `[0-15]`, which must not conflict with the source instance.
+     1. Select `Target side` for `Disaster recovery roles`
+     1. Input the `Proxy address` which copied from source Redis instance at the `Disaster Recovery` tab.
+  1. Click `Inspect` to check if the config is ok.
+     1. If all inspections passed, click `Confirm` to setup connection with source instance.
+     1. If not ok, update the config according to the error messages and try `Inspect` again.
+
+  When performing `Inspect`, the following checks are performed:
+
+  | Check Item                  | Check Content                               | Handling Method                                                                   |
+  |:----------------------------|:--------------------------------------------|:----------------------------------------------------------------------------------|
+  | Network connection          | Network connectivity check, password check  | Confirm that the source address is correct; the address is accessible from the standby; the password of the `default` user is correct. |
+  | Architectures               | Redis instance architecture check           | Confirm that the instance architectures of the source and standby are consistent. |
+  | Cluster mode slices inspect | Cluster mode shard number and slot distribution check | Confirm that the number of shards and slot distribution of the source and standby instances are the same. If not, you can refer to [Initialize Cluster Instance Slot Distribution](../../how_to/40-cluster-slots-distribution.mdx) to create a new instance. |
+  | Requirements inspect        | Instance resource rule check                | Need to ensure that the memory resources of the standby instance must be greater than or equal to the source instance. |
+  | Config inspect              | Instance Service ID check                   | Need to ensure that in the disaster recovery cluster, the ServiceID is unique and meets the access of `[0-15]`. |
+
+  </Tab>
+
+</Tabs>
+

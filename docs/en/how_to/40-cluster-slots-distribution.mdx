@@ -1,0 +1,69 @@
+---
+weight: 40
+i18n:
+  title:
+    zh: How to Initialize Cluster Shard Slots
+title: How to Initialize Cluster Shard Slots
+---
+
+# How to Initialize Cluster Shard Slots
+
+By default, a created Redis cluster instance will evenly distribute all 16384 hash slots to all shards. However, in specific scenarios such as disaster recovery, a more flexible slot layout is often required. To this end, we support providing a custom slot distribution plan when creating an instance to meet such advanced requirements.
+
+<Tabs>
+<Tab label="CLI">
+
+```bash
+cat << EOF | kubectl -n default create -f -
+apiVersion: middleware.alauda.io/v1
+kind: Redis
+metadata:
+  name: c6
+spec:
+  activeRedis:
+    proxy:
+      replicas: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: "1"
+          memory: 1Gi
+      service:
+        type: LoadBalancer
+    serviceID: 0
+  affinityPolicy: AntiAffinityInSharding
+  arch: cluster
+  customConfig:
+    save: 60 10000 300 100 600 1
+  passwordSecret: redis-c6-password
+  persistent:
+    storageClassName: sc-topolvm
+  persistentSize: 1Gi
+  replicas:
+    cluster:
+      shard: 3
+      slave: 1
+      shards:
+      - slots: 0-5460
+      - slots: 5461-10922
+      - slots: 10923-16383
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 1
+      memory: 1Gi
+  version: "6.0"
+EOF
+```
+
+</Tab>
+</Tabs>
+
+The primary field configured here is `spec.replicas.cluster.shards`. The number of items must match the value in `spec.replicas.cluster.shard`. The `spec.replicas.cluster.shards[].slots` field supports:
+`0-5460`, `5461-10922`, `10923-16383`, single slots like `5461`, and mixed lists like `0-1000, 1001, 1002-5461`.
+
+For the specific meaning of other fields, please refer to the [API documentation](../apis/kubernetes_apis/redis/redis.mdx).

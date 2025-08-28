@@ -6,7 +6,64 @@ i18n:
 title: Upgrade
 ---
 
-Alauda Cache Service for Redis OSS will execute upgrades based on the configured upgrade strategy:
+# Upgrade
 
-* **Automatic** : Auto-upgrades are triggered immediately upon detecting new component versions.
-* **Manual** : Requires manual approval before initiating the upgrade process.
+This document provides technical guidance for upgrading Alauda Cache Service for Redis OSS, including version compatibility, upgrade paths, and operational procedures.
+
+## Version Compatibility Principles
+
+Alauda Cache Service for Redis OSS follows semantic versioning with the following compatibility guarantees:
+
+* **Patch versions** (x.y.**z**) within the same minor version are fully backward and forward compatible
+* **Minor versions** (x.**y**.z) within the same major version maintain API and feature compatibility
+* **Major versions** (**x**.y.z) may introduce breaking changes and require specific upgrade procedures
+
+## Prerequisites
+
+Before initiating any upgrade operation, verify the following conditions:
+
+1. **Version Compatibility**: Current version must be within supported upgrade paths
+2. **Component Health**: All Redis instances must report Ready status
+3. **Resource Availability**: Cluster must have sufficient CPU, memory, and storage resources
+4. **Backup**: Ensure recent backups of critical data and configuration
+
+## Supported Upgrade Paths
+
+The following upgrade matrix details tested version combinations and their dependencies:
+
+| Alauda Cache Service for Redis OSS Version | Redis Server Versions      | ACP Version | Kubernetes Versions       |
+|:-------------------------------------------|:---------------------------|:------------|:--------------------------|
+| v4.1.0                                     | 5.0.14, 6.0.20, 7.2.10     | v4.1.0      | 1.29, 1.30, 1.31, 1.32    |
+| v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x      | v4.0.x      | 1.28, 1.29, 1.30, 1.31    |
+
+## Upgrade Strategies
+
+### Minor Version Upgrade
+
+* **Approach**: Any minor version can be upgraded to a newer minor version (e.g., 4.0.x → 4.2.x).
+* **Benefits**: Minimizes risk and ensures smooth transition between versions
+
+### Patch Version Upgrade
+
+* **Compatibility**: Fully compatible within the same minor version series
+* **Example**: Upgrade from `4.1.0` to `4.1.1` for bug fixes and security patches
+
+### Major Version Upgrade
+
+* **Requirement**: Must upgrade to the earliest available minor release of the target major version first
+* **Procedure**: Follow specific major version upgrade documentation for detailed steps
+* **Considerations**: May require configuration changes and feature compatibility review
+
+## Upgrade Execution
+
+Alauda Cache Service for Redis OSS supports two upgrade execution modes:
+
+* **Automatic**: System automatically detects and applies new versions when available
+* **Manual**: Requires explicit administrator approval before initiating upgrade procedures
+
+### Operational Considerations
+
+* **Downtime**: Plan for minimal service interruption during upgrade operations
+* **Rollback**: Ensure rollback procedures are understood and tested
+* **Monitoring**: Closely monitor system metrics and logs during upgrade process
+* **Validation**: Perform post-upgrade validation of all critical functionality
