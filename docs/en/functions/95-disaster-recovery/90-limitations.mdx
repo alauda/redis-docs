@@ -14,7 +14,7 @@ When the standby connects, only `<ip:port>` connections are supported, and domai
 
 ### The provided link address of the standby needs to be highly available by itself
 
-The Proxy address in the disaster recovery instance does not guarantee high availability. If you use the NodePort address for the standby, you need a front-end load balancer to ensure high availability; you can also use MetaLB to achieve high-availability access to the Proxy.
+The Proxy address in the disaster recovery instance does not guarantee high availability. If you use the NodePort address for the standby, you need a front-end load balancer to ensure high availability; you can also use MetalLB to achieve high-availability access to the Proxy.
 
 ### Currently only Redis 6.0 is supported, other versions do not support enabling disaster recovery
 
