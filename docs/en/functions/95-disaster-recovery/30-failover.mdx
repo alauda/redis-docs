@@ -112,13 +112,13 @@ After deleting the corresponding ActiveRedisConnection resource, the Redis insta
 </Tab>
 <Tab label="Web Console">
 
-After the connection between the standby and the source becomes abnormal, the Disaster Recovery Tab of the Redis instance will prompt **Transmission status: Abnormal**, and a **Failover** button will appear in the upper left corner of the topology. When the **Failover** button appears, you can perform a disaster recovery cluster switch.
+After the connection between the standby and the source becomes abnormal, the Disaster Recovery tab of the Redis instance shows **Transmission status: Abnormal**, and a **Failover** button appears in the upper-left of the topology. When the **Failover** button appears, you can perform a disaster recovery cluster switch.
 
-1. Navigate to Redis in the left navigation bar.
-1. Select the namespace name containing your instance.
-1. Click on the instance name to access its details.
-1. In the `Disaster Recovery` tab, click **Failover** button.
-1. In the popup widge, click **Failover** to make sure do failover.
+1. Navigate to Redis in the left navigation bar.  
+1. Select the namespace name containing your instance.  
+1. Click on the instance name to access its details.  
+1. In the `Disaster Recovery` tab, click the **Failover** button.  
+1. In the popup widget, click **Failover** again to confirm.  
 
 After clicking **Failover** for the second time, the Redis instance has become an independent source instance, and the client's access address can be safely switched to this instance for reading and writing.
 
