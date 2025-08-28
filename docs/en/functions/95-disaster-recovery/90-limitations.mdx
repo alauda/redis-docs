@@ -12,9 +12,9 @@ title: Limitations and Risks
 
 When the target instance connects, only `<ip:port>` connections are supported, and domain names are not currently supported.
 
-### The provided link address of the source instance needs to be highly available by itself
+### The provided link address of the source instance must be highly available
 
-The Proxy address in the disaster recovery instance does not guarantee high availability. If you use the NodePort address in the target instance, you need a front-end load balancer to ensure high availability; you can also use MetalLB to achieve high-availability access to the Proxy.
+The disaster recovery Proxy address itself is not highly available. If you expose the source Proxy via NodePort, place it behind a front-end load balancer to ensure HA; alternatively, use MetalLB to provide a highly available virtual IP for the Proxy.
 
 ### Currently only Redis 6.0 is supported, other versions do not support enabling disaster recovery
 

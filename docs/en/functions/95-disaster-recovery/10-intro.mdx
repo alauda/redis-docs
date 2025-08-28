@@ -35,9 +35,9 @@ To simplify the complexity of accessing the disaster recovery system for differe
 #### Instance ID: Service ID
 
 To uniquely identify and manage each Redis instance in the disaster recovery system, we have introduced the concept of `service_id`. This ID is the core credential for routing and data synchronization in the entire disaster recovery system.
-* Unique identifier: Each Redis disaster recovery instance, whether it is a source or a target, must be configured with a globally unique `service_id`. The disaster recovery system uses this ID to establish a mapping relationship between the source and the target.
+* Unique identifier: Each Redis disaster recovery instance, whether it is a source or a target, must be configured with a globally unique `service_id`. The disaster recovery system uses this ID to establish a mapping between the source and target.
 * Value range: The valid range of `service_id` is `[0-15]`.
-* Topology limitation: Due to the limitation of the ID range, a single disaster recovery source (Primary) can be associated with up to 15 disaster recovery target instances, supporting a "one-primary-multiple-standby" disaster recovery topology.
+* Topology limitation: Due to the ID range, a single disaster recovery source can be associated with up to 15 disaster recovery target instances, supporting a "one-source-multiple-target" topology.
 
 #### Deployment Architecture
 
