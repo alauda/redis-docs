@@ -1,0 +1,166 @@
+---
+weight: 20
+i18n:
+  title:
+    zh: Failover
+title: Switch on failure
+---
+
+# Switch on failure
+
+When the source Redis instance fails, you need to perform a disaster recovery failover for the disaster recovery cluster first, and then switch the client's access address to the new disaster recovery instance.
+
+## Disaster Recovery Cluster Switch
+
+In a disaster recovery cluster, when the source fails, the synchronization link with the failed source needs to be interrupted, and the standby is promoted to the source; to ensure that the client can write data and that the dirty data of the failed source will not pollute the standby.
+
+### Failover Timing Description
+
+When a failure occurs at the source of the disaster recovery cluster, the Alauda Cache Service for Redis OSS on the standby side will detect that the disaster recovery link with the source is interrupted. At this time, the status of the `ActiveRedisConnection` resource will be abnormal, and the Web Console of the standby will prompt that a disaster recovery switch can be performed.
+
+<Directive type="danger" title="Disaster Recovery Switching Risk Description">
+<strong style={{color: "red"}}>It should be noted that this abnormal prompt is only an interactive alarm prompt and should not be used as the sole basis for judging that the client can perform a disaster recovery switch.</strong>
+</Directive>
+
+### Disaster Recovery Switch
+
+<Tabs>
+<Tab label="CLI">
+##### View Connection Status
+
+```bash
+# View normal status
+$ kubectl -n default get activeredisconnections
+NAME           INSTANCE   STATUS    MESSAGE   AGE
+c6-dest-conn   c6-dest    Healthy             35s
+
+# View abnormal status
+$ kubectl -n default get activeredisconnections
+NAME           INSTANCE   STATUS   MESSAGE                                                                                          AGE
+c6-dest-conn   c6-dest    Failed   shard 0 status is Disconnected; shard 1 status is Disconnected; shard 2 status is Disconnected   86s
+```
+
+When `STATUS` is `Failed`, it indicates that the connection between instance `c6-dest` and the upstream is abnormal. You can view the yaml details to understand the specific situation:
+
+```bash
+$ kubectl -n default get activeredisconnections c6-dest-conn -o yaml
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisConnection
+metadata:
+  annotations:
+    cpaas.io/creator: admin
+    cpaas.io/updated-at: "2025-08-27T08:42:16Z"
+  creationTimestamp: "2025-08-27T08:42:16Z"
+  generation: 1
+  labels:
+    cpaas.io/activeredis: c6-dest-activeredis
+    cpaas.io/activeredis-instance: c6-dest
+  name: c6-dest-conn
+  namespace: default
+  ownerReferences:
+  - apiVersion: redis.middleware.alauda.io/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ActiveRedis
+    name: c6-dest-activeredis
+    uid: ed1010f8-a70d-42ef-be19-0450478df137
+  resourceVersion: "19592690"
+  uid: 301f77be-ff52-4e50-98d0-d85a38e2415a
+spec:
+  addresses:
+  - 192.168.1.11:30011
+  instance: c6-dest
+  pause: true
+  secretName: c6-dest-conn-password
+status:
+  instance: c6-dest
+  message: shard 0 status is Disconnected; shard 1 status is Disconnected; shard 2
+    status is Disconnected
+  shards:
+  - index: 0
+    offset: "0"
+    opId: "0"
+    status: Disconnected
+    syncStatus: PartialSync
+  - index: 1
+    offset: "0"
+    opId: "0"
+    status: Disconnected
+    syncStatus: PartialSync
+  - index: 2
+    offset: "0"
+    opId: "0"
+    status: Disconnected
+    syncStatus: PartialSync
+  status: Failed
+  upstreamPeer:
+    service_id: 0
+    service_metadata:
+      instance: default/c6
+```
+
+##### Disconnect from the source
+
+After manually confirming that the source is indeed abnormal, you need to disconnect the standby from the source's disaster recovery link to prevent the introduction of dirty data.
+
+```bash
+$ kubectl -n default delete activeredisconnections c6-dest-conn
+```
+
+After deleting the corresponding ActiveRedisConnection resource, the Redis instance has become an independent source instance, and the client's access address can be safely switched to this instance for reading and writing.
+
+</Tab>
+<Tab label="Web Console">
+
+After the connection between the standby and the source becomes abnormal, the Disaster Recovery Tab of the Redis instance will prompt **Transmission status: Abnormal**, and a **Failover** button will appear in the upper left corner of the topology. When the **Failover** button appears, you can perform a disaster recovery cluster switch.
+
+1. Navigate to Redis in the left navigation bar.
+1. Select the namespace name containing your instance.
+1. Click on the instance name to access its details.
+1. In the `Disaster Recovery` tab, click **Failover** button.
+1. In the popup widge, click **Failover** to make sure do failover.
+
+After clicking **Failover** for the second time, the Redis instance has become an independent source instance, and the client's access address can be safely switched to this instance for reading and writing.
+
+</Tab>
+</Tabs>
+
+### Use the failed source as the standby of the new source
+
+After the failed source returns to normal, it can be re-added to the disaster recovery cluster as a standby of the new source. For the operation method, refer to [Setup Disaster Recovery](./20-setup.mdx).
+
+
+## Client-side Disaster Recovery Switch
+
+Before connecting to the disaster recovery cluster, the client's access needs to support switching the access address of the Redis instance to switch to the new standby after perceiving the source failure. Usually, there are the following switching methods:
+
+| Architecture      | Mechanism                     | Advantages           | Disadvantages           | Impact on RTO/RPO | Implementation Difficulty    | Ideal Use Case  |
+|:----------|:-------------------------|:---------------|:---------------|:----------------|:-------------|:-----------|
+| DNS Switch  | Update DNS records to point to the new IP | Simple concept, platform-independent. | Long and uncontrollable RTO (depends on TTL), invalid for K8s internal traffic. | RTO: minutes<br/>RPO: may be high. | Low | Applications with low RTO requirements, or as a manual fallback solution. |
+| Proxy      | The client connects to the proxy, and the proxy routes to the master node through health checks. | Fast switching (second-level RTO), transparent to the client, simple fault recovery. | Increases network hops and operation and maintenance burden, the proxy itself needs to be highly available. | RTO: seconds<br/>RPO: low. | Medium | Recommended solution: requires fast and transparent switching, and has the ability to operate and maintain a highly available proxy cluster. |
+| Service Mesh (Istio) | The Sidecar proxy intercepts traffic and performs local priority and cross-cluster switching based on policies. | Powerful functions, application transparency, simple fault recovery. | Extremely high operation and maintenance complexity, heavy technology stack. | RTO: seconds<br/>RPO: low.| High | Large and complex systems that have fully adopted service mesh to manage microservices. |
+| Client Library | The library has built-in logic and decides to switch to the standby cluster by itself. | No middle layer, latency may be lower. | Extremely high risk: switching decisions are unreliable, fault recovery is complex (often requires restarting the business), and ecological support is inconsistent.| RTO: unpredictable<br/>RPO: high risk. | Medium | Not recommended for production-level automatic disaster recovery. |
+
+Whether the client triggers a disaster recovery failover cannot be judged solely by a binary decision; failover is a multi-dimensional, high-confidence decision-making process. It needs to be handled in combination with multiple dimensions of fault detection, including but not limited to: `the available status of the instance`, `whether the instance still has high availability`, `whether the k8s cluster has the possibility of continuing to serve`, `data center availability detection`.
+
+Usually, the following expression needs to be met before the client can safely perform a disaster recovery switch:
+
+```sql
+(Manual trigger switch)
+OR
+(
+  (Source instance status check fails, and continues to fail for N times)
+  AND
+  (
+    (The instance no longer has high availability)
+    OR
+    (The data center availability check fails, and continues to fail for N times)
+  )
+  AND
+  (The standby instance availability status check passes)
+)
+```
+
+<Directive type="warning" title="Support Description">
+Alauda Cache Service for Redis OSS currently does not provide support for client-side disaster recovery switching. Customers need to implement a suitable client switching method according to their own infrastructure.
+</Directive>
