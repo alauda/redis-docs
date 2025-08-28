@@ -132,8 +132,7 @@ After the failed source returns to normal, it can be re-added to the disaster re
 
 ## Client-side Disaster Recovery Switch
 
-Before connecting to the disaster recovery cluster, the client's access needs to support switching the access address of the Redis instance to switch to the new target instance after perceiving the source failure. Usually, there are the following switching methods:
-
+Before connecting to the disaster recovery cluster, the client should support switching the Redis access address to the new source instance (the promoted target) after detecting the source failure. Usually, there are the following switching methods:
 | Architecture      | Mechanism                     | Advantages           | Disadvantages           | Impact on RTO/RPO | Implementation Difficulty    | Ideal Use Case  |
 |:----------|:-------------------------|:---------------|:---------------|:----------------|:-------------|:-----------|
 | DNS Switch  | Update DNS records to point to the new IP | Simple concept, platform-independent. | Long and uncontrollable RTO (depends on TTL), invalid for K8s internal traffic. | RTO: minutes<br/>RPO: may be high. | Low | Applications with low RTO requirements, or as a manual fallback solution. |
