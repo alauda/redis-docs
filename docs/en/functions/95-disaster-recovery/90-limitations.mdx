@@ -10,11 +10,11 @@ title: Limitations and Risks
 
 ### Only IP connection addresses are currently supported
 
-When the standby connects, only `<ip:port>` connections are supported, and domain names are not currently supported.
+When the target instance connects, only `<ip:port>` connections are supported, and domain names are not currently supported.
 
-### The provided link address of the standby needs to be highly available by itself
+### The provided link address of the source instance needs to be highly available by itself
 
-The Proxy address in the disaster recovery instance does not guarantee high availability. If you use the NodePort address for the standby, you need a front-end load balancer to ensure high availability; you can also use MetalLB to achieve high-availability access to the Proxy.
+The Proxy address in the disaster recovery instance does not guarantee high availability. If you use the NodePort address in the target instance, you need a front-end load balancer to ensure high availability; you can also use MetalLB to achieve high-availability access to the Proxy.
 
 ### Currently only Redis 6.0 is supported, other versions do not support enabling disaster recovery
 
@@ -30,20 +30,20 @@ The Redis disaster recovery instance will write oplogs to storage in real time (
 
 #### For disaster recovery instances, it is recommended to use the RDB parameter template
 
-Using the RDB parameter template, combined with the save parameter, actively triggers snapshots and actively triggers the cleaning of oplogs, which can ensure that new standby connections can quickly synchronize snapshots. If you use the AOF parameter template, you still need to set a `save` parameter to ensure regular RDB persistence, to ensure that the local data is more reliable, but at the same time, enabling RDB and AOF persistence has better performance requirements for storage. Please confirm that you are using local SSD as storage.
+Using the RDB parameter template, combined with the save parameter, actively triggers snapshots and actively triggers the cleaning of oplogs, which can ensure that new target instance connections can quickly synchronize snapshots. If you use the AOF parameter template, you still need to set a `save` parameter to ensure regular RDB persistence, to ensure that the local data is more reliable, but at the same time, enabling RDB and AOF persistence has better performance requirements for storage. Please confirm that you are using local SSD as storage.
 
 ### To build a disaster recovery network, the Redis instances at both ends need to ensure that the architecture is the same
 
 The Redis disaster recovery plug-in currently synchronizes data based on oplogs. The oplog context has correlation and idempotency, and the oplog data cannot be re-sharded and submitted to different shards. This restriction requires that:
-1. The standby of the sentinel mode can only be the sentinel mode
-1. The standby of the cluster mode can only be the cluster mode
-1. The shards of the standby in cluster mode must be consistent with the source
-1. The slot distribution of the standby in cluster mode must be consistent with the source
+1. The target side of the sentinel mode can only be the sentinel mode
+1. The target side of the cluster mode can only be the cluster mode
+1. The shards of the target side in cluster mode must be consistent with the source
+1. The slot distribution of the target side in cluster mode must be consistent with the source
 1. Cluster mode does not support online synchronization to add or reduce shards
 
-### A Redis disaster recovery instance as a source can have at most 15 standby instances
+### A Redis disaster recovery instance as a source can have at most 15 target instances
 
-Due to the limitation of `service_id`, a disaster recovery source can have at most 15 standbys. However, cascading is not currently supported, and multi-active is not supported (only star distribution is supported, not tree or ring links).
+Due to the limitation of `service_id`, a disaster recovery source can have at most 15 target instances. However, cascading is not currently supported, and multi-active is not supported (only star distribution is supported, not tree or ring links).
 
 ### The following Redis 6.0 write commands do not currently support disaster recovery
 
@@ -51,5 +51,5 @@ Due to the limitation of `service_id`, a disaster recovery source can have at mo
 
 ### After the source fails, the first thing to do is to disconnect from the source
 
-After the source fails, before the disaster recovery switch, the first thing to do is to disconnect the synchronization link between the standby and the source to prevent the source from suddenly recovering but the data is incorrect, thereby polluting the standby.
+After the source fails, before the disaster recovery switch, the first thing to do is to disconnect the synchronization link between the target and the source to prevent the source from suddenly recovering but the data is incorrect, thereby polluting the target side.
 
