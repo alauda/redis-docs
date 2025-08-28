@@ -2,19 +2,19 @@
 weight: 20
 i18n:
   title:
-    zh: Setup Disaster Recovery Cluster
-title: Setup Disaster Recovery
+    zh: 配置容灾
+title: Setup
 ---
 
-# Setup Disaster Recovery
+# Setup
 
-Setting up a disaster recovery cluster involves two parts: enabling disaster recovery configuration for the Redis instance and establishing a connection between the standby instance and the source instance.
+Setting up a disaster recovery cluster involves two parts: enabling disaster recovery configuration for the Redis instance and establishing a connection between the target instance and the source instance.
 
 <Directive type="info" title="Cluster Role Description">
-In a disaster recovery cluster, the role of each Redis instance is not fixed; it can be either a source or a standby. The standby does not restrict data writing, but data written to the standby will be overwritten by data synchronized from the source or cause synchronization failure due to data type conflicts.
+In a disaster recovery cluster, the role of each Redis instance is not fixed; it can be either a source or a target. The target does not restrict data writing, but data written to the target will be overwritten by data synchronized from the source or cause synchronization failure due to data type conflicts.
 </Directive>
 
-## Source
+## Source side
 
 You need to create a Redis instance first.
 
@@ -59,7 +59,7 @@ Each disaster recovery instance will create a Proxy Service with a name that fol
 </Tab>
 </Tabs>
 
-## Standby
+## Target side
 
 <Tabs>
   <Tab label="CLI">
@@ -162,10 +162,10 @@ status:
 
   | Check Item                  | Check Content                               | Handling Method                                                                   |
   |:----------------------------|:--------------------------------------------|:----------------------------------------------------------------------------------|
-  | Network connection          | Network connectivity check, password check  | Confirm that the source address is correct; the address is accessible from the standby; the password of the `default` user is correct. |
-  | Architectures               | Redis instance architecture check           | Confirm that the instance architectures of the source and standby are consistent. |
-  | Cluster mode slices inspect | Cluster mode shard number and slot distribution check | Confirm that the number of shards and slot distribution of the source and standby instances are the same. If not, you can refer to [Initialize Cluster Instance Slot Distribution](../../how_to/40-cluster-slots-distribution.mdx) to create a new instance. |
-  | Requirements inspect        | Instance resource rule check                | Need to ensure that the memory resources of the standby instance must be greater than or equal to the source instance. |
+  | Network connection          | Network connectivity check, password check  | Confirm that the source address is correct; the address is accessible from the target side; the password of the `default` user is correct. |
+  | Architectures               | Redis instance architecture check           | Confirm that the instance architectures of the source and target instances are consistent. |
+  | Cluster mode slices inspect | Cluster mode shard number and slot distribution check | Confirm that the number of shards and slot distribution of the source and target instances are the same. If not, you can refer to [Initialize Cluster Instance Slot Distribution](../../how_to/40-cluster-slots-distribution.mdx) to create a new instance. |
+  | Requirements inspect        | Instance resource rule check                | Need to ensure that the memory resources of the target instance must be greater than or equal to the source instance. |
   | Config inspect              | Instance Service ID check                   | Need to ensure that in the disaster recovery cluster, the ServiceID is unique and meets the access of `[0-15]`. |
 
   </Tab>
