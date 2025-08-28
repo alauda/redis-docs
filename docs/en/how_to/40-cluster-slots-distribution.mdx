@@ -63,6 +63,7 @@ EOF
 </Tab>
 </Tabs>
 
-Here, `spec.replicas.cluster.shards` is mainly set. The number of shards set must be consistent with the number of shards specified in the `spec.replicas.cluster.shard` field. The `spec.replicas.cluster.shards[].slots` field supports formats such as `0-5461`,`0-5460,5461`, and `0-1000,1001,1002-5461`.
+The primary field configured here is `spec.replicas.cluster.shards`. The number of items must match the value in `spec.replicas.cluster.shard`. The `spec.replicas.cluster.shards[].slots` field supports:
+`0-5460`, `5461-10922`, `10923-16383`, single slots like `5461`, and mixed lists like `0-1000, 1001, 1002-5461`.
 
 For the specific meaning of other fields, please refer to the [API documentation](../apis/kubernetes_apis/redis/redis.mdx).
