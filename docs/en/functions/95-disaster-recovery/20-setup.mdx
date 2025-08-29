@@ -20,7 +20,7 @@ You need to create a Redis instance first.
 
 <Tabs>
   <Tab label="CLI">
-###### Enable Disaster Recovery
+### Enable Disaster Recovery
 
   ```bash
   # Enable ActiveRedis
@@ -29,7 +29,9 @@ You need to create a Redis instance first.
 
   </Tab>
   <Tab label="Web Console">
-###### Enable Disaster Recovery
+{/* lint ignore no-duplicate-headings-in-section */}
+
+### Enable Disaster Recovery
 
   1. Navigate to Redis in the left navigation bar.
   1. Select the namespace name containing your instance.
@@ -63,7 +65,7 @@ Each disaster recovery instance will create a Proxy Service with a name that fol
 
 <Tabs>
   <Tab label="CLI">
-###### Enable Disaster Recovery
+### Enable Disaster Recovery
 
   ```bash
   # Enable ActiveRedis
@@ -73,13 +75,13 @@ Each disaster recovery instance will create a Proxy Service with a name that fol
   The range of `serviceID` is `[0-15]`. In the same disaster recovery cluster, the serviceID cannot be repeated.
   </Directive>
 
-###### Create a secret containing the password of the source `default` user
+### Create a secret containing the password of the source `default` user
 
   ```bash
   $ kubectl -n default create secret generic s6-src-auth-cred --from-literal=password=abc@123
   ```
 
-###### Configure Disaster Recovery Connection
+### Configure Disaster Recovery Connection
 
   ```bash
   # create activeredisconnections
@@ -97,7 +99,7 @@ EOF
   ```
   > Note to replace the source address and secret.
 
-##### Check Disaster Recovery Connection Status
+### Check Disaster Recovery Connection Status
 
   ```bash
   $ kubectl -n default get activeredisconnections conn-s6-dest-to-s6-src -o yaml
@@ -144,7 +146,9 @@ status:
   </Tab>
 
   <Tab label="Web Console">
-###### Enable Disaster Recovery
+{/* lint ignore no-duplicate-headings-in-section */}
+
+### Enable Disaster Recovery
 
   1. Navigate to Redis in the left navigation bar.
   1. Select the namespace name containing your instance.
