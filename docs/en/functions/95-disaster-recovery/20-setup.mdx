@@ -29,6 +29,17 @@ You need to create a Redis instance first.
 
   </Tab>
   <Tab label="Web Console">
+<Directive type="info" title="Permission Update Required for Redis Disaster Recovery in ACP 4.1.0">
+In ACP 4.1.0, it is necessary to modify permissions to use the Redis disaster recovery feature.
+
+On the `global` cluster, execute the following command to apply the required permissions:
+
+```bash
+kubectl patch FunctionResource acp-middleware-redis --type json -p='[{"op":"add", "path":"/spec/rules/-", "value": {"apiGroup": "redis.middleware.alauda.io", "bindCluster": "unlimit", "bindNamespacePart": "common", "bindScope": "namespace", "resources": ["activeredis", "activeredisconnections", "activeredisinspections"]}}]'
+```
+> This is no longer necessary as of ACP 4.1.1
+</Directive>
+
 {/* lint ignore no-duplicate-headings-in-section */}
 
 ### Enable Disaster Recovery
@@ -146,6 +157,17 @@ status:
   </Tab>
 
   <Tab label="Web Console">
+<Directive type="info" title="Permission Update Required for Redis Disaster Recovery in ACP 4.1.0">
+In ACP 4.1.0, it is necessary to modify permissions to use the Redis disaster recovery feature.
+
+On the `global` cluster, execute the following command to apply the required permissions:
+
+```bash
+kubectl patch FunctionResource acp-middleware-redis --type json -p='[{"op":"add", "path":"/spec/rules/-", "value": {"apiGroup": "redis.middleware.alauda.io", "bindCluster": "unlimit", "bindNamespacePart": "common", "bindScope": "namespace", "resources": ["activeredis", "activeredisconnections", "activeredisinspections"]}}]'
+```
+> This is no longer necessary as of ACP 4.1.1
+</Directive>
+
 {/* lint ignore no-duplicate-headings-in-section */}
 
 ### Enable Disaster Recovery
