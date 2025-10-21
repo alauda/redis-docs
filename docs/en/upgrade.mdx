@@ -8,28 +8,32 @@ title: Upgrade
 
 # Upgrade
 
-This document provides technical guidance for upgrading Alauda Cache Service for Redis OSS, including version compatibility, upgrade paths, and operational procedures.
+The Alauda Cache Service for Redis OSS is engineered to provide service continuity and data security across all supported versions. This guide details version compatibility and outlines the recommended upgrade paths to facilitate a seamless transition for your environment.
+
+<Directive type="tip" title="Upgrade Tips">
+Prior to upgrading a production environment, it is highly recommended to validate the upgrade process within a development or staging environment. This preliminary step helps identify and mitigate potential compatibility issues, including hardware-related conflicts, before they can affect production services.
+</Directive>
 
 ## Version Compatibility Principles
 
-Alauda Cache Service for Redis OSS follows semantic versioning with the following compatibility guarantees:
+The Alauda Cache Service for Redis OSS adheres to semantic versioning principles, providing the following compatibility guarantees:
 
-* **Patch versions** (x.y.**z**) within the same minor version are fully backward and forward compatible
-* **Minor versions** (x.**y**.z) within the same major version maintain API and feature compatibility
-* **Major versions** (**x**.y.z) may introduce breaking changes and require specific upgrade procedures
+*   **Patch versions** (x.y.**z**) are fully backward and forward compatible within the same minor version series.
+*   **Minor versions** (x.**y**.z) maintain API and feature compatibility within the same major version.
+*   **Major versions** (**x**.y.z) may introduce breaking changes that require specific upgrade procedures.
 
 ## Prerequisites
 
-Before initiating any upgrade operation, verify the following conditions:
+Before initiating an upgrade, ensure that the following prerequisites are met:
 
-1. **Version Compatibility**: Current version must be within supported upgrade paths
-2. **Component Health**: All Redis instances must report Ready status
-3. **Resource Availability**: Cluster must have sufficient CPU, memory, and storage resources
-4. **Backup**: Ensure recent backups of critical data and configuration
+1.  **Version Compatibility**: The current version must be on a supported upgrade path.
+2.  **Component Health**: All Redis instances must report a `Ready` status.
+3.  **Resource Availability**: The cluster must possess adequate CPU, memory, and storage resources to accommodate the upgrade.
+4.  **Backup**: Recent backups of all critical data and configurations must be available.
 
 ## Supported Upgrade Paths
 
-The following upgrade matrix details tested version combinations and their dependencies:
+The following matrix outlines the tested version combinations and their respective dependencies:
 
 | Alauda Cache Service for Redis OSS Version | Redis Server Versions      | ACP Version | Kubernetes Versions       |
 |:-------------------------------------------|:---------------------------|:------------|:--------------------------|
@@ -40,30 +44,46 @@ The following upgrade matrix details tested version combinations and their depen
 
 ### Minor Version Upgrade
 
-* **Approach**: Any minor version can be upgraded to a newer minor version (e.g., 4.0.x → 4.2.x).
-* **Benefits**: Minimizes risk and ensures smooth transition between versions
+*   **Approach**: Direct upgrades are supported from any minor version to a newer release within the same major version (e.g., 4.0.x → 4.2.x).
+*   **Benefits**: This approach minimizes operational risk and facilitates a seamless transition between versions.
 
 ### Patch Version Upgrade
 
-* **Compatibility**: Fully compatible within the same minor version series
-* **Example**: Upgrade from `4.1.0` to `4.1.1` for bug fixes and security patches
+*   **Compatibility**: Patch versions are fully compatible within the same minor version series.
+*   **Example**: Upgrading from `4.1.0` to `4.1.1` applies the latest bug fixes and security patches.
 
 ### Major Version Upgrade
 
-* **Requirement**: Must upgrade to the earliest available minor release of the target major version first
-* **Procedure**: Follow specific major version upgrade documentation for detailed steps
-* **Considerations**: May require configuration changes and feature compatibility review
+*   **Requirement**: An upgrade to the earliest available minor release of the target major version is required first.
+*   **Procedure**: Consult the specific major version upgrade documentation for detailed instructions.
+*   **Considerations**: Major upgrades may necessitate configuration modifications and a comprehensive review of feature compatibility.
 
-## Upgrade Execution
+## Upgrade Steps
 
-Alauda Cache Service for Redis OSS supports two upgrade execution modes:
+1.  Download the target version of the `Alauda Cache Service for Redis OSS` plugin from AlaudaCloud to a node that has access to your ACP cluster.
+2.  Utilize the `violet` package management tool to upload the plugin to the target cluster. For detailed instructions, refer to the <ExternalSiteLink name="acp" href="extend/upload_package.html" children="Upload Packages" /> documentation.
+3.  Upgrades follow the strategy configured in the Subscription:
+    *   `Automatic Upgrade`: The plugin upgrades automatically upon upload.
+    *   `Manual Upgrade`:
+         <Tabs>
+           <Tab label="CLI">
+           ```bash
+           # Check for available upgrades
+           $ kubectl -n redis-system get subscriptions.operators.coreos.com redis-operator -o go-template='{{ printf "Installed: %s\n  Current: %s" .status.installedCSV .status.currentCSV }}'
 
-* **Automatic**: System automatically detects and applies new versions when available
-* **Manual**: Requires explicit administrator approval before initiating upgrade procedures
+           # If an upgrade is available, find the corresponding InstallPlan for the Subscription
+           $ kubectl -n redis-system get subscriptions.operators.coreos.com redis-operator -o jsonpath='{.status.installplan.name}'
 
-### Operational Considerations
-
-* **Downtime**: Plan for minimal service interruption during upgrade operations
-* **Rollback**: Ensure rollback procedures are understood and tested
-* **Monitoring**: Closely monitor system metrics and logs during upgrade process
-* **Validation**: Perform post-upgrade validation of all critical functionality
+           # Approve the InstallPlan to proceed with the upgrade
+           $ kubectl -n redis-system patch --type='json' -p='[{"op":"replace","path":"/spec/approved","value":true}]'
+           ```
+           </Tab>
+           <Tab label="Web Console">
+           - Log in to the web console and switch to the Administrator view.
+           - Navigate to **Marketplace** > **OperatorHub** > **Alauda Cache Service for Redis OSS detail page**.
+           - Click the **Confirm** link in the **New Version Detected** notification, then click the **Confirm** button in the subsequent dialog to approve the update.
+           - If the **New Version Detected** notification does not appear, no upgrade is available.
+           </Tab>
+         </Tabs>
+         For more detailed instructions on upgrading the plugin, refer to the <ExternalSiteLink name="acp" href="extend/operator.html" children="Operator" /> documentation.
+4.  To upgrade the Redis instance itself, please refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx).
