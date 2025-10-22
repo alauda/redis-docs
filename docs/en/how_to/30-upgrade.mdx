@@ -6,7 +6,7 @@ weight: 30
 
 Redis patch version upgrades provide security fixes and stability improvements. The upgrade process utilizes a rolling update strategy, sequentially restarting pods to maintain service availability throughout the operation. Strategic scheduling of upgrades during maintenance windows is recommended to minimize potential impact on production workloads.
 
-When patch versions become available, prompt adoption is advised to ensure your Redis instances benefit from the latest security patches and feature enhancements.
+When patch versions become available, we recommend adopting them promptly to ensure your Redis instances benefit from the latest security patches and feature enhancements.
 
 ## Configure Upgrade Strategy
 
@@ -15,15 +15,18 @@ You can define how patch upgrades are applied to your Redis instances by configu
 ### Procedure
 
 <Tabs>
+  <Tab label="CLI">
+    ```bash
+    # Set the upgrade policy for a specific instance
+    $ kubectl -n <namespace> patch redis <instance-name> --type='json' -p='[{"op":"replace","path":"/spec/upgradeOption/autoUpgrade","value":"<true|false>"}]'
+    ```
+  </Tab>
   <Tab label="Web Console">
     1. Navigate to the instance details page.
-
     2. Select **Patch Version Upgrade Policy** from the action menu.
-
     3. Choose the appropriate upgrade strategy:
-       - **Manual**: Upgrades require explicit administrator approval
-       - **Automatic**: Upgrades are automatically applied during maintenance windows
-
+       - **Manual**: Upgrades require explicit administrator approval.
+       - **Automatic**: Upgrades are automatically applied during maintenance windows.
     4. Click **Update** to apply the configuration.
   </Tab>
 </Tabs>
@@ -34,12 +37,24 @@ Individual instance upgrades provide granular control over the upgrade process, 
 
 ### Prerequisites
 
-- Available patch version upgrade is indicated by an upgrade icon in the instance list
-- Instance status must be `Running` before initiating the upgrade
+- An available patch version upgrade is indicated by an upgrade icon in the instance list
+- The instance status must be `Running` before initiating the upgrade
 
 ### Procedure
 
 <Tabs>
+  <Tab label="CLI">
+    ```bash
+    # Check for the latest patch version available
+    $ kubectl get imageversion -l middleware.instance/type=redis,middleware.instance/latest -o jsonpath='{.items[*].spec.crVersion}'
+
+    # Check current patch version of a specific instance
+    $ kubectl -n <namespace> get redis <instance-name> -o jsonpath='{.status.upgradeStatus.crVersion}'
+
+    # If the current version is older than the latest version, proceed with the upgrade
+    $ kubectl -n <namespace> patch redis <instance-name> --type='json' -p='[{"op":"replace","path":"/spec/upgradeOption/crVersion","value": "<new-patch-version>"}]'
+    ```
+  </Tab>
   <Tab label="Web Console">
     1. Access the instance details page.
 
@@ -60,11 +75,20 @@ The bulk upgrade feature enables efficient management of upgrades across multipl
 ### Prerequisites
 
 - Platform administrator privileges
-- Target instances must be in `Running` state
+- Target instances must be in a `Running` state.
 
 ### Procedure
 
 <Tabs>
+  <Tab label="CLI">
+    ```bash
+    # Check for the latest patch version available
+    $ kubectl get imageversion -l middleware.instance/type=redis,middleware.instance/latest -o jsonpath='{.items[*].spec.crVersion}'
+
+    # Proceed bulk upgrade for multiple instances
+    $ kubectl -n <namespace> patch redis --all --type='json' -p='[{"op":"replace","path":"/spec/upgradeOption/crVersion","value": "<new-patch-version>"}]'
+    ```
+  </Tab>
   <Tab label="Web Console">
     1. Navigate to **Upgrade Management** in the left navigation panel.
 
