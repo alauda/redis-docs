@@ -1,0 +1,401 @@
+# Redis 最佳实践
+
+# 1. 概述 (Overview)
+
+Redis 作为云原生架构中事实标准的缓存与键值存储组件，承载着业务高并发读写与低延迟的核心需求。在 Kubernetes 容器化环境下运行有状态（Stateful）的 Redis 服务，面临着与传统物理机环境截然不同的挑战，包括**存储持久化的稳定性**、**网络拓扑的动态变化**以及**资源隔离与调度**等问题。
+
+本最佳实践文档旨在为生产环境下的 Redis 部署提供一套标准化的参考指南。涵盖从**架构选型**、**资源规划**、**客户端对接**到**可观测性运维**的全生命周期管理规范。通过遵循本指南，旨在帮助用户构建一个**高可用 (High Availability)**、**高性能 (High Performance)** 且**易维护 (Maintainability)** 的企业级 Redis 数据服务。
+
+# 2. 架构设计 (Architecture Design)
+
+全栈云原生开放平台根据客户业务规模与 SLA 需求，提供两种标准的 Redis 管理架构：
+
+## 2.1 高可用架构：哨兵模式 (HA: Sentinel)
+**定位：经典高可用架构，适用于中小规模业务。**
+
+哨兵模式基于 Redis 原生的主从复制机制。通过部署独立的 Sentinel 进程组监控主从节点状态，在主节点故障时自动执行 Failover（故障转移）并通知客户端。
+*   **优点**：架构简单，运维成熟，对客户端协议要求较低。
+*   **局限**：写能力受限于单节点，无法水平扩展存储容量。
+
+## 2.2 分布式架构：集群模式 (Distributed: Cluster)
+**定位：分布式分片架构，适用于大规模高并发业务。**
+
+集群模式通过 Hash Slot（哈希槽）将数据自动分片到多个节点，实现存储容量和读写性能的水平扩展（Scale-out）。
+*   **优点**：真正的高可用分布式存储，支持动态扩缩容（Resharding）。
+*   **局限**：客户端协议复杂，特定多 Key 命令（如 `MGET`）受限于 Slot 分布。
+
+## 2.3 选型指南 (Selection Guide)
+
+在选择 Redis 架构时，需要考虑业务对可用性、扩展性和复杂度的要求。
+
+| 特性 | 哨兵模式 (Sentinel) | 集群模式 (Cluster) |
+| :--- | :--- | :--- |
+| **适用场景** | 中小型业务，读多写少，数据量适中 | 大型业务，高并发读写，海量数据 |
+| **高可用性** | 通过哨兵监控和自动故障转移实现 | 通过节点自动故障检测和恢复实现 |
+| **扩展性** | 垂直扩展（升级规格），水平扩展仅限读能力 | 水平扩展（读写能力），支持动态扩缩容 |
+| **读写分离** | 支持（需要客户端配合或中间件） | 不支持（通常直接连接分片主节点） |
+| **数据分片** | 无（单节点存储全量数据） | 有（数据自动分片到多个节点） |
+| **运维复杂度** | 较低，架构简单 | 较高，涉及分片、哈希槽、数据迁移等 |
+| **网络限制** | 需要客户端支持 Sentinel 协议 | 需要客户端支持 Cluster 协议 |
+
+**建议：**
+*   如果数据量较小（单节点内存可容纳），且主要追求简单稳定，**哨兵模式**是首选。
+*   如果数据量巨大或写入压力极高，单节点无法支撑，选择**集群模式**。
+
+# 3. 部署配置 (Deployment Configuration)
+
+## 3.1 实例部署 (Deployment)
+
+在 **Data Services** 页面，单击 **Redis** ，选择您的 项目 及 命名空间 后，单击 创建 **Redis** 实例 ，根据实际业务场
+景配置实例，推荐您使用最新的 Redis 6.0 版本。
+
+## 3.2 参数模板选择 (Parameter Templates)
+
+Redis 实例的参数配置通过 Custom Resource (CR) 的字段进行指定。
+
+*   **数据节点参数**：通过 `spec.customConfig` 字段配置。例如设置 `save` 策略：
+    ```yaml
+    spec:
+      customConfig:
+        save: "600 1"
+    ```
+*   **哨兵节点参数**（仅哨兵模式）：通过 `spec.sentinel.monitorConfig` 字段配置。支持 `down-after-milliseconds`, `failover-timeout`, `parallel-syncs` 等关键参数。
+
+选择模板时，应根据业务对持久化（AOF vs RDB）和性能的权衡来决定。
+
+## 3.3 资源规格配置 (Resource Specs)
+
+您可以根据业务场景的实际情况，部署资源规格。
+
+| 集群架构 | 持久化 | 模板 | 实例规格 | Replica | Sentinel | Sharding | Sentinel容器组 | redis-exporter | redis (实例规格) | 备份容器 (backup) | 资源总量 | 实例存储配额 | 自动备份 (保留7份) | 手动备份 (保留7份) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Redis Sentinel | AOF | aof-redis-6.0-sentinel | 2c4g | 1 | 3 | / | 100m128Mi | 100m200Mi | 2c4g | 不限制（需要预留资源） | 4.5c4.8g | 需要根据实际写入量评估 | | |
+| | | aof-redis-6.0-sentinel | 4c8g | | | | | | 4c8g | | 8.5c8.8g | | | |
+| | RDB | rdb-redis-6.0-sentinel | 2c4g | | | | | | 2c4g | | 4.5c4.8g | 8G | 28G | 28G |
+| | | rdb-redis-6.0-sentinel | 4c8g | | | | | | 4c8g | | 8.5c8.64g | 16G | 56G | 56G |
+| | Diskless | diskless-redis-6.0-sentinel | 2c4g | | | | | | 2c4g | | 4.5c4.8g | / | 28G | 28G |
+| | | diskless-redis-6.0-sentinel | 4c8g | | | | | | 4c8g | | 8.5c8.8g | | 56G | 56G |
+| Redis Cluster | AOF | aof-redis-6.0-cluster | 2c4g | / | 3 | / | | 100m300Mi | 2c4g | | 12.6c25.8g | 需要根据实际写入量评估 | | |
+| | | aof-redis-6.0-cluster | 4c8g | | | | | | 4c8g | | 24.6c49.8g | | | |
+| | RDB | rdb-redis-6.0-cluster | 2c4g | | | | | | 2c4g | | 12.6c25.8g | 24G | 84G | 84G |
+| | | rdb-redis-6.0-cluster | 4c8g | | | | | | 4c8g | | 24.6c49.8g | 48G | 168G | 168G |
+| | Diskless | diskless-redis-6.0-cluster | 2c4g | | | | | | 2c4g | | 12.6c25.8g | / | 84G | 84G |
+| | | diskless-redis-6.0-cluster | 4c8g | | | | | | 4c8g | | 24.6c49.8g | | 168G | 168G |
+
+## 3.4 调度策略配置 (Scheduling)
+
+Redis 集群模式提供三种推荐反亲和策略，所有 Pod 强制反亲和、分片内主从强制反亲和以及分片内主从尽量
+反亲和。
+
+**所有 Pod 强制反亲和**
+
+Redis Cluster 实例会将 Redis 强制分布到不同的节点上。如图所示，假设有三个节点，每个节点上可以
+调度三个 Pod。然而，在本例中，Redis Cluster 策略被设置为强制 Pod 反亲和性。由于这个设置，当尝
+试在相同节点上调度不同的 Redis 分片副本时，部署失败。
+
+在可视化图中，三个主节点（master）分布在三个不同的节点上，每个节点有三个可用的 Pod 位置。同
+时，三个从节点（replica）都无法被调度，因为它们与已存在的主节点存在反亲和性约束，会导致部署
+失败。
+
+**分片内主从强制反亲和**
+
+分片内主从强制反亲和策略会将同一个分片的 Redis 节点分布到不同的节点上，确保即使某个节点出现
+故障，数据仍然具有完整性。
+
+如图所示，假设有三个节点，每个节点可以调度三个 Pod。在 Node2 和 Node3 上的 Pod 位置已经被占
+满，而 Node1 上仍有空余的 Pod 资源。然而，由于 Redis shard-2 主节点（master）位于 Node1 上，并
+且分片内主从节点被设置为强制反亲和性，Redis shard-2 从节点（replica）不能被调度到 Node1 上。这
+导致 Redis shard-2 从节点无法找到可用的节点进行调度，从而导致部署失败。
+
+**分片内主从尽量反亲和**
+
+在 Redis Cluster 中，为了提高数据的可靠性和容错能力，我们可以采用“分片内主从尽量反亲和”的策
+略。这意味着同一个分片内的主从节点尽量被调度到不同的节点上。这样，即使某个节点出现故障，数
+据仍然具有完整性。
+
+采用“分片内主从尽量反亲和”的策略时，调度器会优先尝试将主从节点部署在不同的节点上。然而，如果
+无法找到符合条件的节点，调度器仍然会允许将主从节点部署在同一个节点上。这种策略在节点资源有
+限的情况下，可以确保 Redis 集群的正常部署和运行，同时在尽量遵循反亲和原则的基础上，提高数据
+的可靠性。
+
+如图，Node1 在资源不足的情况下部署了 redis shard-2 的主从节点。
+
+您可以根据下表，对您的实际业务情景设置集群模式 Redis 的反亲和策略。
+
+|所有 Pod 之间强制要求在<br>不同节点上部署，不允许在<br>同一节点上部署。|可以最大程度地<br>保证负载均衡和<br>系统的高可用<br>性。|节点资源有限时可<br>能导致部署失败。|保障<br>自愈|
+|---|---|---|---|
+|同一个分片内的主从节点必<br>须部署在不同节点上。|保证分片内主从<br>节点故障隔离，<br>提高数据可靠<br>性。|节点资源有限时可<br>能导致部署失败。|有可<br>能自<br>愈|
+
+在哨兵模式下，默认采用分片内主从尽量反亲和策略。这意味着同一个分片内的主从节点会尽量部署在不同的
+节点上，但在资源不足的情况下，也允许主从节点部署在同一个节点上。采用这种策略的目的是为了在保证数
+据可靠性的同时，适应有限的节点资源。
+
+根据上文描述，分片内主从尽量反亲和策略在资源有限的情况下，可以在保证集群正常部署的基础上，尽可能
+提高数据可靠性。这种策略在某些情况下可以实现单点故障的自愈。然而，在同一个节点上部署主从节点时，
+数据可靠性相对较低。因此，在实际应用中，我们需要根据实际情况和需求来选择合适的策略，以实现 Redis
+高可用性和故障自动切换的目标。
+
+# 4. 资源规划 (Resource Planning)
+
+## 4.1 内存规格 (Memory)
+
+Redis 采用快照机制将内存中的数据异步复制到磁盘上进行长期存储。这种机制使得 Redis 保持了高性能，但
+也存在在快照之间可能丢失数据的风险。
+
+在 Kubernetes 容器化环境下，我们建议采用分级内存管理策略：
+*   **✅ 标准规格 (< 8GB)**：**强烈推荐**。能够保证极低的 Fork 延迟和快速的故障恢复（RTO < 60s），是最稳健的生产选择。
+*   **⚠️ 高性能规格 (8GB - 16GB)**：**可接受**。需配合高性能宿主机且**必须关闭 THP**。在此规格下，Fork 虽然可控，但在高负载时仍可能造成 100ms 级别的抖动。
+*   **❌ 高风险规格 (> 16GB)**：**不推荐**。单点故障影响面过大，且全量同步极易打满网络带宽。建议水平拆分为 Cluster 模式。
+
+### 为什么限制 8GB？（技术深究）
+虽然物理机时代单实例常运行 32GB+，但在云原生环境下，8GB 限制是基于以下核心技术原理的“黄金法则”：
+
+1.  **Fork 阻塞与页表复制 (The Fork Blocking)**
+    *   Redis 执行 RDB/AOF Rewrite 时调用 `fork()`。虽然内存页是 CoW（写时复制），但**进程页表 (Page Table) 必须全量拷贝**，此过程会**阻塞主线程**。
+    *   *估算公式*：10GB 内存 ≈ 20MB 页表 ≈ 10~50ms 阻塞（视虚拟化层开销而定）。一旦超过 8GB，分钟级的阻塞风险将呈指数级上升，严重影响 SLA。
+
+2.  **故障恢复效率 (RTO)**
+    *   容器重启加载 RDB 是**单线程 CPU 密集型任务**（对象反序列化）。测试表明，受限于 CPU 解析效率，加载 8GB 数据通常需 **30-50秒**（即使使用 SSD）。若维持在 32GB，重启时间可能长达数分钟，这与 Kubernetes "快速自愈" 的设计理念背道而驰。
+
+### 内存配置最佳实践 (MaxMemory vs Limit)
+
+为了避免 Redis 在持久化期间因内存膨胀而导致 OOM（OOM Kill），需严格遵循以下配置原则：
+
+1.  **设置 MaxMemory**: 不要将 `maxmemory` 设置为容器内存 Limit 的 100%。建议设置为 Limit 的 **70% ~ 80%**。
+2.  **预留 CoW 空间**: Redis 在 RDB/AOF Rewrite 时会 Fork 子进程。若此时有大量写入更新，OS 的写时复制 (Copy-on-Write) 机制会导致内存页被复制，极端情况下内存占用可能由 8GB 翻倍至 16GB。
+3.  **Overcommit 配置**: 确保宿主机开启 `vm.overcommit_memory = 1`，允许内核在 fork 时无需申请等量物理内存（依赖 CoW），防止 fork 失败。
+
+> [!IMPORTANT]
+> **资源预留公式**: `Container_Memory_Limit` ≈ `Redis_MaxMemory` / 0.7
+> *   示例: 如果希望 Redis 存储 8GB 数据，容器内存 Limit 建议配置为 10GB ~ 12GB，留出 2GB+ 给 CoW 和碎片开销。
+
+## 4.2 计算资源 (Compute)
+
+### 基础建议：2 Core
+Redis 核心命令执行是单线程的，但持久化（Fork）等操作需要子进程。因此，建议为每个 Redis 实例分配 **至少 2 Core** 的 CPU 资源：
+*   **Core 1**: 处理主线程的请求与命令。
+*   **Core 2**: 应对持久化 fork、后台任务以及系统开销。
+
+### 多线程 (Multi-threading)
+Redis 6.0+ 引入了多线程 I/O（默认关闭）。
+*   **作用**: 利用多核处理网络数据的读写（Socket I/O），优化单核 IO 限制。
+*   **局限性**: 命令执行仍然是单线程的。因此，增加 CPU 核心数只能提升网络吞吐，无法提升命令处理速度（Latency）。
+*   **配置建议**: 如果网络是瓶颈（如大流量场景），可开启多线程，但建议总核心数配置不超过 4~8 Core，过多的核心并不能带来线性提升。
+
+## 4.3 存储规划 (Storage)
+
+### 容量规划 (Capacity)
+持久化模式直接决定了磁盘空间的配额需求，请参考以下计算公式：
+
+| 模式 | 建议磁盘配额公式 | 详细说明 |
+| :--- | :--- | :--- |
+| **Diskless (纯缓存)** | `0` (无需 PVC) | 仅作为纯缓存使用，不开启 RDB/AOF。K8s 环境下日志通过标准输出 (stdout) 采集，无需挂载持久化数据盘。 |
+| **RDB (快照)** | `MaxMemory * 2` | RDB 也是写时复制（CoW）。在生成新快照时，磁盘上同时存在“旧快照”和“正在写入的新快照”。<br>**建议**：至少预留 2 倍内存空间。 |
+| **AOF (追加写)** | `MaxMemory * 3` | AOF 文件会随着写操作不断增长。默认配置下 (`auto-aof-rewrite-percentage 100`)，AOF 文件会增长到数据量的 **2倍** 才触发重写。此时磁盘需同时容纳：<br>1. 旧 AOF 文件 (2x)<br>2. 重写生成的新 AOF 文件 (1x)<br>**峰值总计 3x**。建议预留至少 3 倍空间以防磁盘写满。 |
+
+### 性能要求 (IOPS & Latency)
+*   **AOF 开启时**: 磁盘性能至关重要。如果磁盘 IOPS 不足或 fsync 延迟过高，会直接阻塞主线程（当 `appendfsync everysec` 时）。
+*   **推荐介质**: 生产环境强烈建议使用 SSD/NVMe 本地盘或高性能云盘。
+
+## 4.4 内核参数调优 (Kernel Tuning)
+
+为了确保 Redis 在生产环境中的稳定性和高性能，建议在 Kubernetes 节点层面进行以下内核参数优化：
+
+1.  **内存分配控制 (`vm.overcommit_memory`)**
+    *   **建议值**: `1`
+    *   **说明**: 设置为 `1` (Always) 确保内核在 Redis 执行 Fork 操作（RDB 快照/AOF 重写）时允许分配内存，即使物理内存看似不足。这能有效防止因内存分配失败导致的持久化失败。
+
+2.  **连接队列大小 (`net.core.somaxconn`)**
+    *   **建议值**: `2048` 或更高
+    *   **说明**: Redis 默认的 tcp-backlog 为 511。在高并发场景下，应将系统的 `net.core.somaxconn` 提高，以避免客户端连接请求被丢弃。
+
+3.  **透明大页 (Transparent Huge Pages, THP)**
+    *   **建议操作**: **禁用** (`never`)
+    *   **说明**: THP 会导致 Redis 在发生内存分配时产生显著的延迟尖峰，尤其是在 Fork 后的写时复制（CoW）期间。建议在宿主机或启动脚本中禁用。
+
+
+# 5. 客户端接入 (Client Integration)
+
+## 5.1 网络访问策略 (Network Access)
+
+您可以根据下表，选择适合实际业务尝尽的访问方式。
+
+|架构|访问方式|推荐|特性说明|
+|---|---|---|---|
+|哨兵<br>模式|集群内访<br>问|哨兵访问地址|用于从集群内连接哨兵（哨兵会去发现底层的数据节<br>点）。提供包括哨兵节点对应的内部路由的名称、IP地<br>址和端口号。 端口号默认为 26379。|
+|集群<br>模式|集群外访<br>问—无代理|集群模式暴露 底层数据节<br>点（Pod）的 NodePort|暴露底层数据节点 的 NodePort，直连底层数据节点，<br>Pod本身不具备高可用性，但可以写多个节点地址。<br>应用连接时需要写多个 节点IP+端口，部分节点宕机<br>时，连接仍保留。|
+
+> [!TIP]
+> **外网访问推荐**：对于生产环境的集群外访问，**强烈推荐使用 LoadBalancer 方式**。
+> *   **LoadBalancer**：为 Redis 实例配置外部负载均衡器，提供稳定的访问入口。
+> *   **NodePort 限制**：虽然支持 NodePort，但客户端需要直接连接到具体的节点端口。在多网卡环境或网络策略复杂的场景下，直接使用 NodePort 可能会因为网络接口绑定问题导致连接失败（Redis Sentinel/Cluster 默认绑定默认网卡）。且 NodePort 不支持通过额外的负载均衡器进行代理（因为 Sentinel/Cluster 协议要求客户端直连感知拓扑）。
+
+## 5.2 代码接入示例 (Code Examples)
+
+以下是使用 **Go (go-redis/v9)** 客户端连接 Redis 的示例代码：
+
+#### 哨兵模式 (Sentinel Mode)
+
+哨兵模式下，客户端连接 Sentinel 节点，通过 `mymaster`（默认主节点组名）发现主节点。
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+    "github.com/redis/go-redis/v9"
+)
+
+func main() {
+    client := redis.NewFailoverClient(&redis.FailoverOptions{
+        SentinelAddrs: []string{"<sentinel-ip>:26379"}, // 替换为 Sentinel 地址
+        MasterName:    "mymaster",                       // 固定名称
+        Password:      "<password>",                     // Redis 密码
+        DialTimeout:   3 * time.Second,
+        ReadTimeout:   5 * time.Second,
+        WriteTimeout:  10 * time.Second,
+        PoolSize:      100,
+    })
+    defer client.Close()
+
+    if val, err := client.Get(context.TODO(), "test").Result(); err != nil {
+        panic(err)
+    } else {
+        fmt.Println(val)
+    }
+}
+```
+
+#### 集群模式 (Cluster Mode)
+
+集群模式下，客户端连接任一集群节点获取拓扑。建议配置多个种子节点地址。
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+    "github.com/redis/go-redis/v9"
+)
+
+func main() {
+    client := redis.NewClusterClient(&redis.ClusterOptions{
+        Addrs:         []string{"<node-ip>:6379"}, // 替换为集群节点地址
+        Password:      "<password>",
+        DialTimeout:   3 * time.Second,
+        ReadTimeout:   5 * time.Second,
+        WriteTimeout:  10 * time.Second,
+        PoolSize:      100,
+    })
+    defer client.Close()
+
+    if val, err := client.Get(context.TODO(), "test").Result(); err != nil {
+        panic(err)
+    } else {
+        fmt.Println(val)
+    }
+}
+```
+
+## 5.3 客户端可靠性最佳实践
+
+除了正确的连接配置，客户端的健壮性设计对于保障业务稳定性至关重要：
+
+1.  **超时设置 (Timeouts)**
+    *   **连接超时 (Connect Timeout)**: 建议设为 1-3秒，避免网络不可达时长时间阻塞。
+    *   **读写超时 (Read/Write Timeout)**: 根据业务 SLA 设置，通常只有几百毫秒。不要设置过长，防止慢查询拖垮应用线程池。
+
+2.  **重试策略 (Retry Strategy)**
+    *   **指数退避 (Exponential Backoff)**: 遇到网络抖动或主从切换时，不要立即重试，而应使用指数退避算法（如 wait 100ms, 200ms, 400ms...），避免重试风暴加剧 Redis 负载。
+
+3.  **连接池 (Connection Pooling)**
+    *   **预热与复用**: 务必使用连接池（如 JedisPool, go-redis Pool）。Redis 连接握手成本较高，频繁创建/销毁连接会严重影响性能。
+    *   **最大连接数**: 根据客户端并发量合理设置 `MaxTotal`，避免超过 Redis 的 `maxclients` 限制。
+
+4.  **拓扑刷新机制 (Topology Refresh) - 集群模式关键**
+    *   **自动刷新**: 确保客户端开启了基于 `MOVED/ASK` 转向错误的自动拓扑更新功能（绝大多数 Smart Client 默认开启）。
+    *   **周期性刷新**: 在拓扑变化频繁（如弹性伸缩）或网络不稳定的场景下，建议配置客户端进行周期性拓扑刷新（例如每 60 秒），以主动感知节点变更，减少请求重定向带来的延迟。
+
+
+
+
+
+# 6. 可观测性与运维 (Observability & Operations)
+
+## 6.1 数据安全与备份
+
+平台备份中心为您提供便捷的数据备份和管理解决方案，您可以在各实例下进行备份，并在备份中心中统一管
+理。此外，备份中心支持外接S3存储，可实现安全备份和恢复。您还可以恢复历史备份到特定实例，以及查看
+和删除备份记录。
+
+## 6.3 认证与权限管理
+
+Redis Operator（6.0+ 版本）支持通过 `RedisUser` CRD 进行声明式用户管理，支持 ACL 权限控制。
+
+**管理操作：**
+1.  **查看用户**：查看 `RedisUser` 资源。
+    ```bash
+    kubectl -n <namespace> get RedisUser
+    ```
+2.  **修改密码**：密码存储在 Secret 中。找到 `RedisUser` 关联的 `passwordSecrets`，修改对应的 Secret 内容（Base64 编码）。修改后，Operator 会自动同步，状态暂时变为 Pending，同步完成后变回 Success。
+3.  **修改权限**：直接编辑 `RedisUser` 的 `spec.aclRules` 字段。例如：`+@all ~*` 表示所有权限。
+4.  **创建新用户**：创建一个 `RedisUser` yaml 文件，指定 `redisName` 关联到 Redis 实例。
+
+## 6.4 变更与维护
+
+### 更新注意事项
+在对 Redis 实例进行规格变更（CPU/Memory）或扩容时：
+1.  **资源评估**：确保集群有足够的剩余资源。
+2.  **渐进式执行**：Operator 会尽量逐个 Pod 进行滚动更新，以减少服务中断。
+3.  **避开高峰期**：对于大数据量实例，建议在业务低峰期进行变更。
+
+> [!CAUTION]
+> 减少副本数或降低规格时，务必确认当前数据量和负载可以被新规格承载，否则可能导致数据丢失或服务崩溃。
+
+### 重启注意事项
+通过管理控制台或 kubectl 触发重启时：
+1.  **逐个重启**：Pod 会被逐个重启（Rolling Restart）。
+2.  **服务中断**：虽然是滚动重启，但在主从切换或节点重连期间，客户端可能会遇到短暂的连接断开或超时，客户端应具备重试机制。
+3.  **前置条件**：实例必须处于 `Running` 状态才能执行重启操作。
+
+## 6.5 监控告警体系
+
+### 关键监控指标
+
+生产环境建议重点关注以下指标，并配置相应的告警规则：
+
+| 类别 | 指标名称 (Prometheus) | 含义 | 告警阈值建议 |
+| :--- | :--- | :--- | :--- |
+| **性能** | `redis_cpu_user_seconds_total` | CPU 使用率 | 持续 > 80% (单核) |
+| | `redis_memory_used_bytes` | 内存使用量 | > 80% limit |
+| **可靠性** | `redis_connected_clients` | 连接客户端数 | 接近 maxclients |
+| | `redis_evicted_keys_total` | 驱逐 Key 数量 | > 0 (若非预期) |
+| | `redis_rejected_connections_total` | 拒绝连接数 | > 0 |
+| **缓存效果** | **Hit Rate** (计算得出) | 缓存命中率 | < 80% (视业务而定) |
+
+**缓存命中率计算 (PromQL 示例):**
+```promql
+rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
+```
+
+## 6.6 故障排查指南
+
+您可以在 [Customer Portal](https://cloud.alauda.cn/knowledges) 查询您遇到的问题。
+
+查询关键词：Redis、集群模式、监控、崩溃恢复、污点容忍、部署优化……
+
+
+
+# 7. 其他
+
+## 7.1 参考资料
+
+[https://docs.redis.com/latest/ri/memory-optimizations/](https://docs.redis.com/latest/ri/memory-optimizations/)
+
+[https://architecturenotes.co/redis/](https://architecturenotes.co/redis/)
+
+[https://redis.io/docs/](https://redis.io/docs/)
