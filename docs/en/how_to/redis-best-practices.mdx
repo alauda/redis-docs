@@ -628,7 +628,7 @@ Both **Sentinel** and **Cluster** modes rely on clients actively discovering and
 Both protocols return **Real Node IPs**. If a reverse proxy (HAProxy/Nginx) is used, clients still get backend real IPs, which may be unreachable from outside the cluster.
 Thus, **Each Redis Pod needs an independent external address** (NodePort/LoadBalancer), not a single proxy address.
 
-### Network Access strategies
+### Network Access Strategies
 
 Alauda Cache Service for Redis OSS supports multiple access methods:
 
