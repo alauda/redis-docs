@@ -498,7 +498,7 @@ spec:
             operator: In
             values:
             - <instance name>
-        topologyKey: kubernetes.io/hostname 
+        topologyKey: kubernetes.io/hostname
   sentinel:
     affinity:
       podAntiAffinity:
@@ -513,7 +513,7 @@ spec:
               operator: In
               values:
               - <instance name>
-          topologyKey: kubernetes.io/hostname 
+          topologyKey: kubernetes.io/hostname
 ```
 
 To force anti-affinity across ALL nodes (Data + Sentinel), refer to:
@@ -529,11 +529,11 @@ spec:
             operator: In
             values:
             - redis-failover
-          - key: middleware.instance/name:
+          - key: middleware.instance/name
             operator: In
             values:
             - <instance name>
-        topologyKey: kubernetes.io/hostname 
+        topologyKey: kubernetes.io/hostname
   sentinel:
     affinity:
       podAntiAffinity:
@@ -544,11 +544,11 @@ spec:
               operator: In
               values:
               - redis-failover
-            - key: middleware.instance/name:
+            - key: middleware.instance/name
               operator: In
               values:
               - <instance name>
-          topologyKey: kubernetes.io/hostname 
+          topologyKey: kubernetes.io/hostname
 ```
 
 ## User Management
