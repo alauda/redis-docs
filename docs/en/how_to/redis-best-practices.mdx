@@ -265,21 +265,21 @@ Deploy resources according to your actual business scenario.
       <td rowspan="6">100m200Mi</td>
       <td>2c4g</td>
       <td rowspan="6">Unlimited (Reserve resources)</td>
-      <td>4.5c4.8g</td>
+      <td>4.5c4.8G</td>
       <td rowspan="2" colspan="3">Evaluate based on actual write volume</td>
     </tr>
     <tr>
       <td>aof-redis-&lt;version&gt;-sentinel</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>8.5c8.8g</td>
+      <td>8.5c8.8G</td>
     </tr>
     <tr>
       <td rowspan="2">RDB</td>
       <td>rdb-redis-&lt;version&gt;-sentinel</td>
       <td>2c4g</td>
       <td>2c4g</td>
-      <td>4.5c4.8g</td>
+      <td>4.5c4.8G</td>
       <td>8G</td>
       <td>28G</td>
       <td>28G</td>
@@ -288,7 +288,7 @@ Deploy resources according to your actual business scenario.
       <td>rdb-redis-&lt;version&gt;-sentinel</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>8.5c8.8g</td>
+      <td>8.5c8.8G</td>
       <td>16G</td>
       <td>56G</td>
       <td>56G</td>
@@ -298,7 +298,7 @@ Deploy resources according to your actual business scenario.
       <td>diskless-redis-&lt;version&gt;-sentinel</td>
       <td>2c4g</td>
       <td>2c4g</td>
-      <td>4.5c4.8g</td>
+      <td>4.5c4.8G</td>
       <td rowspan="2">/</td>
       <td>28G</td>
       <td>28G</td>
@@ -307,7 +307,7 @@ Deploy resources according to your actual business scenario.
       <td>diskless-redis-&lt;version&gt;-sentinel</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>8.5c8.8g</td>
+      <td>8.5c8.8G</td>
       <td>56G</td>
       <td>56G</td>
     </tr>
@@ -341,21 +341,21 @@ Deploy resources according to your actual business scenario.
       <td rowspan="6">100m300Mi</td>
       <td>2c4g</td>
       <td rowspan="6">Unlimited (Reserve resources)</td>
-      <td>12.6c25.8g</td>
+      <td>12.6c25.8G</td>
       <td rowspan="2" colspan="3">Evaluate based on actual write volume</td>
     </tr>
     <tr>
       <td>aof-redis-&lt;version&gt;-cluster</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>24.6c49.8g</td>
+      <td>24.6c49.8G</td>
     </tr>
     <tr>
       <td rowspan="2">RDB</td>
       <td>rdb-redis-&lt;version&gt;-cluster</td>
       <td>2c4g</td>
       <td>2c4g</td>
-      <td>12.6c25.8g</td>
+      <td>12.6c25.8G</td>
       <td>24G</td>
       <td>84G</td>
       <td>84G</td>
@@ -364,7 +364,7 @@ Deploy resources according to your actual business scenario.
       <td>rdb-redis-&lt;version&gt;-cluster</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>24.6c49.8g</td>
+      <td>24.6c49.8G</td>
       <td>48G</td>
       <td>168G</td>
       <td>168G</td>
@@ -374,7 +374,7 @@ Deploy resources according to your actual business scenario.
       <td>diskless-redis-&lt;version&gt;-cluster</td>
       <td>2c4g</td>
       <td>2c4g</td>
-      <td>12.6c25.8g</td>
+      <td>12.6c25.8G</td>
       <td rowspan="2">/</td>
       <td>84G</td>
       <td>84G</td>
@@ -383,7 +383,7 @@ Deploy resources according to your actual business scenario.
       <td>diskless-redis-&lt;version&gt;-cluster</td>
       <td>4c8g</td>
       <td>4c8g</td>
-      <td>24.6c49.8g</td>
+      <td>24.6c49.8G</td>
       <td>168G</td>
       <td>168G</td>
     </tr>
@@ -435,7 +435,7 @@ In Cluster mode, the system **prioritizes `spec.affinityPolicy`**. Alauda Cache 
     <tr>
       <td><strong>All Pods Forced Anti-Affinity</strong></td>
       <td><code>AntiAffinity</code></td>
-      <td>Forces <strong>ALL Pods</strong> in the cluster (including master/replicas of different shards) to be on different nodes. Fails if node count < total Pod count.</td>
+      <td>Forces <strong>ALL Pods</strong> in the cluster (including primary/replicas of different shards) to be on different nodes. Fails if node count < total Pod count.</td>
       <td>
         <ul>
           <li><strong>Pros</strong>: Highest disaster recovery, minimal single-node failure impact.</li>
@@ -445,25 +445,25 @@ In Cluster mode, the system **prioritizes `spec.affinityPolicy`**. Alauda Cache 
       <td><strong>Cluster Mode Core Business</strong><br />Ample resources, strict HA requirements.</td>
     </tr>
     <tr>
-      <td><strong>Shard Master-Replica Forced Anti-Affinity</strong></td>
+      <td><strong>Shard Primary-Replica Forced Anti-Affinity</strong></td>
       <td><code>AntiAffinityInSharding</code></td>
-      <td>Forces <strong>Master and Replicas within same shard</strong> to be on different nodes. Pods from different shards can coexist.</td>
+      <td>Forces <strong>Primary and Replicas within same shard</strong> to be on different nodes. Pods from different shards can coexist.</td>
       <td>
         <ul>
           <li><strong>Pros</strong>: Guarantees physical isolation of data replicas, preventing shard migration data loss.</li>
-          <li><strong>Cons</strong>: Scheduling fails if live nodes < replica count. Masters of different shards might land on same node (SPOF risk).</li>
+          <li><strong>Cons</strong>: Scheduling fails if live nodes < replica count. Primaries of different shards might land on same node (single point of failure risk).</li>
         </ul>
       </td>
       <td><strong>Production Standard</strong><br />Balances resource usage and data safety.</td>
     </tr>
     <tr>
-      <td><strong>Shard Master-Replica Soft Anti-Affinity</strong></td>
+      <td><strong>Shard Primary-Replica Soft Anti-Affinity</strong></td>
       <td><code>SoftAntiAffinity</code></td>
-      <td><strong>Prioritizes</strong> spreading shard master/replicas. If impossible (e.g., insufficient nodes), <strong>allows</strong> scheduling on same node.</td>
+      <td><strong>Prioritizes</strong> spreading shard primary/replicas. If impossible (e.g., insufficient nodes), <strong>allows</strong> scheduling on same node.</td>
       <td>
         <ul>
           <li><strong>Pros</strong>: Highest deployment success rate, runs with limited resources.</li>
-          <li><strong>Cons</strong>: Master/Replica may share node in extreme cases, risking data loss.</li>
+          <li><strong>Cons</strong>: Primary/Replica may share node in extreme cases, risking data loss.</li>
         </ul>
       </td>
       <td><strong>Test/Dev Environments</strong><br />Or resource-constrained edge environments.</td>
@@ -657,8 +657,8 @@ Alauda Cache Service for Redis OSS supports multiple access methods:
 
 > [!INFO]
 > **Resource Usage**: LB/NodePort creates a **Service per Pod**.
-> *   **Sentinel** (1M1S + 3 Sentinels): Needs **8 NodePorts/LBs**.
-> *   **Cluster** (3 Shards x 1M1S): Needs **7 NodePorts/LBs**.
+> *   **Sentinel** (1P1R + 3 Sentinels): Needs **8 NodePorts/LBs**.
+> *   **Cluster** (3 Shards x 1P1R): Needs **7 NodePorts/LBs**.
 
 ### Code Examples
 
