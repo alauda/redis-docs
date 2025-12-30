@@ -24,4 +24,4 @@ releaseNotes:
     mw-redis-v4.1.1-fixed: |
       project = MiddleWare AND type in (Bug, Vulnerability) AND ReleaseNotesStatus = Publish AND fixVersion = Redis-v4.1.1
     mw-redis-v4.1.2-fixed: |
-      project = MiddleWare AND type in (Bug, Vulnerability) AND ReleaseNotesStatus = Publish AND fixVersion = Redis-v4.1.2
+      status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - Redis" AND fixVersion = Redis-v4.1.2 AND ReleaseNotesStatus = Publish
