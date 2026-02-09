@@ -180,8 +180,8 @@ The following examples demonstrate best practices for connecting to Redis Sentin
                     .build();
 
             Set<HostAndPort> nodes =  new HashSet<>();
-            nodes.add(new HostAndPort("<ip1>", "<port1>"));
-            nodes.add(new HostAndPort("<ip2>", "<port2>"));
+            nodes.add(new HostAndPort("<ip1>", <port1>));
+            nodes.add(new HostAndPort("<ip2>", <port2>));
             JedisSentinelPool pool = new JedisSentinelPool("mymaster", nodes, poolConfig, clientConfig, sentinelConfig);
 
             try {
@@ -217,8 +217,8 @@ The following examples demonstrate best practices for connecting to Redis Sentin
     public class Main {
         public static void main(String[] args) {
             RedisURI.Builder redisUriBuilder = RedisURI.builder();
-            redisUriBuilder.withSentinel(RedisURI.create("<ip1>", "<port1>"));
-            redisUriBuilder.withSentinel(RedisURI.create("<ip2>", "<port2>"));
+            redisUriBuilder.withSentinel(RedisURI.create("<ip1>", <port1>));
+            redisUriBuilder.withSentinel(RedisURI.create("<ip2>", <port2>));
             redisUriBuilder.withPassword("<password>");
 
             // Client name for debugging and tracking connection source.
