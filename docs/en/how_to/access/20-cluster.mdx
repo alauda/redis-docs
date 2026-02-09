@@ -184,7 +184,7 @@ The following examples demonstrate best practices for connecting to Redis Cluste
                     .password("<password>")
                     .build();
 
-            Set<HostAndPort> nodes =  new HashSet<>();
+            Set<HostAndPort> nodes = new HashSet<>();
             nodes.add(new HostAndPort("<ip1>", <port1>));
             nodes.add(new HostAndPort("<ip2>", <port2>));
             JedisCluster cluster = new JedisCluster(nodes, clientConfig, poolConfig, topologyRefreshPeriod, maxAttempts, maxAttemptsDuration);
