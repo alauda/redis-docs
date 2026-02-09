@@ -134,11 +134,10 @@ The following examples demonstrate best practices for connecting to Redis Cluste
     ```java
     package io.alauda.demo.redis;
 
-    // It is recommended to periodically upgrade to the latest version of the client for the latest bug fixes.
+    import redis.clients.jedis.ConnectionPoolConfig;
+    import redis.clients.jedis.JedisClientConfig;
     import redis.clients.jedis.DefaultJedisClientConfig;
-    import redis.clients.jedis.JedisSentinelPool;
-    import redis.clients.jedis.JedisPoolConfig;
-    import redis.clients.jedis.Jedis;
+    import redis.clients.jedis.JedisCluster;
     import redis.clients.jedis.HostAndPort;
 
     import java.time.Duration;
@@ -147,55 +146,56 @@ The following examples demonstrate best practices for connecting to Redis Cluste
 
     public class Main {
         public static void main(String []args) {
-            JedisPoolConfig poolConfig = new JedisPoolConfig();
-            // Set the size of the connection pool, -1 means no limit. If the current number of connections exceeds this value, new connections will fail.
+            // Configure Jedis pool options
+            ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+            // Set connection pool size; -1 means unlimited. New connections will fail if this limit is exceeded.
             poolConfig.setMaxTotal(200);
-            // Set the maximum number of idle connections; idle connections exceeding this will be released immediately.
+            // Set maximum idle connections; idle connections exceeding this limit will be released immediately.
             poolConfig.setMaxIdle(10);
-            // Set the minimum number of idle connections; idle connections below this will be created.
+            // Set minimum idle connections; new idle connections will be created if below this threshold.
             poolConfig.setMinIdle(3);
-            // Maximum wait time when no available connections and the maximum connection count is reached.
+            // Maximum wait time when no available connections exist and max connection count is reached.
             poolConfig.setMaxWait(Duration.ofSeconds(1));
-            // PING to verify if the connection is available every time a connection is borrowed from the pool.
+            // PING to verify connection availability each time a connection is borrowed from the pool.
             poolConfig.setTestOnBorrow(true);
-            // Test idle connections to find invalid ones and release them; this configuration only takes effect when timeBetweenEvictionRunsMillis is greater than 1ms.
+            // Test idle connections to detect and release invalid ones; only effective when timeBetweenEvictionRunsMillis > 1ms.
             poolConfig.setTestWhileIdle(true);
-            // Set the minimum idle time for connections; connections exceeding this time will be released; -1 means do not release; this config only takes effect when timeBetweenEvictionRunsMillis is greater than 0. Default value is 30m.
+            // Set minimum idle duration for connections; connections exceeding this time will be released. -1 means never release. Only effective when timeBetweenEvictionRunsMillis > 0. Default: 30m.
             poolConfig.setMinEvictableIdleDuration(Duration.ofMinutes(5));
-            // Number of connections to validate each time when detecting idle connections; -n means 1/n of connections.
+            // Number of connections to validate during each idle connection check; -n means 1/n of connections.
             poolConfig.setNumTestsPerEvictionRun(-1);
-            // Interval of eviction; -1 means disable.
+            // Set idle connection check interval; negative value means no eviction thread runs.
             poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
 
-            DefaultJedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
-                    // Client name for checking connection source during debugging.
-                    .clientName("demo-jedis")
-                    // TCP connection timeout.
+            // Maximum retry attempts.
+            int maxAttempts = 3;
+            // Maximum retry duration.
+            Duration maxAttemptsDuration = Duration.ofSeconds(3);
+            // Topology refresh interval.
+            Duration topologyRefreshPeriod = Duration.ofMinutes(1);
+
+            JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+                    // Connection timeout, default 2 seconds.
                     .connectionTimeoutMillis(2000)
                     // Command timeout.
                     .timeoutMillis(10000)
+                    // Client name for identifying connection source during debugging.
+                    .clientName("demo-jedis")
                     .password("<password>")
-                    .build();
-
-            DefaultJedisClientConfig sentinelConfig = DefaultJedisClientConfig.builder()
-                    .connectionTimeoutMillis(2000)
-                    .timeoutMillis(10000)
                     .build();
 
             Set<HostAndPort> nodes =  new HashSet<>();
             nodes.add(new HostAndPort("<ip1>", "<port1>"));
             nodes.add(new HostAndPort("<ip2>", "<port2>"));
-            JedisSentinelPool pool = new JedisSentinelPool("mymaster", nodes, poolConfig, clientConfig, sentinelConfig);
+            JedisCluster cluster = new JedisCluster(nodes, clientConfig, poolConfig, topologyRefreshPeriod, maxAttempts, maxAttemptsDuration);
 
             try {
-                try (Jedis jedis = pool.getResource()) {
-                    String val = jedis.get("test");
-                    System.out.printf("%s", val);
-                }
+                String val = cluster.get("test");
+                System.out.printf("%s", val);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            pool.close();
+            cluster.close();
         }
     }
     ```
