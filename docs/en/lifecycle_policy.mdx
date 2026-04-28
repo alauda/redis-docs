@@ -12,18 +12,28 @@ title: Lifecycle Policy
 
 Below is the lifecycle schedule for released versions of the Alauda Cache Service for Redis OSS:
 
-| Version | Release Date | End of Support |
-|:--------|:-------------|:---------------|
-| v4.1.x  | 2025-08-22   | 2027-08-30     |
+| Version | Release Date | End of Full Support | End of Maintenance |
+|:--------|:-------------|:--------------------|:-------------------|
+| v5.0.x  | 2026-04-28   | 2027-04-30          | 2028-04-30         |
+| v4.1.x  | 2025-08-22   | 2026-08-30          | 2027-08-30         |
 
 ## Release Policy
 
-* A new patch version of Alauda Cache Service for Redis OSS is released as needed to address bugs and security vulnerabilities.
-* Minor version releases are driven by significant updates to the underlying Redis server, the implementation of new features, or emerging security requirements.
+* A new patch version of Alauda Cache Service for Redis OSS is released as needed to address bugs and security vulnerabilities. Patch releases do not introduce new features.
+* Minor and major version releases are driven by significant updates to the underlying Redis server, the implementation of new features, or emerging security requirements.
+
+## Support Phases
+
+Each minor version progresses through two support phases over its lifecycle:
+
+* **Full Support (Year 1)**: From the release date until the end of full support. The version receives all bug fixes and security patches via patch releases on the same minor line.
+* **Maintenance (Year 2)**: From the end of full support until the end of maintenance. The version receives only critical bug fixes and security patches; non-critical fixes are not backported.
+
+After the end of maintenance, the version is no longer supported. Customers should plan to upgrade to a supported version before this date.
 
 ## Maintenance Policy
 
-During a version's maintenance period, Alauda provides the following services:
+During a version's supported lifecycle, Alauda provides the following services:
 
 * **Upstream Patching**: We actively track official Redis patch releases and promptly deliver critical bug fixes and security vulnerability patches.
 * **Security Updates**: We release security updates for the service operator on-demand to address vulnerabilities and ensure stability.

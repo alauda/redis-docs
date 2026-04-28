@@ -6,14 +6,37 @@ i18n:
 title: Release Notes
 ---
 
+# Release Notes
+
 ## Compatibility and support matrix
 
 The following table shows the compatibility and support matrix between the Alauda Cache Service for Redis OSS and ACP versions.
 
-| Alauda Cache Service for Redis OSS Version | Redis Versions         | ACP Version |
-|:-------------------------------------------|------------------------|:------------|
-| v4.1.0                                     | 5.0.14, 6.0.20, 7.2.10 | v4.1        |
-| v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x  | v4.0        |
+| Alauda Cache Service for Redis OSS Version | Redis Versions         | ACP Version      |
+|:-------------------------------------------|------------------------|:-----------------|
+| v5.0.0                                     | 6.0.21, 7.2.12, 8.4.2  | v4.1, v4.2, v4.3 |
+| v4.1.0                                     | 5.0.14, 6.0.20, 7.2.10 | v4.1             |
+| v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x  | v4.0             |
+
+## v5.0.0
+
+### New and Optimized Features
+
+#### Redis 8.4 Support
+
+Added support for Redis 8.4 (8.4.2), enabling users to provision and manage instances on the latest Redis Server release alongside the existing 6.0 and 7.2 series.
+
+#### Expanded APIs for Redis Modules
+
+The Alauda Cache Service for Redis OSS APIs have been expanded to support Redis modules, allowing users to configure and manage modules on Redis instances.
+
+### Fixed Issues
+
+{/* release-notes-for-bugs?template=mw-redis-v5.0-fixed&project=Middleware */}
+
+### Known Issues
+
+{/* release-notes-for-bugs?template=mw-redis-v5.0-known&project=Middleware */}
 
 ## v4.1.0
 
@@ -68,4 +91,3 @@ When using LoadBalancer, ensure that the cluster has available external address 
 ### Known Issues
 
 {/* release-notes-for-bugs?template=mw-redis-v4.0-known&project=Middleware */}
-
