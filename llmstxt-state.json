@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "generator_version": 3,
+  "project_name": "Alauda Container Platform - Redis Operator Docs",
+  "summary": "Documentation for the Alauda Container Platform Redis operator: architecture, installation, lifecycle, upgrades, and operational how-tos.",
+  "generated_at": "2026-05-16T10:38:18Z",
+  "include_patterns": [
+    "**/*.md",
+    "**/*.mdx"
+  ],
+  "exclude_patterns": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/.llmstxt-cache/**",
+    "**/__pycache__/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/llms.txt",
+    "**/llmstxt-state.json",
+    "**/CHANGELOG.md",
+    "**/CONTRIBUTING.md",
+    "README.md",
+    "**/.DS_Store",
+    ".llmstxt-cache/**",
+    "llms.txt",
+    "llmstxt-state.json"
+  ],
+  "grouping_base_path": "docs/en",
+  "description_max_words": 150,
+  "files": {
+    "docs/en/apis/index.mdx": {
+      "sha256": "e7c683b399b862f1bf32d3abeb6e2428d0930a46546c61b026cbd2ad15229ace",
+      "size": 110,
+      "description": "Top-level entry page for the API Reference section, rendering an auto-generated overview of API documentation subsections via the `<Overview>` component.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/apis/kubernetes_apis/index.mdx": {
+      "sha256": "92f748f3892a616e69d1c7ec8f3eae4b2befbea40527458501e4e5a56e16a52e",
+      "size": 111,
+      "description": "Index page for the Kubernetes APIs reference, providing a navigation overview of the Custom Resource Definitions (Redis, RedisUser, ActiveRedisConnection) exposed by the Alauda Cache Service for Redis OSS Operator.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/apis/kubernetes_apis/redis/activeredisconnection.mdx": {
+      "sha256": "f4ed7d6415aa9321c657d866ecd98088d325ead2d1c3df866b37768a7ce80a10",
+      "size": 157,
+      "description": "API reference page that renders the schema for the `activeredisconnections.redis.middleware.alauda.io` CRD via the `<K8sCrd>` component; this CRD tracks live client connections to Redis instances managed by the Operator.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/apis/kubernetes_apis/redis/index.mdx": {
+      "sha256": "89628e0757b3df07d3742e25d482f377b34b2f9db8b56b32b4edbe6286ec3cf1",
+      "size": 102,
+      "description": "Index page for the Redis CRD group under `redis.middleware.alauda.io`, providing navigation to the Redis, RedisUser, and ActiveRedisConnection custom resource references.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/apis/kubernetes_apis/redis/redis.mdx": {
+      "sha256": "739a189d03484c6b72bb45e4156025ae21934c160e08aca1ba531345091fda6e",
+      "size": 102,
+      "description": "API reference page that renders the schema for the primary `redis.middleware.alauda.io` Redis CRD via the `<K8sCrd>` component; this CRD declares Redis instances (Standalone/Sentinel/Cluster architectures, replica/shard topology, exporter, expose method, custom config, resources, version).",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/apis/kubernetes_apis/redis/redisuser.mdx": {
+      "sha256": "eeefb390aacf539848013b002ad2161a049e743bd8e3a0e179e3f606fafe5631",
+      "size": 121,
+      "description": "API reference page that renders the schema for the `redisusers.redis.middleware.alauda.io` CRD via the `<K8sCrd>` component; this CRD provisions Redis ACL users with declarative permission rules against managed Redis instances (Redis 6.0+).",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/architecture.mdx": {
+      "sha256": "a91ff46f1fd36dacaddb34213deabc5814e434e15628110ee01619765f315a96",
+      "size": 3800,
+      "description": "Compares Alauda Cache Service for Redis OSS's two deployment architectures: Sentinel Mode (master-replica replication with automatic failover monitored by Redis Sentinel) and Cluster Mode (horizontally scaled sharding via hash slots and consistent hashing). Includes a selection matrix covering horizontal scalability, dataset size beyond 8GB, multi-key transactions, and read-replica workloads to guide choosing between the two architectures.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/10-create-instance.mdx": {
+      "sha256": "24223fb79c03ae7018dfa4e3c1b933d20b725849ccf0a903e7e263b15bc5e057",
+      "size": 12992,
+      "description": "Walks through creating Redis instances in Sentinel, Cluster, and Standalone architectures via kubectl manifests (`apiVersion: middleware.alauda.io/v1`, `kind: Redis`) and the Web Console. Includes sample YAML showing `arch`, `customConfig` (databases/hz/save/timeout), `exporter`, `replicas.sentinel`/`replicas.cluster.shard`, `sentinel.monitorConfig` (down-after-milliseconds, failover-timeout, parallel-syncs), `expose.type: NodePort`, and `affinityPolicy: AntiAffinityInSharding`. Documents Web Console fields for parameter templates, default user passwords, within-cluster vs. external access (LoadBalancer/NodePort), host-port specification, anti-affinity policies, node labels, and Pod tolerations (Equal/Exists with NoExecute eviction semantics), plus the `kubectl get redis` output columns (NAME, ARCH, VERSION, ACCESS, STATUS, MESSAGE, BUNDLE VERSION, AUTOUPGRADE, AGE) and their meanings.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/15-delete-instance.mdx": {
+      "sha256": "ef2aef06cd3431e378151268388c920f2264cf1b12e102e3d492c97c776d43ff",
+      "size": 1924,
+      "description": "Explains how deleting a Redis CR cascades to its Operator-managed StatefulSets, ConfigMaps, Secrets, and PersistentVolumeClaims. CLI workflow uses `kubectl delete redis` to keep persistent volumes, or patches the built-in `delete-pvc` finalizer before deletion to also remove PVCs. Web Console workflow uses the Actions menu on the instance details page with an optional `Delete PVC` checkbox and confirmation by typing the instance name.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/20-user.mdx": {
+      "sha256": "05450d81fb7177de61ec65dab0ce79e34b6324d45977f1026cc4245e5277cd17",
+      "size": 12051,
+      "description": "Manages Redis authentication and access control via the `RedisUser` CRD, including listing users, rotating passwords stored in Kubernetes Secrets (base64-encoded `password` key), and applying ACL rules. Highlights the version split between Redis 5.0 (single-credential, restart required) and Redis 6.0+ ACLs with multi-user support, and documents predefined permission profiles (`NotDangerous`, `ReadWrite`, `ReadOnly`, `Administrator`) plus the reserved `operator` system account that must not be modified.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/30-parameter.mdx": {
+      "sha256": "1dd061c6838b86535782c1714f3d7f4a5c4138a59fc48ab9192fa251f51e8147",
+      "size": 5203,
+      "description": "Covers Redis instance parameter configuration through built-in templates (RDB persistence, AOF persistence, Diskless cache) tailored to durability vs. performance trade-offs. Classifies parameters as hot-update, restart-update (e.g. `databases`, `io-threads`, `rename-command`), or non-modifiable (`bind`, `protected-mode`, `port`, `dir`), and shows patching `spec.customConfig` on the Redis CR and `spec.sentinel.monitorConfig` for sentinel tunables `down-after-milliseconds`, `failover-timeout`, and `parallel-syncs`.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/40-accessmethod.mdx": {
+      "sha256": "295c8a9bf567144efbaf22e70fa4604ad208e22913f3ff86b648bebd7406a298",
+      "size": 3941,
+      "description": "Documents connection strategies for Alauda Cache Service for Redis OSS, distinguishing internal access (DNS-based or IP-based intra-cluster routing) from external access via NodePort or LoadBalancer. Explains why NodePort cannot be fronted by an additional load balancer and is unsuitable for multi-NIC nodes, and describes how Sentinel clients use the fixed master group name `mymaster` while Cluster clients bootstrap from any node to learn slot topology.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/50-update.mdx": {
+      "sha256": "6407d905a7fc120647950ef01fa97e9cf86151c6213e6587c090145b59faa597",
+      "size": 3140,
+      "description": "Guides vertical and horizontal scaling of Redis instances by adjusting `spec.resources` (CPU, memory) and replica counts via `kubectl patch` or the Web Console. Enforces architectural constraints such as identical storage across all Sentinel nodes, per-shard storage parity in Cluster mode, scheduling-constraint compatibility when changing replica counts, and the ~30% memory overhead Redis needs above the dataset size.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/60-scheduling.mdx": {
+      "sha256": "63a5dce55aa666a9f91ea7012b95667b7a98ffcf7dc49b0bd1a81d4aee91868f",
+      "size": 1874,
+      "description": "Explains hot-updating Pod scheduling configuration (node labels, tolerations, affinity) on running Redis instances to react to changing node taints without disrupting service. Notes that Pod migration is not performed during the update, so the post-update eligible-node set must continue to include the originally selected nodes and provide at least as many matching nodes as replicas.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/70-backup-restore.mdx": {
+      "sha256": "d7d66525c0a0d3a4f04e0de4796b2eb3b490b8365b1df7a35e3a5df8a742a29b",
+      "size": 2959,
+      "description": "Describes the two backup backends offered by Alauda Cache Service for Redis OSS: S3-compatible object storage and PVC-based storage requiring `ReadWriteMany` (NFS, Ceph). Walks through the Web Console flows for taking immediate snapshots, scheduling automatic backups with retention policies, and restoring a backup into a new Redis instance until it reaches the `Running` state.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/75-monitor.mdx": {
+      "sha256": "af598f1b244acbd7a3270f0e9deecbf1a67232e2ae236117a92e23fceb724ed2",
+      "size": 4277,
+      "description": "Outlines built-in Redis monitoring dashboards covering cluster status (keyspace counts, command stats, replication lag), resource usage (memory, network, storage), and performance (connections, I/O, latency). Lists the platform's preconfigured alert indicators with recommended thresholds, such as cache hit rate <80%, response time >0.1s, CPU/memory/storage >80%, and shows a Prometheus PromQL example using `redis_keyspace_misses_total` and `redis_keyspace_hits_total` for custom alerts.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/80-log.mdx": {
+      "sha256": "287c1e7a5aa9caa30ccfeb95ff628852de2ecb4ce44ddb476b202e216f42d635",
+      "size": 1131,
+      "description": "Walks through the Web Console **Realtime Log** tab for viewing container-level Redis logs, including filtering by Pod, full-text search, time-range selection, and exporting logs for offline analysis to support fault diagnosis.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/85-start-stop.mdx": {
+      "sha256": "cd86b1fcb683e3ea8e561c3d6479832c61b692bf66af8ca5ad2f2a7a90a102fd",
+      "size": 2633,
+      "description": "Documents the one-click stop and start lifecycle actions in the Web Console for temporarily releasing instance resources without deletion. Lists the prerequisite states (`Processing`, `Running`, `Abnormal`, `Unknown` for stopping; `Stopping`, `Stopped` for starting) and enumerates which capabilities are disabled while stopped, including Terminal, Topology, Parameter Configuration, User Management, Backup & Restore, Inspection, and Access Method.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/90-restart.mdx": {
+      "sha256": "36030191954bab90a2e3b4b40775fe87d72f8d23d178f3c57b96ed3c33a1a221",
+      "size": 1104,
+      "description": "Procedure for restarting a Redis instance through the Web Console **Actions** menu to recover from connection floods, hangs, or unknown faults. Notes that Pods are rolled one by one (causing brief service blips) and that the instance must be in the `Running` state, while `Processing`/`Error` instances will auto-restart after the health-check timeout.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/95-disaster-recovery/10-intro.mdx": {
+      "sha256": "1b2ce65f4901aadcf4924a3fb89c76921c3a00d156f8dcbc7129fdf712235c5d",
+      "size": 7564,
+      "description": "Introduces the alpha disaster recovery (DR) feature built on a Redis Module that intercepts writes, parses commands into an idempotent on-disk Oplog, and supports both full (RDB snapshot + Oplog start offset) and incremental synchronization with a disk-bounded window that survives multi-hour or multi-day network partitions. Explains the unified Proxy layer that abstracts Sentinel and Cluster routing, the `service_id` mechanism (range `[0-15]`) limiting one source to at most 15 targets in a star topology, and the Oplog slicing and delay-metric observability that feed Prometheus/Grafana.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/95-disaster-recovery/20-setup.mdx": {
+      "sha256": "4c0677ca64af131c93b5c5861e97763077b666b76c15909df19617b0f38fcf9e",
+      "size": 7235,
+      "description": "Walks through enabling DR on source and target Redis instances by patching `spec.activeRedis.serviceID` on the Redis CR, optionally exposing the source Proxy via LoadBalancer (`activeredis-proxy-<instance-name>`), and wiring the target with an `ActiveRedisConnection` CR pointing at the source address and a Secret holding the source `default` user password. Describes Web Console inspection checks (network reachability, architecture match, cluster shard/slot consistency, target memory >= source, unique `service_id`) and the `Connected` / `PartialSync` / `FullSync` status fields surfaced on `ActiveRedisConnection`.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/95-disaster-recovery/30-failover.mdx": {
+      "sha256": "cafefd8c879a3566a0f3fd46eab6441f7f4d7deb8ff7be918454dc2765b9b4e3",
+      "size": 8703,
+      "description": "Describes how to detect a source outage via the `ActiveRedisConnection` resource transitioning to `Failed` (per-shard `Disconnected` messages), then perform manual failover by deleting the connection CR (or clicking **Failover** in the Web Console) so the target becomes an independent source before pointing clients at it. Compares client-side switching strategies (DNS, Proxy, Service Mesh, client library) with their RTO/RPO trade-offs, prescribes a multi-signal switching predicate combining instance health, HA loss, and data-center checks, and notes the platform does not ship a client-side switcher.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/95-disaster-recovery/90-limitations.mdx": {
+      "sha256": "e0c85746d7ffd2efe35ec6ffd8146ce069e45431fa68278248f640ce32de21f0",
+      "size": 4491,
+      "description": "Enumerates DR constraints: only `<ip:port>` source addresses (no DNS); Proxy NodePort is not HA and should sit behind a load balancer or MetalLB VIP; only Redis 6.0 is supported with no in-place upgrade to 7.2; DR cannot be disabled once enabled (RDB AUX records and special replication instructions persist); local SSD storage is recommended due to 1s fsync, 3 GB Oplog slicing, and concurrent RDB activity; source and target must share the same architecture, shard count, and slot distribution; cluster online reshard is unsupported; max 15 targets per source with star-only topology; `migrate`, `pubsub`, and `stream` commands are not replicated; and the target must be disconnected from a failed source before switching to prevent dirty-data pollution.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/95-disaster-recovery/index.mdx": {
+      "sha256": "405d1c913704f2c04d5b01fddc3a8e785695616618f4f938156f8756c3eefeec",
+      "size": 99,
+      "description": "Section landing page for the Disaster Recovery topic, rendering an automatic `<Overview />` index of the child pages (introduction, setup, failover, limitations).",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/functions/index.mdx": {
+      "sha256": "3e56afcf087473200fd5f2f0c38374ee4116be30c121de7c7af894eae239848f",
+      "size": 83,
+      "description": "Section landing page for the Redis operator's feature Guides, rendered via the <Overview /> component with weight 50 and zh title 功能指南.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/20-cluster-scaling.mdx": {
+      "sha256": "28ff53c7de0ee27f9d52def9b17ce1efb7e2cbe238a24efd65f1a113fa6a35c7",
+      "size": 5412,
+      "description": "Procedure for horizontal shard scaling of Redis Cluster instances by editing spec.replicas.cluster.shard on the Redis custom resource (kubectl patch example for c6 to 4 shards) or via the Web Console's Shard Changes action. Covers prerequisites (Running state, memory headroom, maintenance window), memory-planning formulas for scale-up vs scale-down using Maximum Running Memory = Maximum Data Memory / 0.8, the Data Balancing state transition, and client-side MOVED redirection behavior during slot migration that can double request volume.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/30-upgrade.mdx": {
+      "sha256": "d5b14e23be192fbf192031ba60ac2c5d8a84a10184074ea448a6516b68205cca",
+      "size": 2797,
+      "description": "Walkthrough for Redis patch-version upgrades using a rolling pod restart strategy, including configuring the Patch Version Upgrade Policy (Manual vs Automatic during maintenance windows), upgrading a single instance from its details page via the Upgrade Now action after reviewing the changelog, and platform-admin bulk upgrades through the Upgrade Management panel that coordinate multiple Running instances across a chosen operator.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/40-cluster-slots-distribution.mdx": {
+      "sha256": "b615c1909ff4961b15fbc83ef6897b0e751dac14f295f2da475e9d950e4d5ce6",
+      "size": 1833,
+      "description": "Explains how to override the default even distribution of all 16384 hash slots across Redis Cluster shards by supplying a custom layout at instance creation time. Includes a full kubectl-applied Redis CR example (apiVersion middleware.alauda.io/v1, arch cluster, 3 shards split as 0-5460/5461-10922/10923-16383) and documents spec.replicas.cluster.shards[].slots syntax accepting ranges, single slots, and mixed lists for disaster-recovery and other advanced layouts.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/access/10-sentinel.mdx": {
+      "sha256": "9154dce2986b61cd0209f04e34c87626c042fb2118f692d99a3ce4fa4e01e65e",
+      "size": 17403,
+      "description": "Client-connection cookbook for Redis Sentinel instances, including authentication options (password vs Set Password disabled), internal Kubernetes service endpoints and external Sentinel Node Access Addresses, redis-cli debugging via the Terminal Console, and ready-to-use code samples for go-redis (NewFailoverClient), Jedis (JedisSentinelPool), Lettuce (RedisURI.withSentinel), and Redisson (useSentinelServers) with tuned pool sizes, timeouts, keepalive, and retry settings. Notes the fixed master name mymaster.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/access/20-cluster.mdx": {
+      "sha256": "059f88573a0d8d4219c97298e673a7deb9b37c606563dd47cb151b9e58451b5c",
+      "size": 18297,
+      "description": "Client-connection cookbook for Redis Cluster instances, covering password vs password-less auth, internal per-shard Kubernetes service endpoints, external Shard Addresses, and redis-cli -c usage for following MOVED/ASK redirections. Provides production-grade configuration examples for go-redis NewClusterClient, Jedis JedisCluster with topologyRefreshPeriod, Lettuce RedisClusterClient with ClusterTopologyRefreshOptions and adaptive refresh triggers, and Redisson useClusterServers with setCheckSlotsCoverage, including connection-pool sizing, keepalive, retries, and timeout tuning.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/access/index.mdx": {
+      "sha256": "65fea5efe84ae138fada26b5663343871aa87ba676ed7cb70bf0a6cf51561cdd",
+      "size": 54,
+      "description": "Section landing page titled Client Connection that introduces the Redis access guides via the <Overview /> component (weight 10).",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/how_to/index.mdx": {
+      "sha256": "37f1ead8d088f993d026018697a91eb6061d8589a9a47bda9133829cc1b0a60b",
+      "size": 82,
+      "description": "Top-level HowTo section landing page for the Redis operator's practical guides, rendered through <Overview /> with weight 60 and zh title 实用指南.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/index.mdx": {
+      "sha256": "31a0125363af9bfae0600d518245b18b9e12c0500f59696b84f44b0f57756ebb",
+      "size": 124,
+      "description": "Top-level navigation entry point for the English documentation set, rendering an auto-generated overview of child pages via the `<Overview>` component.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/installation.mdx": {
+      "sha256": "af0708a3fae10d164717cdd32e9114c0187e05b7dcee04a7aabe9ef3eef3014f",
+      "size": 4486,
+      "description": "Step-by-step installation guide for deploying Alauda Cache Service for Redis OSS through the Web Console, including the optional Alauda Container Platform Data Services Essentials plugin (installed on the `global` cluster via Marketplace > Cluster Plugins) and the RDS Framework Operator (installed via OperatorHub with stable channel, Cluster install mode, and Manual upgrade strategy). Lists prerequisites such as obtaining the platform-compatible installation package and publishing it to target clusters.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/intro.mdx": {
+      "sha256": "219521dd32eaf7077b07b9356934d30c4b9bf4d3b131aedabe5adf84ec777267",
+      "size": 3402,
+      "description": "Introduces Redis OSS as an in-memory data structure store and presents Alauda Cache Service for Redis OSS as a Kubernetes-native Operator that manages Redis lifecycles declaratively. Highlights key features: Standalone/Sentinel/Cluster modes, support for Redis 5.0/6.0/7.2, Redis ACL (6.0+), TLS encryption, NodePort and LoadBalancer access, IPv4/IPv6, online horizontal/vertical scaling, graceful upgrades, NodeSelector/Toleration/Affinity scheduling, rolling shard adjustments, zero-downtime upgrades, and hot ConfigMap-driven configuration updates.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/lifecycle_policy.mdx": {
+      "sha256": "384c094dbd635f6964e583e0240c958d90325b84d899e9629b7f761ed3697eca",
+      "size": 1197,
+      "description": "Publishes the support timeline for Alauda Cache Service for Redis OSS releases (v4.1.x released 2025-08-22, end of support 2027-08-30) and the maintenance policy covering patch/minor release cadence, upstream Redis CVE and bug patch tracking, operator security updates, and upgrade assistance during the maintenance window.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/release_notes.mdx": {
+      "sha256": "eedfed3c90e0cbb36a50190645ef8aa94700a08ca0213a4f559651cbbf9f80c2",
+      "size": 2578,
+      "description": "Release notes for Alauda Cache Service for Redis OSS v4.1.0 and v4.0.0, with a compatibility matrix mapping product versions to Redis server versions (5.0.14, 6.0.20, 7.2.10/7.2.x) and ACP versions. v4.1.0 introduces alpha Redis disaster recovery (data sync, monitoring/alerts, failover, source management) and intra-cluster/inter-cluster access method switching; v4.0.0 decouples the component lifecycle from the platform, adds real-time logs on the details page, and supports LoadBalancer external access (with MetalLB recommended for address pools).",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/trouble_shooting/20-bigkeycheck.mdx": {
+      "sha256": "b12f696de62434655b0e10117d45275cb8c6b6f8eaf1f87591af99380f37d92e",
+      "size": 7914,
+      "description": "Guidance on detecting and remediating Redis BigKeys, with threshold guidelines (String >5MB; List >20,000; Set/Sorted Set/Hash >10,000 elements/fields) and impact analysis covering single-thread blocking, client timeouts, network saturation, cluster memory imbalance, and slot-migration bottlenecks. Documents enabling the Alauda Application Services Inspection by setting ENABLE_REDIS_KEYS_INDICATOR=1 on the rds-system RdsInstaller, viewing the BigKey Top5 report, and using redis-cli --bigkeys, plus mitigation via splitting collections, ProtoBuffer/MessagePack compression, and preferring UNLINK over the blocking DEL.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/trouble_shooting/index.mdx": {
+      "sha256": "a40b14454992dc26c736f69f5e35b18025f62ed92c9cb35475aa19c6e7b89609",
+      "size": 93,
+      "description": "Section landing page for the Trouble Shooting (常见问题) area, rendered via the <Overview /> component with weight 70.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    },
+    "docs/en/upgrade.mdx": {
+      "sha256": "eef28fd2ab70d3ddded4413c2d5d1fcab2d8e56b8f41f70f451076d5d8ca3d74",
+      "size": 3053,
+      "description": "Upgrade guidance for Alauda Cache Service for Redis OSS covering semantic versioning compatibility (patch/minor backward-compatible, major may break), prerequisites (Ready instance status, resource headroom, backups), and a tested upgrade matrix mapping v4.0.x and v4.1.0 to Redis server versions, ACP versions, and supported Kubernetes versions (1.28-1.32). Documents minor/patch/major upgrade strategies, automatic vs. manual execution modes, and operational considerations such as downtime planning, rollback, and post-upgrade validation.",
+      "generation_method": "ai_agent_reading",
+      "updated_at": "2026-05-16T10:38:18Z"
+    }
+  }
+}
