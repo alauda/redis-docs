@@ -1,0 +1,32 @@
+# llms.txt Generator Configuration for alauda/redis-docs
+project_name: "Alauda Container Platform - Redis Operator Docs"
+summary: "Documentation for the Alauda Container Platform Redis operator: architecture, installation, lifecycle, upgrades, and operational how-tos."
+body: |
+  This index covers user-facing documentation under docs/en/ for managing
+  Redis instances on Alauda Container Platform: installation, architecture,
+  Kubernetes API references, function guides (creation, access, scaling,
+  monitoring, disaster recovery), how-to guides, and troubleshooting.
+
+include_patterns:
+  - "**/*.md"
+  - "**/*.mdx"
+
+exclude_patterns:
+  - "**/node_modules/**"
+  - "**/.git/**"
+  - "**/.llmstxt-cache/**"
+  - "**/__pycache__/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/llms.txt"
+  - "**/llmstxt-state.json"
+  - "**/CHANGELOG.md"
+  - "**/CONTRIBUTING.md"
+  - "README.md"
+  - "**/.DS_Store"
+
+grouping_base_path: "docs/en"
+
+batch_size: 15
+
+description_max_words: 150
