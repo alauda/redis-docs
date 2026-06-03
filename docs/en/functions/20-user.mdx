@@ -8,7 +8,7 @@ sourceSHA: 598b38348adf2636d3464b37b2c05a0b9f6c876de00fa7783b93d1e6dc4a67df
 Implementing proper authentication and access control is essential for securing your Redis environment. This section covers password management and role-based access control configuration for Redis instances.
 
 <Directive type="info" title="Version Compatibility Note">
-  Redis 5.0 supports only basic password authentication with a single credential set, while Redis 6.0 and later versions implement a comprehensive Access Control List (ACL) system that supports multiple users with granular permissions. Redis 6.0+ maintains the default user for backward compatibility with legacy clients.
+  Redis 6.0 and later versions implement a comprehensive Access Control List (ACL) system that supports multiple users with granular permissions. Redis 6.0+ maintains the default user for backward compatibility with legacy clients.
 </Directive>
 
 ## View Users
@@ -67,10 +67,6 @@ The following procedures allow you to update user passwords for enhanced securit
 
 <Tabs>
   <Tab label="CLI">
-    <Directive type="info" title="Version Compatibility">
-      The following operations apply only to Redis 6.0 or later versions. For Redis 5.0, refer to the "Redis 5.0 CLI" tab.
-    </Directive>
-
     1. Identify the target user from the RedisUser list.
 
        For this example, we'll update the password for the `default` user of instance `s6`.
@@ -170,38 +166,6 @@ The following procedures allow you to update user passwords for enhanced securit
         ```
 
         After updating the password, the RedisUser resource will temporarily enter the `Pending` state while the change propagates to all Redis nodes. Once synchronized, the status will return to `Success`.
-  </Tab>
-
-  <Tab label="Redis 5.0 CLI">
-    Redis 5.0 does not support the ACL system and therefore does not use RedisUser resources. Instead, the password is managed through the `spec.passwordSecret` field in the Redis CR (see [Redis API Documentation](../apis/kubernetes_apis/redis/redis)).
-
-    <Directive type="warning" title="Service Impact Warning">
-      Updating the password for a Redis 5.0 instance requires a complete instance restart, which may cause service interruption. Schedule this operation during maintenance windows or periods of low traffic.
-    </Directive>
-
-    1. Create a Secret containing the new password:
-
-        ```bash
-        $ kubectl -n default create secret generic new-redis-password --from-literal=password=admin@123456
-        ```
-
-    2. Update the Redis CR to reference the new Secret:
-
-        ```bash
-        $ kubectl -n default patch redis s5 --type=merge --patch='{"spec": {"passwordSecret": "new-redis-password"}}'
-        ```
-
-    3. Monitor the instance status during the update process:
-
-        ```bash
-        $ kubectl -n default get redis -w
-        NAME ARCH       VERSION   ACCESS     STATUS         MESSAGE   BUNDLE VERSION   AUTOUPGRADE   AGE
-        c6   cluster    6.0                  Ready                    4.0.1            false         125m
-        s5   sentinel   5.0                  Initializing             4.0.1            false         8h
-        s6   sentinel   6.0                  Ready                    4.0.1            false         124m
-        ```
-
-        The instance will transition to `Ready` status once the password change is complete.
   </Tab>
 
   <Tab label="Web Console">
