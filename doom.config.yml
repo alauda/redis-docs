@@ -31,3 +31,9 @@ releaseNotes:
       project = MiddleWare AND type = Bug AND ReleaseNotesStatus = Publish AND Feature = "MiddleWare - Redis" AND affectedVersion in (Redis-v5.0.1) AND fixVersion is EMPTY
     mw-redis-v5.0.1-security: |
       project = MIDDLEWARE AND (issuetype = Vulnerability OR labels in (安全问题)) AND fixVersion = Redis-v5.0.1 AND ReleaseNotesStatus = Publish
+    mw-redis-v5.0.2-fixed: |
+      status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - Redis" AND fixVersion = Redis-v5.0.2 AND ReleaseNotesStatus = Publish
+    mw-redis-v5.0.2-known: |
+      project = MiddleWare AND type = Bug AND ReleaseNotesStatus = Publish AND Feature = "MiddleWare - Redis" AND affectedVersion in (Redis-v5.0.2) AND fixVersion is EMPTY
+    mw-redis-v5.0.2-security: |
+      project in (MIDDLEWARE, ECO) AND (issuetype = Vulnerability OR labels in (安全问题)) AND fixVersion = Redis-v5.0.2 AND ReleaseNotesStatus = Publish
