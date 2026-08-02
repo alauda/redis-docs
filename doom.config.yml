@@ -29,3 +29,9 @@ releaseNotes:
       status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - Redis" AND fixVersion = Redis-v4.1.3 AND ReleaseNotesStatus = Publish
     mw-redis-v4.1.4-fixed: |
       status in (Done, Resolved) AND (labels not in (安全问题) OR labels is EMPTY) AND project = MIDDLEWARE AND Feature = "MiddleWare - Redis" AND fixVersion = Redis-v4.1.4 AND ReleaseNotesStatus = Publish
+    # Issue tracking moved MIDDLEWARE -> ECO (2026-07), so from v4.1.7 the query
+    # targets project = ECO. The Feature clause is dropped (ECO scopes by
+    # fixVersion) and 完成 is accepted alongside Done/Resolved, since ECO
+    # returns status names translated.
+    mw-redis-v4.1.7-fixed: |
+      status in (Done, Resolved, 完成) AND (labels not in (安全问题) OR labels is EMPTY) AND project = ECO AND fixVersion = Redis-v4.1.7 AND ReleaseNotesStatus = Publish
