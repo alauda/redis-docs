@@ -14,8 +14,8 @@ Upgrading the Alauda Cache Service for Redis OSS operator does **not** automatic
 ACP v4.3 requires Alauda Cache Service for Redis OSS v5.0.x, which no longer supports Redis `5.0`. If you are upgrading from an ACP version earlier than v4.3, upgrade every Redis `5.0` instance to a supported version (`6.0` or `7.2`) and confirm that no Redis `5.0` instances remain **before** upgrading ACP to v4.3. See [Upgrade](../upgrade.mdx) for the operator and ACP upgrade flow.
 </Directive>
 
-<Directive type="note" title="Minor version upgrades of active-active instances">
-This page covers patch version upgrades. Moving an instance with active-active replication enabled between Redis minor versions has additional requirements — see [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](../functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx).
+<Directive type="note" title="Minor version upgrades of replicating instances">
+This page covers patch version upgrades. Moving an instance with cross-datacenter replication enabled between Redis minor versions has additional requirements — see [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](../functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx).
 </Directive>
 
 ## Configure Upgrade Strategy

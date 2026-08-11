@@ -26,28 +26,28 @@ The following table shows the compatibility and support matrix between the Alaud
 
 ### New and Optimized Features
 
-#### Redesigned Active-Active Replication (Alpha)
+#### Redesigned Cross-Datacenter Replication (Alpha)
 
-Redis `7.2` instances now run a redesigned active-active module, selected per instance through `spec.activeRedis.mode`:
+Redis `7.2` instances now run a redesigned replication module, offering two modes selected per instance through `spec.activeRedis.mode`:
 
-* **Peer-of** (`peerof`, the default) is the hot-standby and disaster recovery topology, with directed links from one upstream to up to 15 downstream instances. It remains available on Redis `6.0`.
-* **Mesh** (`mesh`) is a new full active-active topology: every member replicates with every other member, and membership is maintained by a gossip protocol seeded from a handful of addresses. Mesh is available on Redis `7.2` only, and is driven by the new `ActiveRedisMesh` resource.
+* **Disaster Recovery** (`peerof`, the default) is the hot-standby topology, with directed links from one upstream to up to 15 downstream instances, each ready to be promoted if the upstream datacenter is lost. It remains available on Redis `6.0`.
+* **Active-Active** (`mesh`) lets every datacenter serve reads and writes locally, with conflicts resolved automatically and membership maintained by a gossip mesh seeded from a handful of addresses. It is available on Redis `7.2` only, and is driven by the new `ActiveRedisMesh` resource.
 
 Replication on Redis `7.2` rides a dedicated peer port (`7379`) exposed by the instance proxy, which carries both replication and gossip.
 
-See [Disaster Recovery and Active-Active Replication](./functions/95-disaster-recovery/10-intro.mdx).
+See [Cross-Datacenter Replication](./functions/95-disaster-recovery/10-intro.mdx).
 
 #### Mandatory Peer Authentication
 
-Every Redis `7.2` instance with active-active replication enabled must bind a `RedisUser` as its peer-auth credential through `spec.activeRedis.redisUserName`. Peer links authenticate with this credential, which must carry the same username and password value in every datacenter.
+Every Redis `7.2` instance with cross-datacenter replication enabled must bind a `RedisUser` as its peer-auth credential through `spec.activeRedis.redisUserName`. Peer links authenticate with this credential, which must carry the same username and password value in every datacenter.
 
 The credential is delivered to the nodes at runtime and is never written into the instance configuration file. Peer links no longer freeze it at wiring time, so rotating the password no longer breaks a link on its next reconnect.
 
-#### Upgrade Path from Redis 6.0 to Redis 7.2 for Active-Active Instances
+#### Upgrade Path from Redis 6.0 to Redis 7.2 for Replicating Instances
 
-An active-active instance can now be upgraded in place from Redis `6.0` to Redis `7.2`. When such an instance carries no peer-auth binding, the platform provisions one automatically, deriving it from the credential the replication group already shares.
+An instance with cross-datacenter replication enabled can now be upgraded in place from Redis `6.0` to Redis `7.2`. When such an instance carries no peer-auth binding, the platform provisions one automatically, deriving it from the credential the replication group already shares.
 
-The two module generations do not interoperate, so the whole group must be upgraded together within a maintenance window. See [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx).
+The two module generations do not interoperate, so the whole group must be upgraded together within a maintenance window. See [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx).
 
 #### Teardown Policy for Replication Links
 

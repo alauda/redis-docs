@@ -3,15 +3,17 @@ weight: 20
 i18n:
   title:
     zh: 配置容灾
-title: Set Up Peer-of Replication
+title: Set Up Disaster Recovery Replication
 ---
 
-# Set Up Peer-of Replication
+# Set Up Disaster Recovery Replication
 
-Peer-of (`spec.activeRedis.mode: peerof`) is the hot-standby / disaster recovery topology: an upstream instance fans out directed replication links to one or more downstream instances. Setting it up involves two parts — enabling active-active replication on each Redis instance, and establishing a connection from the downstream instance to the upstream instance.
+Disaster Recovery (`spec.activeRedis.mode: peerof`) is the hot-standby topology: an upstream instance fans out directed replication links to one or more downstream instances, each ready to be promoted if the upstream datacenter is lost. Setting it up involves two parts — enabling cross-datacenter replication on each Redis instance, and establishing a connection from the downstream instance to the upstream instance.
+
+For the alternative topology, in which every datacenter accepts writes, see [Set Up Active-Active Replication](./40-mesh.mdx).
 
 <Directive type="info" title="Cluster Role Description">
-In a peer-of group, the role of each Redis instance is not fixed; it can be either an upstream or a downstream. The downstream does not restrict data writing, but data written to the downstream will be overwritten by data synchronized from the upstream or cause synchronization failure due to data type conflicts.
+In a disaster recovery group, the role of each Redis instance is not fixed; it can be either an upstream or a downstream. The downstream does not restrict data writing, but data written to the downstream will be overwritten by data synchronized from the upstream or cause synchronization failure due to data type conflicts.
 </Directive>
 
 ## Choose the procedure for your Redis version
@@ -207,7 +209,7 @@ status:
 ## Redis 6.0 — legacy module \{#redis-60--legacy-module}
 
 <Directive type="warning" title="Legacy implementation">
-Redis `6.0` carries the frozen legacy module, kept for compatibility with existing instances. It supports peer-of only — no mesh mode, and no module-level peer authentication. Creating an active-active instance on Redis `6.0` returns an admission warning recommending Redis `7.2`. For new deployments, use Redis `7.2`.
+Redis `6.0` carries the frozen legacy module, kept for compatibility with existing instances. It supports Disaster Recovery only — no Active-Active mode, and no module-level peer authentication. Enabling replication on Redis `6.0` returns an admission warning recommending Redis `7.2`. For new deployments, use Redis `7.2`.
 </Directive>
 
 ### Upstream side

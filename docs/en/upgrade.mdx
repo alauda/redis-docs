@@ -57,8 +57,8 @@ Because ACP v4.3 requires Alauda Cache Service for Redis OSS v5.0.x, and v5.0.x 
 Confirm that no instance reports `5.0` in the `VERSION` column (for example, run `kubectl get redis -A`) before starting the ACP upgrade. Refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx) for the upgrade procedure.
 </Directive>
 
-<Directive type="note" title="Upgrading an active-active instance across Redis minor versions">
-If an instance has active-active replication enabled, its Redis version cannot be changed in isolation. Follow [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx), which coordinates the whole replication group.
+<Directive type="note" title="Upgrading a replicating instance across Redis minor versions">
+If an instance has cross-datacenter replication enabled, its Redis version cannot be changed in isolation. Follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx), which coordinates the whole replication group.
 </Directive>
 
 ## Upgrade Strategies

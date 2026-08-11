@@ -3,16 +3,16 @@ weight: 50
 i18n:
   title:
     zh: 从 Redis 6.0 升级到 Redis 7.2
-title: Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2
+title: Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
 ---
 
-# Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2
+# Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
 
 <Directive type="warning" title="Draft">
 This procedure is a **draft**. It describes the upgrade path implemented in Alauda Cache Service for Redis OSS v5.1.0, but it has not yet completed production validation. Rehearse it in a non-production environment, take a verified backup of every member first, and contact Alauda support before running it against production data.
 </Directive>
 
-Redis `6.0` carries the frozen legacy active-active module. Redis `7.2` carries the new module, which adds mesh mode, mandatory peer authentication, rotation-safe credentials, and the dedicated peer-port transport. Moving an existing peer-of group from `6.0` to `7.2` is an in-place version upgrade of every member, followed by re-wiring the links.
+Redis `6.0` carries the frozen legacy replication module. Redis `7.2` carries the new module, which adds Active-Active mode, mandatory peer authentication, rotation-safe credentials, and the dedicated peer-port transport. Moving an existing Disaster Recovery group from `6.0` to `7.2` is an in-place version upgrade of every member, followed by re-wiring the links.
 
 ## What this upgrade involves
 
@@ -30,7 +30,7 @@ Changes that take effect with the new module:
 | Peer transport | Proxy RESP port (`6379`) | Proxy peer port (`7379`) |
 | Persistence | RDB recommended | RDB only — `appendonly=yes` is rejected |
 | Database count | Standard | `databases` must be `<= 16` |
-| Mesh mode | Not available | Available |
+| Active-Active mode | Not available | Available |
 
 ## Prerequisites
 
@@ -106,7 +106,7 @@ The ordering rule matters for later, within-generation upgrades of a **live** gr
 
 ### Step 4: Confirm the peer-auth binding
 
-The new module requires a peer-auth credential on every instance. On the in-place upgrade of an instance that already had active-active replication enabled, the platform provisions one automatically — see [Automatic peer-auth provisioning](#automatic-peer-auth-provisioning).
+The new module requires a peer-auth credential on every instance. On the in-place upgrade of an instance that already had cross-datacenter replication enabled, the platform provisions one automatically — see [Automatic peer-auth provisioning](#automatic-peer-auth-provisioning).
 
 Check what each member ended up with:
 
@@ -170,13 +170,13 @@ Then restore normal client traffic.
 
 The new module makes the peer-auth binding mandatory, which would otherwise block the very update that performs the upgrade. The platform handles this specific transition:
 
-1. When you change `spec.version` from `6.0` to `7.2` on an instance that **already** has active-active replication enabled and carries no `spec.activeRedis.redisUserName`, the defaulting webhook fills in the deterministic name `<instance-name>-aa-peer`.
+1. When you change `spec.version` from `6.0` to `7.2` on an instance that **already** has cross-datacenter replication enabled and carries no `spec.activeRedis.redisUserName`, the defaulting webhook fills in the deterministic name `<instance-name>-aa-peer`.
 2. The operator then mints a matching `RedisUser` with the fixed username `aapeerrepl`, plus a dedicated password Secret named `<instance-name>-aa-peer-secret`. The password **value** is copied from the instance's existing Redis `6.0` `ActiveRedisConnection` Secret — the credential the replication group already shared — so every datacenter converges on the same username and password independently.
 
 <Directive type="info" title="Scope of the automatic path">
 Provisioning triggers only on this transition, and only for the deterministic `<instance-name>-aa-peer` name:
 
-* a **fresh** instance created on Redis `7.2` with active-active enabled must be given a binding explicitly — it is rejected without one;
+* a **fresh** instance created on Redis `7.2` with replication enabled must be given a binding explicitly — it is rejected without one;
 * a mistyped manual binding surfaces as `RedisUser not found` rather than being silently created.
 </Directive>
 
@@ -190,7 +190,7 @@ The mint is skipped, and the binding points at a `RedisUser` that does not exist
 | The instance's connection Secrets diverge | The operator cannot tell which credential the group shares. | Create the peer-auth `RedisUser` manually with the group's intended credential. |
 | The source Secret has no `password` key | There is no password to copy. | Create the peer-auth `RedisUser` manually. |
 
-In every case the resolution is the same: create the credential yourself, exactly as described in [Step 1 of the peer-of setup](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter), using the **same username and password value across every member**, and bind it:
+In every case the resolution is the same: create the credential yourself, exactly as described in [Step 1 of the Disaster Recovery setup](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter), using the **same username and password value across every member**, and bind it:
 
 ```bash
 $ kubectl -n default patch redis s6-dc1 --type=merge \
@@ -201,7 +201,7 @@ $ kubectl -n default patch redis s6-dc1 --type=merge \
 
 Once the group is running on Redis `7.2`, the following become available:
 
-* **Mesh mode**, for a full active-active topology instead of directed links. See [Set Up Mesh Replication](./40-mesh.mdx). Note that `spec.activeRedis.mode` selects the wiring for the instance; moving an established peer-of group to mesh is a separate change and is not covered by this procedure.
+* **Active-Active mode**, in which every datacenter accepts writes instead of following a single upstream. See [Set Up Active-Active Replication](./40-mesh.mdx). Note that `spec.activeRedis.mode` selects the wiring for the instance; moving an established Disaster Recovery group to Active-Active is a separate change and is not covered by this procedure.
 * **Rotation-safe credentials.** Peer links no longer freeze the credential at wiring time, so rotating the peer-auth password no longer breaks the link on the next reconnect.
 * **Decommission teardown**, for permanently retiring a datacenter.
 

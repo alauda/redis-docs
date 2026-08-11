@@ -6,7 +6,7 @@ i18n:
 title: Introduction
 ---
 
-# Disaster Recovery and Active-Active Replication
+# Cross-Datacenter Replication
 
 <Directive type="warning" title="Feature Maturity Notice">
 Cross-datacenter replication is currently in `alpha`. If you plan to use this solution in a production environment, please use it in conjunction with features such as alerting and regular backups. At the same time, disaster recovery switching requires manual intervention to prevent data loss due to unknown issues.
@@ -31,44 +31,46 @@ Finally, the system provides comprehensive and powerful observability. By compar
 
 ## Replication modes
 
-Starting with Alauda Cache Service for Redis OSS v5.1.0, the active-active module supports two wiring modes, selected per instance through `spec.activeRedis.mode` on the `Redis` resource.
+Starting with Alauda Cache Service for Redis OSS v5.1.0, cross-datacenter replication offers two modes, selected per instance through `spec.activeRedis.mode` on the `Redis` resource.
 
 | Mode | `spec.activeRedis.mode` | Topology | Membership resource | Redis versions |
 |:-----|:------------------------|:---------|:--------------------|:---------------|
-| Peer-of | `peerof` (default) | Directed links. One upstream fans out to multiple downstreams (star). | `ActiveRedisConnection` | `6.0`, `7.2` |
-| Mesh | `mesh` | Full gossip mesh. Every member replicates with every other member. | `ActiveRedisMesh` | `7.2` only |
+| Disaster Recovery | `peerof` (default) | Directed links. One upstream fans out to multiple downstreams (star). | `ActiveRedisConnection` | `6.0`, `7.2` |
+| Active-Active | `mesh` | Every member accepts writes and replicates with every other member, with membership maintained by a gossip mesh. | `ActiveRedisMesh` | `7.2` only |
 
-`peerof` is the hot-standby / disaster recovery topology documented in [Set Up Peer-of Replication](./20-setup.mdx). `mesh` is the new full active-active topology documented in [Set Up Mesh Replication](./40-mesh.mdx).
+**Disaster Recovery** is the hot-standby topology: one instance takes the writes and the others follow it, ready to be promoted if a datacenter is lost. It is documented in [Set Up Disaster Recovery Replication](./20-setup.mdx).
 
-<Directive type="info" title="Mode is fixed at the instance level">
-`mode` is empty or `peerof` by default. Mesh mode is rejected by admission on Redis `6.0`, because it only exists in the new module.
+**Active-Active** lets every datacenter serve reads and writes locally, with conflicts resolved automatically. It is documented in [Set Up Active-Active Replication](./40-mesh.mdx).
+
+<Directive type="info" title="The mode names and the API values differ">
+The `spec.activeRedis.mode` field takes the literal values `peerof` and `mesh`. `peerof` selects Disaster Recovery and is the default when `mode` is empty; `mesh` selects Active-Active. This document uses the mode names in prose and the API values wherever a resource is being written.
 </Directive>
 
 ## Module generations and version applicability \{#module-generations-and-version-applicability}
 
-The active-active module ships in two generations. Which one an instance loads is decided by its Redis version, and the generation determines the feature set, the authentication model, and the peer transport.
+The replication module ships in two generations. Which one an instance loads is decided by its Redis version, and the generation determines the feature set, the authentication model, and the peer transport.
 
 | | Redis `6.0` (legacy module) | Redis `7.2` (new module) |
 |:--|:--|:--|
 | Module | Frozen legacy implementation, maintained for existing instances only | Actively developed implementation |
-| `peerof` mode | Supported | Supported |
-| `mesh` mode | Not supported | Supported |
+| Disaster Recovery (`peerof`) | Supported | Supported |
+| Active-Active (`mesh`) | Not supported | Supported |
 | Peer authentication | None at the module level; the link credential comes from the `ActiveRedisConnection` `spec.secretName` | Mandatory. The instance binds a `RedisUser` through `spec.activeRedis.redisUserName`; `spec.secretName` is ignored |
 | Peer transport | Proxy RESP port (`6379`) | Dedicated peer port (`7379`) fronted by the proxy |
 | Persistence | RDB recommended | RDB only — `appendonly=yes` is rejected by admission |
 | Database count | Standard | `databases` must be `<= 16` |
 
 <Directive type="warning" title="Cross-generation replication is not supported">
-Replication between a Redis `6.0` instance and a Redis `7.2` instance is **not a designed path** — the protocols of the two module generations are not compatible. Every member of one replication group must run the same module generation. Creating an active-active instance on Redis `6.0` returns an admission warning recommending Redis `7.2`.
+Replication between a Redis `6.0` instance and a Redis `7.2` instance is **not a designed path** — the protocols of the two module generations are not compatible. Every member of one replication group must run the same module generation. Enabling replication on Redis `6.0` returns an admission warning recommending Redis `7.2`.
 
-To move an existing Redis `6.0` replication group onto the new module, follow [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+To move an existing Redis `6.0` replication group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
 </Directive>
 
 ## Architecture Description
 
 To simplify the complexity of accessing the replication system for different Redis architectures, we have designed a dedicated proxy layer. As the core component of the system, the proxy layer provides a unified status detection and data synchronization entry point for Sentinel and cluster modes. Regardless of the deployment form of the back-end Redis, peers interact through this unified proxy interface. The proxy layer is responsible for encapsulating the internal logic of communication with the specific architecture (Sentinel, cluster), thereby decoupling the replication system from the implementation details of the back-end Redis, which greatly simplifies the access and management of instances.
 
-A proxy is deployed for both module generations. Enabling active-active replication creates a proxy Deployment and a proxy Service named `activeredis-proxy-<instance-name>`.
+A proxy is deployed for both module generations. Enabling cross-datacenter replication creates a proxy Deployment and a proxy Service named `activeredis-proxy-<instance-name>`.
 
 > For Sentinel instances, the instance name is prefixed with `rfr-`.
 
@@ -77,10 +79,10 @@ A proxy is deployed for both module generations. Enabling active-active replicat
 | Port | Name | Purpose | Applies to |
 |:-----|:-----|:--------|:-----------|
 | `6379` | `proxy` | RESP endpoint. Pre-flight inspection, and — on Redis `6.0` — the replication transport. Also the address used in mesh seed entries. | All versions |
-| `7379` | `peer` | The peer port. On the new module this is the **only** peer transport: it carries both `peerof` replication and mesh gossip. | Redis `7.2` |
+| `7379` | `peer` | The peer port. On the new module this is the **only** peer transport: it carries both Disaster Recovery replication and Active-Active gossip. | Redis `7.2` |
 
 <Directive type="warning" title="Expose the peer port unchanged">
-When an external load balancer or firewall fronts the proxy of a Redis `7.2` instance, it must expose port `7379` as `7379`. The module always advertises its own local peer port for the data plane, so remapping it breaks replication. Only the RESP port may be remapped, through `announcePort` in mesh mode or `spec.peerPort` on an `ActiveRedisConnection`.
+When an external load balancer or firewall fronts the proxy of a Redis `7.2` instance, it must expose port `7379` as `7379`. The module always advertises its own local peer port for the data plane, so remapping it breaks replication. Only the RESP port may be remapped, through `announcePort` in Active-Active mode or `spec.peerPort` on an `ActiveRedisConnection`.
 </Directive>
 
 ### Instance ID: Service ID
@@ -92,7 +94,7 @@ To uniquely identify and manage each Redis instance in the replication system, w
 * Topology limitation: Due to the ID range, a single upstream can be associated with up to 15 downstream instances, supporting a "one-upstream-multiple-downstream" topology.
 
 <Directive type="warning" title="Service ID is immutable">
-`spec.activeRedis.serviceID` cannot be changed after the instance is created, and active-active replication cannot be turned off once enabled. Both are rejected by admission, because the module's Oplog state is bound to the identity.
+`spec.activeRedis.serviceID` cannot be changed after the instance is created, and cross-datacenter replication cannot be turned off once enabled. Both are rejected by admission, because the module's Oplog state is bound to the identity.
 </Directive>
 
 ### Deployment Architecture
@@ -113,7 +115,7 @@ For cluster mode, the proxy layer is responsible for handling more complex shard
 
 The replication direction is described as **upstream** (the instance that produces changes) and **downstream** (the instance that consumes them). These are the terms used by the `ActiveRedis` resource status fields `upstreamPeer`, `downstreamPeers`, and `downstreamPeerCount`.
 
-The Web Console presents the same concepts as **Source side** and **Target side** when you configure a peer-of instance. A source is an upstream; a target is a downstream. In `peerof` mode the role of an instance is not fixed — a target may itself be promoted to a source during a failover.
+The Web Console presents the same concepts as **Source side** and **Target side** when you configure a Disaster Recovery instance. A source is an upstream; a target is a downstream. In Disaster Recovery mode the role of an instance is not fixed — a target may itself be promoted to a source during a failover.
 
 ## Limitations and Risks
 

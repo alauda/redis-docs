@@ -10,15 +10,15 @@ title: Failover
 
 When the upstream Redis instance fails, you need to perform a disaster recovery failover for the replication group first, and then switch the client's access address to the promoted instance.
 
-<Directive type="info" title="Applies to peer-of mode">
-This procedure applies to **peer-of** mode (`spec.activeRedis.mode: peerof`) on both Redis `6.0` and Redis `7.2`, where replication is directed and one instance is the upstream.
+<Directive type="info" title="Applies to Disaster Recovery mode">
+This procedure applies to **Disaster Recovery** mode (`spec.activeRedis.mode: peerof`) on both Redis `6.0` and Redis `7.2`, where replication is directed and one instance is the upstream.
 
 **Mesh** mode has no failover step of this kind: every member is already active and accepts writes, so recovering from the loss of a datacenter is a matter of redirecting clients to a surviving member. Removing the lost member from the mesh is described in [Removing a member](./40-mesh.mdx#removing-a-member).
 </Directive>
 
 ## Replication Group Switch
 
-In a peer-of group, when the upstream fails, the synchronization link with the failed upstream needs to be interrupted, and the downstream side is promoted to the upstream; to ensure that the client can write data and that the dirty data of the failed upstream will not pollute the downstream instance.
+In a disaster recovery group, when the upstream fails, the synchronization link with the failed upstream needs to be interrupted, and the downstream side is promoted to the upstream; to ensure that the client can write data and that the dirty data of the failed upstream will not pollute the downstream instance.
 
 ### Failover Timing Description
 
@@ -137,7 +137,7 @@ After clicking **Failover** for the second time, the Redis instance has become a
 
 ### Use the failed upstream as a downstream of the new upstream
 
-After the failed upstream returns to normal, it can be re-added to the replication group as a downstream instance of the promoted upstream. For the operation method, refer to [Set Up Peer-of Replication](./20-setup.mdx).
+After the failed upstream returns to normal, it can be re-added to the replication group as a downstream instance of the promoted upstream. For the operation method, refer to [Set Up Disaster Recovery Replication](./20-setup.mdx).
 
 
 ## Client-side Disaster Recovery Switch

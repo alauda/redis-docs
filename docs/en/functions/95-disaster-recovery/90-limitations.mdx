@@ -14,7 +14,7 @@ Unless a limitation is marked as applying to a specific Redis version, it applie
 
 ### Both ends of a replication group must run the same Redis version
 
-Replication between Redis `6.0` (legacy module) and Redis `7.2` (new module) is **not a designed path** — the protocols of the two generations are not compatible. Every member of a replication group must run the same module generation. To move an existing group across generations, see [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+Replication between Redis `6.0` (legacy module) and Redis `7.2` (new module) is **not a designed path** — the protocols of the two generations are not compatible. Every member of a replication group must run the same module generation. To move an existing group across generations, see [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
 
 Within the new module, all members of a replication group must additionally be running Alauda Cache Service for Redis OSS v5.1.0 or later. Links between a v5.1.0 member and an earlier build are not supported.
 
@@ -32,12 +32,12 @@ Data is synchronized based on Oplogs. The Oplog context has correlation and idem
 
 Because `service_id` is limited to the range `[0-15]`:
 
-* In **peer-of** mode, one upstream can have at most 15 downstream instances. Cascading is not supported — only star distribution, not tree or ring links.
-* In **mesh** mode, a mesh can hold at most 16 members.
+* In **Disaster Recovery** mode, one upstream can have at most 15 downstream instances. Cascading is not supported — only star distribution, not tree or ring links.
+* In **Active-Active** mode, a group can hold at most 16 members.
 
-### Mesh mode is available on Redis 7.2 only
+### Active-Active mode is available on Redis 7.2 only
 
-Mesh mode is rejected by admission on Redis `6.0`. Peer-of is available on both versions.
+Active-Active mode is rejected by admission on Redis `6.0`. Disaster Recovery is available on both versions.
 
 ### An instance holds at most one upstream connection
 
@@ -97,7 +97,7 @@ On Redis `7.2` the address must expose **both** the RESP port (`6379`) and the p
 
 When the downstream instance connects, only `<ip:port>` connections are supported; domain names are not supported by the legacy module.
 
-In mesh mode on Redis `7.2`, a DNS name is the recommended form for the announce address and for seed entries, because the module re-resolves it on every dial.
+In Active-Active mode on Redis `7.2`, a DNS name is the recommended form for the announce address and for seed entries, because the module re-resolves it on every dial.
 
 ### Replication increases storage pressure — local SSD is recommended
 

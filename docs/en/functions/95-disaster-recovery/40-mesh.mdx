@@ -2,20 +2,22 @@
 weight: 40
 i18n:
   title:
-    zh: 配置 Mesh
-title: Set Up Mesh Replication
+    zh: 配置双活
+title: Set Up Active-Active Replication
 ---
 
-# Set Up Mesh Replication
+# Set Up Active-Active Replication
 
 <Directive type="warning" title="Feature Maturity Notice">
-Mesh mode is `alpha` and is available on Redis `7.2` only. It is not supported on Redis `6.0` — admission rejects it.
+Active-Active mode is `alpha` and is available on Redis `7.2` only. It is not supported on Redis `6.0` — admission rejects it.
 </Directive>
 
-Mesh mode (`spec.activeRedis.mode: mesh`) builds a full active-active topology: every member replicates with every other member, and membership is maintained by a gossip protocol rather than by explicit directed links. Where peer-of requires one `ActiveRedisConnection` per link, mesh requires one `ActiveRedisMesh` resource per member, naming a few externally-routable seed addresses. Gossip discovers the rest of the fleet from there.
+Active-Active mode (`spec.activeRedis.mode: mesh`) lets every datacenter serve reads and writes locally: every member replicates with every other member, conflicts are resolved automatically, and membership is maintained by a gossip mesh rather than by explicit directed links. Where Disaster Recovery requires one `ActiveRedisConnection` per link, Active-Active requires one `ActiveRedisMesh` resource per member, naming a few externally-routable seed addresses. Gossip discovers the rest of the fleet from there.
 
-| | Peer-of | Mesh |
+| | Disaster Recovery | Active-Active |
 |:--|:--|:--|
+| `spec.activeRedis.mode` | `peerof` | `mesh` |
+| Writes | The upstream takes writes; downstreams stand by | Every member accepts writes |
 | Topology | Directed links, star fan-out | Full mesh, every member with every other |
 | Membership | One `ActiveRedisConnection` per link | One `ActiveRedisMesh` per member |
 | Discovery | Explicit — every link is declared | Gossip — seeds bootstrap, the rest is discovered |
@@ -24,17 +26,17 @@ Mesh mode (`spec.activeRedis.mode: mesh`) builds a full active-active topology: 
 ## Prerequisites
 
 * Every member runs Redis `7.2`.
-* Every member binds a peer-auth `RedisUser` with the **same username and password value**, exactly as described in [Set Up Peer-of Replication](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter). Mesh links authenticate with the same credential.
+* Every member binds a peer-auth `RedisUser` with the **same username and password value**, exactly as described in [Set Up Disaster Recovery Replication](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter). Active-Active links authenticate with the same credential.
 * Each member has a distinct `serviceID` in the range `[0-15]`.
 * Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
 
-## Step 1: Enable mesh mode on each instance
+## Step 1: Enable Active-Active mode on each instance
 
 <Directive type="warning" title="Set the mode when you enable replication">
-These steps assume instances that are being placed into a mesh from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established peer-of group to a mesh is not a covered procedure and has not been validated. Build a mesh from instances that are not already wired into a peer-of group.
+These steps assume instances that are being placed into an Active-Active group from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established Disaster Recovery group to Active-Active is not a covered procedure and has not been validated. Build an Active-Active group from instances that are not already wired into a Disaster Recovery group.
 </Directive>
 
-Mesh members must advertise an externally-routable address, because a peer re-resolves it on every dial. This is the `announceAddress`, set on the proxy Service configuration.
+Members must advertise an externally-routable address, because a peer re-resolves it on every dial. This is the `announceAddress`, set on the proxy Service configuration.
 
 ```bash
 $ kubectl -n default patch redis s72-dc1 --type=merge --patch='
@@ -196,7 +198,7 @@ Only fields with a value greater than zero are pushed. Clearing a previously-set
 
 ### Adding a member
 
-Enable mesh mode on the new instance (Step 1), then create its `ActiveRedisMesh` with the existing members as seeds. The new member joins and is discovered by the whole mesh through gossip — existing members do **not** need their seed lists updated for the mesh to converge. Updating them is still recommended, so that a member that restarts while the original seeds are unreachable can still rejoin.
+Enable Active-Active mode on the new instance (Step 1), then create its `ActiveRedisMesh` with the existing members as seeds. The new member joins and is discovered by the whole mesh through gossip — existing members do **not** need their seed lists updated for the mesh to converge. Updating them is still recommended, so that a member that restarts while the original seeds are unreachable can still rejoin.
 
 ### Removing a member \{#removing-a-member}
 
@@ -209,4 +211,4 @@ There is no resource-level orchestration for forgetting or unbanning a departed 
 
 ## Limitations
 
-Mesh mode inherits the constraints listed in [Limitations and Risks](./90-limitations.mdx), including matching architectures and shard layouts across members, the `[0-15]` `serviceID` range, and RDB-only persistence.
+Active-Active mode inherits the constraints listed in [Limitations and Risks](./90-limitations.mdx), including matching architectures and shard layouts across members, the `[0-15]` `serviceID` range, and RDB-only persistence.
