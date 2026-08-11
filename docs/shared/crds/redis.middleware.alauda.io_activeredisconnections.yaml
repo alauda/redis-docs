@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.17.3
   name: activeredisconnections.redis.middleware.alauda.io
 spec:
   group: redis.middleware.alauda.io
@@ -84,14 +84,43 @@ spec:
                   When set to true, the active redis connection will not be established.
                   This is useful for maintenance or temporary disabling of the connection.
                 type: boolean
+              peerPort:
+                default: 7379
+                description: |-
+                  PeerPort is the upstream proxy's peer-port — the AS_MESH replication
+                  endpoint the local masters dial (the ONLY peer transport; the legacy
+                  as.peersync-over-RESP transport was removed). The host is taken from
+                  Addresses[0]; this is the port. Override it when an external LB/F5
+                  exposes the proxy peer-port under a different number.
+                format: int32
+                maximum: 65535
+                minimum: 1
+                type: integer
               secretName:
-                description: SecretName the secret name for redis authentication.
-                  for default user, the password field is required.
+                description: |-
+                  SecretName the secret name for redis authentication (username/password
+                  keys). Required for the 6.0 legacy module ONLY — enforced by the
+                  admission webhook, not the schema. The new (7.2/8.4) module ignores it:
+                  its peer links authenticate with the instance-level peer-auth binding
+                  (Redis spec.activeRedis.redisUserName), the same credential in every DC.
+                type: string
+              teardownPolicy:
+                default: Detach
+                description: |-
+                  TeardownPolicy selects the teardown issued on this instance's nodes when
+                  the connection is removed. Detach (the default) resets the peer link and
+                  keeps its module-side bookkeeping so the connection can be re-created
+                  later; Decommission permanently removes the peer AND releases the oplog
+                  retention, tombstone-GC and lag-accounting floors held for it — use it
+                  when the remote datacenter is gone for good. Decommission is one-way:
+                  once set it cannot be changed back to Detach.
+                enum:
+                - Detach
+                - Decommission
                 type: string
             required:
             - addresses
             - instance
-            - secretName
             type: object
           status:
             description: ActiveRedisConnectionStatus defines the observed state of
@@ -99,6 +128,14 @@ spec:
             properties:
               activeRedisName:
                 description: ActiveRedisName
+                type: string
+              credentialMode:
+                description: |-
+                  CredentialMode records how the module-side peer records present the
+                  outbound credential. "peer-auth-global" = wired without inline auth
+                  (node-local peer-auth is the live source; rotation-safe). Empty = legacy
+                  records that may hold a frozen inline credential; the controller resets
+                  and re-wires them once (new module only).
                 type: string
               instance:
                 description: Instance is the instance name of local redis.
@@ -139,6 +176,19 @@ spec:
                       type: string
                     syncStatus:
                       description: SyncStatus is the sync status of the shard.
+                      type: string
+                    versionHoldSince:
+                      description: |-
+                        VersionHoldSince is the module-local timestamp (ms) at which this edge was
+                        version-held; 0 when not held. A non-zero value means replication from this
+                        upstream is paused pending a version alignment.
+                      format: int64
+                      type: integer
+                    versionState:
+                      description: |-
+                        VersionState is the module's own verdict on this edge's upstream version
+                        (unknown | verified | violating). Empty for a pre-P1 / legacy upstream that
+                        does not report it. See redis@modules/active-redis version_gate (P2).
                       type: string
                   required:
                   - index

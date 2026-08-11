@@ -8,48 +8,125 @@ title: Limitations and Risks
 
 # Limitations and Risks
 
-## Only IP connection addresses are currently supported
+Unless a limitation is marked as applying to a specific Redis version, it applies to both module generations. See [Module generations and version applicability](./10-intro.mdx#module-generations-and-version-applicability) for what distinguishes them.
 
-When the target instance connects, only `<ip:port>` connections are supported, and domain names are not currently supported.
+## Topology limitations
 
-## The provided link address of the source instance must be highly available
+### Both ends of a replication group must run the same Redis version
 
-The disaster recovery Proxy address itself is not highly available. If you expose the source Proxy via NodePort, place it behind a front-end load balancer to ensure HA; alternatively, use MetalLB to provide a highly available virtual IP for the Proxy.
+Replication between Redis `6.0` (legacy module) and Redis `7.2` (new module) is **not a designed path** — the protocols of the two generations are not compatible. Every member of a replication group must run the same module generation. To move an existing group across generations, see [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
 
-## Currently only Redis 6.0 is supported, other versions do not support enabling disaster recovery
+Within the new module, all members of a replication group must additionally be running Alauda Cache Service for Redis OSS v5.1.0 or later. Links between a v5.1.0 member and an earlier build are not supported.
 
-Only Redis 6.0 instances support the disaster recovery function, and support for Redis 7.2 is still under development; after Redis 6.0 enables disaster recovery, it does not support upgrading to Redis 7.2.
+### The instances at both ends must have the same architecture
 
-## After the Redis instance enables disaster recovery, it cannot be turned off
+Data is synchronized based on Oplogs. The Oplog context has correlation and idempotency, and Oplog data cannot be re-sharded and submitted to different shards. This restriction requires that:
 
-After the Redis disaster recovery module is enabled, it will write AUX information records such as the corresponding `offset` and `oplog id` in the Redis persistent RDB file; at the same time, there will be special synchronization instructions in the master-slave synchronization of the Redis instance. Therefore, in order to ensure the reliability of the data and the availability of the cluster, it is not allowed to uninstall the Redis disaster recovery module after it is enabled.
+1. The downstream side of a Sentinel instance can only be a Sentinel instance.
+2. The downstream side of a cluster instance can only be a cluster instance.
+3. The shards of a cluster-mode downstream must be consistent with the upstream.
+4. The slot distribution of a cluster-mode downstream must be consistent with the upstream.
+5. Cluster mode does not support online synchronization to add or reduce shards.
 
-## Enabling disaster recovery will increase the pressure on storage. It is recommended to use local SSD as storage
+### A replication group is limited to 16 members
 
-The Redis disaster recovery instance will write oplogs to storage in real time (fsync is executed once per second); when the oplog reaches the limited size (3Gb), the oplog file will be cut; the cleaning logic will regularly mark the unused oplog slice files and clean them up in time. Therefore, the above will have the storage logic of oplog reading and writing and rdb generation at the same time, which will increase the pressure on storage. It is recommended to use local SSD as storage to ensure persistence performance.
+Because `service_id` is limited to the range `[0-15]`:
 
-### For disaster recovery instances, it is recommended to use the RDB parameter template
+* In **peer-of** mode, one upstream can have at most 15 downstream instances. Cascading is not supported — only star distribution, not tree or ring links.
+* In **mesh** mode, a mesh can hold at most 16 members.
 
-Using the RDB parameter template, combined with the save parameter, actively triggers snapshots and actively triggers the cleaning of oplogs, which can ensure that new target instance connections can quickly synchronize snapshots. If you use the AOF parameter template, you still need to set a `save` parameter to ensure regular RDB persistence, to ensure that the local data is more reliable, but at the same time, enabling RDB and AOF persistence has better performance requirements for storage. Please confirm that you are using local SSD as storage.
+### Mesh mode is available on Redis 7.2 only
 
-## To build a disaster recovery network, the Redis instances at both ends need to ensure that the architecture is the same
+Mesh mode is rejected by admission on Redis `6.0`. Peer-of is available on both versions.
 
-The Redis disaster recovery plug-in currently synchronizes data based on oplogs. The oplog context has correlation and idempotency, and the oplog data cannot be re-sharded and submitted to different shards. This restriction requires that:
-1. The target side of the sentinel mode can only be the sentinel mode
-1. The target side of the cluster mode can only be the cluster mode
-1. The shards of the target side in cluster mode must be consistent with the source
-1. The slot distribution of the target side in cluster mode must be consistent with the source
-1. Cluster mode does not support online synchronization to add or reduce shards
+### An instance holds at most one upstream connection
 
-## A Redis disaster recovery instance as a source can have at most 15 target instances
+An instance may have at most one `ActiveRedisConnection` — its own upstream link. Fan-out is built by creating a connection in each downstream cluster pointing at the same upstream.
 
-Due to the limitation of `service_id`, a disaster recovery source can have at most 15 target instances. However, cascading is not currently supported, and multi-active is not supported (only star distribution is supported, not tree or ring links).
+## Configuration limitations
 
-## The following Redis 6.0 write commands do not currently support disaster recovery
+### Replication cannot be turned off, and the Service ID cannot be changed
 
-`migrate`, `pubsub` related commands, `stream` related commands. For `pubsub` and `stream` commands, it is recommended to use MQ components as an alternative.
+After replication is enabled, the module writes AUX information records such as the corresponding `offset` and `oplog id` in the Redis persistent RDB file; at the same time, there are special synchronization instructions in the master-replica synchronization of the Redis instance. Therefore, to ensure the reliability of the data and the availability of the cluster, the module cannot be unloaded after it is enabled.
 
-## After the source fails, the first thing to do is to disconnect from the source
+For the same reason, `spec.activeRedis.serviceID` is immutable after creation. Both removing `spec.activeRedis` and changing `serviceID` are rejected by admission.
 
-After the source fails, before the disaster recovery switch, the first thing to do is to disconnect the synchronization link between the target and the source to prevent the source from suddenly recovering but the data is incorrect, thereby polluting the target side.
+### AOF persistence is not supported (Redis 7.2)
 
+The new module is RDB-only. Its CRDT metadata and the Oplog resume offset persist only in the RDB auxiliary section, which AOF cannot carry. Setting `appendonly: "yes"` is rejected by admission; if it is somehow set at runtime, the module puts the node into a **degraded read-only** state in which all writes are rejected — both local application writes and replicated writes from peers.
+
+Use RDB persistence, and see [the RDB parameter template recommendation](#for-replication-instances-it-is-recommended-to-use-the-rdb-parameter-template).
+
+### At most 16 databases (Redis 7.2)
+
+`customConfig.databases` must be `<= 16`. The module's database addressing is 4-bit and it refuses to load beyond 16 databases, which would leave the pods crash-looping. This is rejected by admission.
+
+### Connection names must be valid module peer names (Redis 7.2)
+
+An `ActiveRedisConnection` name is used verbatim as the module's peer name, which is stricter than Kubernetes naming: it must start with a letter, and `reset`, `clear`, `all`, and `list` are reserved words. Names violating either rule are rejected.
+
+## Command limitations
+
+### Some commands are not replicated
+
+The following commands execute on the local node but are **never replicated** to peers. Each datacenter's state for them is independent.
+
+| Commands | Behavior | Notes |
+|:---------|:---------|:------|
+| `PUBLISH`/`SPUBLISH` and the `SUBSCRIBE` family | Node-local | Pub/sub is ephemeral and per-connection. Use an MQ component if cross-datacenter delivery is required. |
+| Stream commands — `XADD`, `XDEL`, `XTRIM`, `XSETID`, and all consumer-group operations | Local-only | Each datacenter's streams are self-contained. Use an MQ component as an alternative. On Redis `7.2`, setting a TTL on a stream key is refused, because a replicated expiry would delete peers' unrelated local streams. |
+| `MIGRATE`, `RESTORE-ASKING` | Local-only | Intra-datacenter cluster resharding is a per-datacenter topology operation. |
+
+On Redis `6.0` this list also covers the legacy module's unsupported write commands (`migrate`, pub/sub-related and stream-related commands).
+
+### FLUSHALL and FLUSHDB are refused while peers are attached (Redis 7.2)
+
+A flush executes locally and is never replicated. Because a flush inside a live replication group would silently diverge the node from its peers — and would discard its dead-key tombstones, allowing a delayed peer write to resurrect a deleted key on that node alone — the new module **refuses** `FLUSHALL` and `FLUSHDB` while the node has any peer attached.
+
+To empty a replication group: remove the connections, flush each isolated instance, then re-create the connections. Alternatively, recreate the instances.
+
+## Operational risks
+
+### The provided address of the upstream instance must be highly available
+
+The proxy address itself is not highly available. If you expose the proxy via NodePort, place it behind a front-end load balancer to ensure HA; alternatively, use MetalLB to provide a highly available virtual IP for the proxy.
+
+On Redis `7.2` the address must expose **both** the RESP port (`6379`) and the peer port (`7379`), and the peer port must not be remapped — the module always advertises its own local peer port for replication.
+
+### Only IP connection addresses are supported (Redis 6.0)
+
+When the downstream instance connects, only `<ip:port>` connections are supported; domain names are not supported by the legacy module.
+
+In mesh mode on Redis `7.2`, a DNS name is the recommended form for the announce address and for seed entries, because the module re-resolves it on every dial.
+
+### Replication increases storage pressure — local SSD is recommended
+
+An instance with replication enabled writes Oplogs to storage in real time (fsync is executed once per second); when the Oplog reaches the limited size (3 GB), the Oplog file is cut; the cleaning logic regularly marks unused Oplog slice files and cleans them up in time. Therefore, the above will have the storage logic of Oplog reading and writing and RDB generation at the same time, which will increase the pressure on storage. It is recommended to use local SSD as storage to ensure persistence performance.
+
+#### For replication instances, it is recommended to use the RDB parameter template
+
+Using the RDB parameter template, combined with the `save` parameter, actively triggers snapshots and actively triggers the cleaning of Oplogs, which can ensure that new downstream instance connections can quickly synchronize snapshots.
+
+On Redis `6.0`, if you use the AOF parameter template, you still need to set a `save` parameter to ensure regular RDB persistence, so that the local data is more reliable; but enabling RDB and AOF persistence at the same time has higher performance requirements for storage. Please confirm that you are using local SSD as storage.
+
+On Redis `7.2`, AOF is not supported at all — see [AOF persistence is not supported](#aof-persistence-is-not-supported-redis-72).
+
+### Upgrade a live group downstream-before-upstream
+
+When upgrading the Redis version of a group that is actively replicating, upgrade the **downstream instances first**. A downstream can apply an equal-or-older upstream's Oplog but never a newer one. Bumping an upstream ahead of a live downstream returns an admission warning, and the module holds the affected edge — replication to that downstream pauses until the skew is resolved. A held edge is visible on the connection status through `versionState` and `versionHoldSince`.
+
+### After the upstream fails, disconnect from it first
+
+After the upstream fails, before performing a failover, the first thing to do is to disconnect the synchronization link between the downstream and the upstream, to prevent the upstream from suddenly recovering with incorrect data and polluting the downstream side.
+
+### Decommissioning a peer is irreversible
+
+`spec.teardownPolicy: Decommission` permanently releases the Oplog retention, tombstone garbage-collection, and lag-accounting floors held for a peer. It cannot be changed back to `Detach`, and a decommissioned peer that later returns is treated as a brand-new peer requiring a full synchronization. Use it only for a datacenter that is gone for good.
+
+### Mesh member removal is not orchestrated (Redis 7.2)
+
+There is no resource-level orchestration for forgetting or unbanning a departed mesh member. Its record ages out of the surviving members' membership on the module's own timers, during which the mesh phase may report `Degraded`.
+
+### Mesh tuning values are sticky (Redis 7.2)
+
+Only `spec.tuning` fields greater than zero are pushed to the nodes. Clearing a previously-set field does not reset already-configured pods — they keep the last value until they restart.

@@ -12,12 +12,76 @@ title: Release Notes
 
 The following table shows the compatibility and support matrix between the Alauda Cache Service for Redis OSS and ACP versions.
 
+{/* TODO(release): confirm the ACP version row for v5.1.0 before publishing — carried forward from v5.0.x. */}
+
 | Alauda Cache Service for Redis OSS Version | Redis Versions         | ACP Version      |
 |:-------------------------------------------|------------------------|:-----------------|
+| v5.1.0                                     | 6.0.22, 7.2.15         | v4.1, v4.2, v4.3 |
 | v5.0.1                                     | 6.0.21, 7.2.14, 8.4.3  | v4.1, v4.2, v4.3 |
 | v5.0.0                                     | 6.0.21, 7.2.12, 8.4.2  | v4.1, v4.2, v4.3 |
 | v4.1.x                                     | 5.0.14, 6.0.20, 7.2.10 | v4.1, v4.2       |
 | v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x  | v4.0             |
+
+## v5.1.0
+
+### New and Optimized Features
+
+#### Redesigned Active-Active Replication (Alpha)
+
+Redis `7.2` instances now run a redesigned active-active module, selected per instance through `spec.activeRedis.mode`:
+
+* **Peer-of** (`peerof`, the default) is the hot-standby and disaster recovery topology, with directed links from one upstream to up to 15 downstream instances. It remains available on Redis `6.0`.
+* **Mesh** (`mesh`) is a new full active-active topology: every member replicates with every other member, and membership is maintained by a gossip protocol seeded from a handful of addresses. Mesh is available on Redis `7.2` only, and is driven by the new `ActiveRedisMesh` resource.
+
+Replication on Redis `7.2` rides a dedicated peer port (`7379`) exposed by the instance proxy, which carries both replication and gossip.
+
+See [Disaster Recovery and Active-Active Replication](./functions/95-disaster-recovery/10-intro.mdx).
+
+#### Mandatory Peer Authentication
+
+Every Redis `7.2` instance with active-active replication enabled must bind a `RedisUser` as its peer-auth credential through `spec.activeRedis.redisUserName`. Peer links authenticate with this credential, which must carry the same username and password value in every datacenter.
+
+The credential is delivered to the nodes at runtime and is never written into the instance configuration file. Peer links no longer freeze it at wiring time, so rotating the password no longer breaks a link on its next reconnect.
+
+#### Upgrade Path from Redis 6.0 to Redis 7.2 for Active-Active Instances
+
+An active-active instance can now be upgraded in place from Redis `6.0` to Redis `7.2`. When such an instance carries no peer-auth binding, the platform provisions one automatically, deriving it from the credential the replication group already shares.
+
+The two module generations do not interoperate, so the whole group must be upgraded together within a maintenance window. See [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx).
+
+#### Teardown Policy for Replication Links
+
+`ActiveRedisConnection` now carries a `teardownPolicy`. `Detach` (the default) removes the link but keeps the peer's bookkeeping so the link can be re-created later. `Decommission` permanently retires a peer and releases the retention floors held for it — the correct teardown for a datacenter that is gone for good.
+
+#### New APIs
+
+The `ActiveRedis`, `ActiveRedisMesh`, and `ActiveRedisInspection` resources are documented under [Redis APIs](./apis/kubernetes_apis/redis/index.mdx).
+
+### Changes
+
+#### Redis 8.4 Is No Longer Shipped
+
+Alauda Cache Service for Redis OSS v5.1.0 ships **no Redis `8.4` server image**, because the Redis 8.x license terms do not permit redistribution. The supported Redis versions are `6.0` and `7.2`, and `7.2` is the default.
+
+<Directive type="danger" title="Migrate Redis 8.4 instances before upgrading">
+Upgrading the operator does not change the Redis version of existing instances, and it does not delete an already-running Redis `8.4` instance — its pods keep serving traffic. But the operator resolves an instance's server image from the shipped image set on every reconciliation, and v5.1.0 carries no `8.4` entry. A surviving Redis `8.4` instance therefore **fails to reconcile**: the operator can no longer manage it, and configuration changes, scaling, failover handling, and upgrades stop being applied to it.
+
+If you run Redis `8.4` instances on v5.0.x, migrate them to Redis `7.2` **before** upgrading to v5.1.0. See [Upgrade](./upgrade.mdx).
+</Directive>
+
+`spec.version` still accepts `8.4` as a value, so an operator instance can serve it if an `8.4` image is supplied out of band. This is outside the shipped configuration and is not covered by Alauda support.
+
+### Fixed Issues
+
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-fixed&project=Middleware */}
+
+### Known Issues
+
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-known&project=Middleware */}
+
+### Security Fixes
+
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-security&project=Middleware */}
 
 ## v5.0.1
 

@@ -8,15 +8,21 @@ title: Failover
 
 # Failover
 
-When the source Redis instance fails, you need to perform a disaster recovery failover for the disaster recovery cluster first, and then switch the client's access address to the new disaster recovery instance.
+When the upstream Redis instance fails, you need to perform a disaster recovery failover for the replication group first, and then switch the client's access address to the promoted instance.
 
-## Disaster Recovery Cluster Switch
+<Directive type="info" title="Applies to peer-of mode">
+This procedure applies to **peer-of** mode (`spec.activeRedis.mode: peerof`) on both Redis `6.0` and Redis `7.2`, where replication is directed and one instance is the upstream.
 
-In a disaster recovery cluster, when the source fails, the synchronization link with the failed source needs to be interrupted, and the target side is promoted to the source; to ensure that the client can write data and that the dirty data of the failed source will not pollute the target instance.
+**Mesh** mode has no failover step of this kind: every member is already active and accepts writes, so recovering from the loss of a datacenter is a matter of redirecting clients to a surviving member. Removing the lost member from the mesh is described in [Removing a member](./40-mesh.mdx#removing-a-member).
+</Directive>
+
+## Replication Group Switch
+
+In a peer-of group, when the upstream fails, the synchronization link with the failed upstream needs to be interrupted, and the downstream side is promoted to the upstream; to ensure that the client can write data and that the dirty data of the failed upstream will not pollute the downstream instance.
 
 ### Failover Timing Description
 
-When a failure occurs at the source of the disaster recovery cluster, the Alauda Cache Service for Redis OSS on the target side will detect that the disaster recovery link with the source is interrupted. At this time, the status of the `ActiveRedisConnection` resource will be abnormal, and the Web Console of the target instance will prompt that a disaster recovery switch can be performed.
+When a failure occurs at the upstream of the replication group, the Alauda Cache Service for Redis OSS on the downstream side will detect that the link with the upstream is interrupted. At this time, the status of the `ActiveRedisConnection` resource will be abnormal, and the Web Console of the downstream instance will prompt that a disaster recovery switch can be performed.
 
 <Directive type="danger" title="Disaster Recovery Switching Risk Description">
 <strong style={{color: "red"}}>It should be noted that this abnormal prompt is only an interactive alarm prompt and should not be used as the sole basis for judging that the client can perform a disaster recovery switch.</strong>
@@ -99,20 +105,24 @@ status:
       instance: default/c6
 ```
 
-#### Disconnect from the source
+#### Disconnect from the upstream
 
-After manually confirming that the source is indeed abnormal, you need to disconnect the target instance from the source's disaster recovery link to prevent the introduction of dirty data.
+After manually confirming that the upstream is indeed abnormal, you need to disconnect the downstream instance from the upstream link to prevent the introduction of dirty data.
 
 ```bash
 $ kubectl -n default delete activeredisconnections c6-dest-conn
 ```
 
-After deleting the corresponding ActiveRedisConnection resource, the Redis instance has become an independent source instance, and the client's access address can be safely switched to this instance for reading and writing.
+After deleting the corresponding ActiveRedisConnection resource, the Redis instance has become an independent upstream instance, and the client's access address can be safely switched to this instance for reading and writing.
+
+<Directive type="warning" title="Keep the default Detach teardown policy for a failover">
+Deleting the connection tears the link down according to its `spec.teardownPolicy`. Use the default `Detach` so the failed datacenter can rejoin later. Reserve `Decommission` for a datacenter that is gone for good — it is irreversible and forces a full resynchronization if the peer ever returns. See [Removing a connection](./20-setup.mdx#removing-a-connection).
+</Directive>
 
 </Tab>
 <Tab label="Web Console">
 
-After the connection between the target and the source becomes abnormal, the Disaster Recovery tab of the Redis instance shows **Transmission status: Abnormal**, and a **Failover** button appears in the upper-left of the topology. When the **Failover** button appears, you can perform a disaster recovery cluster switch.
+After the connection between the downstream and the upstream becomes abnormal, the Disaster Recovery tab of the Redis instance shows **Transmission status: Abnormal**, and a **Failover** button appears in the upper-left of the topology. When the **Failover** button appears, you can perform a disaster recovery switch.
 
 1. Navigate to Redis in the left navigation bar.
 1. Select the namespace name containing your instance.
@@ -120,25 +130,25 @@ After the connection between the target and the source becomes abnormal, the Dis
 1. In the `Disaster Recovery` tab, click the **Failover** button.
 1. In the popup widget, click **Failover** again to confirm.
 
-After clicking **Failover** for the second time, the Redis instance has become an independent source instance, and the client's access address can be safely switched to this instance for reading and writing.
+After clicking **Failover** for the second time, the Redis instance has become an independent upstream instance, and the client's access address can be safely switched to this instance for reading and writing.
 
 </Tab>
 </Tabs>
 
-### Use the failed source as the target instance of the new source
+### Use the failed upstream as a downstream of the new upstream
 
-After the failed source returns to normal, it can be re-added to the disaster recovery cluster as a target instance of the new source. For the operation method, refer to [Setup Disaster Recovery](./20-setup.mdx).
+After the failed upstream returns to normal, it can be re-added to the replication group as a downstream instance of the promoted upstream. For the operation method, refer to [Set Up Peer-of Replication](./20-setup.mdx).
 
 
 ## Client-side Disaster Recovery Switch
 
-Before connecting to the disaster recovery cluster, the client should support switching the Redis access address to the new source instance (the promoted target) after detecting the source failure. Usually, there are the following switching methods:
+Before connecting to the replication group, the client should support switching the Redis access address to the promoted instance after detecting the upstream failure. Usually, there are the following switching methods:
 | Architecture      | Mechanism                     | Advantages           | Disadvantages           | Impact on RTO/RPO | Implementation Difficulty    | Ideal Use Case  |
 |:----------|:-------------------------|:---------------|:---------------|:----------------|:-------------|:-----------|
 | DNS Switch  | Update DNS records to point to the new IP | Simple concept, platform-independent. | Long and uncontrollable RTO (depends on TTL), invalid for K8s internal traffic. | RTO: minutes<br/>RPO: may be high. | Low | Applications with low RTO requirements, or as a manual fallback solution. |
 | Proxy      | The client connects to the proxy, and the proxy routes to the master node through health checks. | Fast switching (second-level RTO), transparent to the client, simple fault recovery. | Increases network hops and operation and maintenance burden, the proxy itself needs to be highly available. | RTO: seconds<br/>RPO: low. | Medium | Recommended solution: requires fast and transparent switching, and has the ability to operate and maintain a highly available proxy cluster. |
 | Service Mesh (Istio) | The Sidecar proxy intercepts traffic and performs local priority and cross-cluster switching based on policies. | Powerful functions, application transparency, simple fault recovery. | Extremely high operation and maintenance complexity, heavy technology stack. | RTO: seconds<br/>RPO: low.| High | Large and complex systems that have fully adopted service mesh to manage microservices. |
-| Client Library | The library has built-in logic and decides to switch to the target cluster by itself. | No middle layer, latency may be lower. | Extremely high risk: switching decisions are unreliable, fault recovery is complex (often requires restarting the business), and ecological support is inconsistent.| RTO: unpredictable<br/>RPO: high risk. | Medium | Not recommended for production-level automatic disaster recovery. |
+| Client Library | The library has built-in logic and decides to switch to the other cluster by itself. | No middle layer, latency may be lower. | Extremely high risk: switching decisions are unreliable, fault recovery is complex (often requires restarting the business), and ecological support is inconsistent.| RTO: unpredictable<br/>RPO: high risk. | Medium | Not recommended for production-level automatic disaster recovery. |
 
 Whether the client triggers a disaster recovery failover cannot be judged solely by a binary decision; failover is a multi-dimensional, high-confidence decision-making process. It needs to be handled in combination with multiple dimensions of fault detection, including but not limited to: `the available status of the instance`, `whether the instance still has high availability`, `whether the k8s cluster has the possibility of continuing to serve`, `data center availability detection`.
 
@@ -148,7 +158,7 @@ Usually, the following expression needs to be met before the client can safely p
 (Manual trigger switch)
 OR
 (
-  (Source instance status check fails, and continues to fail for N times)
+  (Upstream instance status check fails, and continues to fail for N times)
   AND
   (
     (The instance no longer has high availability)
@@ -156,7 +166,7 @@ OR
     (The data center availability check fails, and continues to fail for N times)
   )
   AND
-  (The target instance availability status check passes)
+  (The downstream instance availability status check passes)
 )
 ```
 

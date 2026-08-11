@@ -1,0 +1,212 @@
+---
+weight: 40
+i18n:
+  title:
+    zh: 配置 Mesh
+title: Set Up Mesh Replication
+---
+
+# Set Up Mesh Replication
+
+<Directive type="warning" title="Feature Maturity Notice">
+Mesh mode is `alpha` and is available on Redis `7.2` only. It is not supported on Redis `6.0` — admission rejects it.
+</Directive>
+
+Mesh mode (`spec.activeRedis.mode: mesh`) builds a full active-active topology: every member replicates with every other member, and membership is maintained by a gossip protocol rather than by explicit directed links. Where peer-of requires one `ActiveRedisConnection` per link, mesh requires one `ActiveRedisMesh` resource per member, naming a few externally-routable seed addresses. Gossip discovers the rest of the fleet from there.
+
+| | Peer-of | Mesh |
+|:--|:--|:--|
+| Topology | Directed links, star fan-out | Full mesh, every member with every other |
+| Membership | One `ActiveRedisConnection` per link | One `ActiveRedisMesh` per member |
+| Discovery | Explicit — every link is declared | Gossip — seeds bootstrap, the rest is discovered |
+| Redis versions | `6.0`, `7.2` | `7.2` |
+
+## Prerequisites
+
+* Every member runs Redis `7.2`.
+* Every member binds a peer-auth `RedisUser` with the **same username and password value**, exactly as described in [Set Up Peer-of Replication](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter). Mesh links authenticate with the same credential.
+* Each member has a distinct `serviceID` in the range `[0-15]`.
+* Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
+
+## Step 1: Enable mesh mode on each instance
+
+<Directive type="warning" title="Set the mode when you enable replication">
+These steps assume instances that are being placed into a mesh from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established peer-of group to a mesh is not a covered procedure and has not been validated. Build a mesh from instances that are not already wired into a peer-of group.
+</Directive>
+
+Mesh members must advertise an externally-routable address, because a peer re-resolves it on every dial. This is the `announceAddress`, set on the proxy Service configuration.
+
+```bash
+$ kubectl -n default patch redis s72-dc1 --type=merge --patch='
+spec:
+  activeRedis:
+    serviceID: 0
+    mode: mesh
+    redisUserName: s72-dc1-peer
+    proxy:
+      service:
+        type: LoadBalancer
+        announceAddress: redis-dc1.example.com
+        announcePort: 6379
+'
+```
+
+| Field | Description |
+|:------|:------------|
+| `mode` | `mesh`. |
+| `serviceID` | Unique within the mesh, range `[0-15]`, immutable. |
+| `redisUserName` | The peer-auth `RedisUser` binding. Mandatory. |
+| `proxy.service.announceAddress` | The externally-reachable host peers dial to reach this member — the host on the external load balancer or VIP, decoupled from the in-cluster Service. Must be a **bare host**: no scheme, no port, no path. |
+| `proxy.service.announcePort` | The externally-reachable RESP port for the gossip control plane. Defaults to the proxy Service port `6379`; override it only when an external load balancer exposes that port under a different number. |
+
+<Directive type="warning" title="announceAddress rules">
+* A **DNS name is recommended**: the module re-resolves it on every dial, so it survives IP changes, and a multi-A record can cover several NodePort addresses. When the announce address is a DNS name, the operator binds it to the proxy Service through ExternalDNS.
+* A **bare IP is accepted with a warning** — it will not re-resolve after an IP change, so it is only appropriate for a stable VIP.
+* Leaving it **empty produces a warning** and the module advertises the pod IP, which is not routable across datacenters.
+* An address containing a scheme (`tcp://…`), a port (`host:7379`), or a path is **rejected**. The port belongs in `announcePort`.
+</Directive>
+
+<Directive type="warning" title="announcePort does not affect the data plane">
+`announcePort` applies to the gossip control plane only. The module always advertises its own local peer port (`7379`) for replication, so any external endpoint must expose `7379` as `7379`.
+</Directive>
+
+## Step 2: Create an ActiveRedisMesh in each cluster
+
+Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the externally-routable proxy RESP addresses of members in other datacenters.
+
+```bash
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisMesh
+metadata:
+  name: mesh-dc1
+spec:
+  instance: s72-dc1
+  seeds:
+  - redis-dc2.example.com:6379
+  - redis-dc3.example.com:6379
+EOF
+```
+
+### Seed syntax
+
+A seed is `host:port`, where the port is the remote proxy's RESP endpoint — normally `6379`. An optional `@peer-port` suffix overrides the peer port when an external load balancer remaps it; when the suffix is omitted the operator appends the conventional `7379`. The operator normalizes the list before injecting it, so `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`.
+
+<Directive type="info" title="Seeds are a bootstrap list, not a membership list">
+One reachable seed per remote datacenter is enough — gossip discovers everything else. The local member's own entry may be included, so every datacenter can carry the same uniform seed list; the module skips its own record.
+</Directive>
+
+The operator injects the normalized set on **every** node, replicas included, so the mesh auto-starts on every pod. Restart and failover re-entry are therefore zero-touch.
+
+### Optional fields
+
+| Field | Description |
+|:------|:------------|
+| `pause` | Suspends mesh participation. Defaults to `false`. |
+| `enableTLS` | Enables TLS for the peer transport. |
+| `tuning` | Optional gossip and membership timers. See [Tuning](#tuning). |
+| `secretName` | **Deprecated and ignored.** The peer-auth credential is the instance-level `RedisUser` binding. |
+
+## Step 3: Verify convergence
+
+```bash
+$ kubectl -n default get activeredismesh
+NAME       INSTANCE   PHASE     MEMBERS   ALIVE   AGE
+mesh-dc1   s72-dc1    Healthy   3         3       2m
+```
+
+```bash
+$ kubectl -n default get activeredismesh mesh-dc1 -o yaml
+...
+status:
+  phase: Healthy
+  instance: s72-dc1
+  epoch: 7
+  memberCount: 3
+  aliveCount: 3
+  suspectCount: 0
+  deadCount: 0
+  fleetFloorVersion: "7.2"
+  versionConverged: true
+  members:
+  - uid: 9f2c1a...
+    serviceID: 0
+    shardID: 0
+    address: redis-dc1.example.com
+    state: alive
+    epoch: 7
+    clockOffsetMs: 2
+    version: "7.2"
+    moduleVersion: 10
+  - uid: 4b81d3...
+    serviceID: 1
+    shardID: 0
+    address: redis-dc2.example.com
+    state: alive
+    epoch: 7
+    clockOffsetMs: -5
+    version: "7.2"
+    moduleVersion: 10
+```
+
+### Mesh phases
+
+| Phase | Meaning |
+|:------|:--------|
+| `Healthy` | Membership is converged and every known member is alive. |
+| `Degraded` | The mesh is operating with suspect or dead members. |
+| `Pending` | No ready master could be reached to read membership yet — the bootstrap window, or an outage. |
+| `Paused` | `spec.pause` is `true`. |
+| `Failed` | The mesh could not be configured; `status.message` carries the reason (for example `invalid mesh seed`). |
+
+### Member states
+
+A member is `alive`, `suspect`, or `dead`. `suspect` is an intermediate state entered when gossip stops hearing from a member; it becomes `dead` after the dead timeout elapses.
+
+### Version fields
+
+`status.fleetFloorVersion` reports the lowest Redis version across non-dead members that report a known version — the feature ceiling for the whole mesh. `status.versionConverged` is `true` once every non-dead member runs the same Redis and module version.
+
+<Directive type="info" title="versionConverged is false during a rolling upgrade">
+This is expected and handled by the module; it does not fail the mesh phase. It becomes `true` again once the fleet converges.
+</Directive>
+
+## Tuning
+
+`spec.tuning` pushes optional gossip and membership timers to every node.
+
+| Field | Module default | Description |
+|:------|:---------------|:------------|
+| `gossipIntervalMs` | `1000` | The gossip round interval. |
+| `suspectTimeoutMs` | `8000` | How long before an unresponsive member becomes `suspect`. |
+| `deadTimeoutMs` | `15000` | How long before a suspect member becomes `dead`. |
+| `banTTLMs` | approximately 1 hour | The base ban duration applied after a member is forgotten. |
+| `maxClockSkewMs` | `0` (disabled) | An advisory clock-skew alarm threshold. |
+
+```bash
+$ kubectl -n default patch activeredismesh mesh-dc1 --type=merge \
+    --patch='{"spec": {"tuning": {"gossipIntervalMs": 500}}}'
+```
+
+<Directive type="warning" title="Tuning values are sticky (alpha)">
+Only fields with a value greater than zero are pushed. Clearing a previously-set field does **not** reset already-configured pods — they keep the last value until they restart. The module cross-validates the combination and rejects an inconsistent one, which surfaces on the mesh status.
+</Directive>
+
+## Managing membership
+
+### Adding a member
+
+Enable mesh mode on the new instance (Step 1), then create its `ActiveRedisMesh` with the existing members as seeds. The new member joins and is discovered by the whole mesh through gossip — existing members do **not** need their seed lists updated for the mesh to converge. Updating them is still recommended, so that a member that restarts while the original seeds are unreachable can still rejoin.
+
+### Removing a member
+
+1. Remove the departing member's address from the surviving members' `spec.seeds`.
+2. Delete the departing member's `ActiveRedisMesh` resource, and then its `Redis` instance.
+
+<Directive type="warning" title="No orchestrated forget (alpha limitation)">
+There is no resource-level orchestration for forgetting or unbanning a departed member. Its record ages out of the surviving members' membership on the module's own timers, during which the mesh phase may report `Degraded`. Surviving members continue replicating with each other throughout.
+</Directive>
+
+## Limitations
+
+Mesh mode inherits the constraints listed in [Limitations and Risks](./90-limitations.mdx), including matching architectures and shard layouts across members, the `[0-15]` `serviceID` range, and RDB-only persistence.
