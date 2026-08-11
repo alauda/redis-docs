@@ -1,7 +1,7 @@
 # Terminology candidates — unconfirmed
 
 Terms introduced by the v5.1.0 documentation update (active-active replication:
-peer-of and mesh; Redis 8.4 withdrawal). None of them are registered, because
+peer-of and mesh). None of them are registered, because
 this repository has no `TERMINOLOGY.md` — `CLAUDE.md` / `AGENTS.md` reference
 `docs/agent/TERMINOLOGY.md`, `TECHNICAL_WRITING_POLICY.md`,
 `ARCHITECTURE_FACTS.md`, and `SOURCE_POLICY.md`, and none of those files exist

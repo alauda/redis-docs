@@ -64,10 +64,6 @@ Replication between a Redis `6.0` instance and a Redis `7.2` instance is **not a
 To move an existing Redis `6.0` replication group onto the new module, follow [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
 </Directive>
 
-<Directive type="info" title="Redis 8.4">
-The new module also targets Redis `8.4`, but Alauda Cache Service for Redis OSS v5.1.0 ships no Redis `8.4` server image. See [Release Notes](../../release_notes.mdx) for details.
-</Directive>
-
 ## Architecture Description
 
 To simplify the complexity of accessing the replication system for different Redis architectures, we have designed a dedicated proxy layer. As the core component of the system, the proxy layer provides a unified status detection and data synchronization entry point for Sentinel and cluster modes. Regardless of the deployment form of the back-end Redis, peers interact through this unified proxy interface. The proxy layer is responsible for encapsulating the internal logic of communication with the specific architecture (Sentinel, cluster), thereby decoupling the replication system from the implementation details of the back-end Redis, which greatly simplifies the access and management of instances.

@@ -17,8 +17,8 @@ The following table shows the compatibility and support matrix between the Alaud
 | Alauda Cache Service for Redis OSS Version | Redis Versions         | ACP Version      |
 |:-------------------------------------------|------------------------|:-----------------|
 | v5.1.0                                     | 6.0.22, 7.2.15         | v4.1, v4.2, v4.3 |
-| v5.0.1                                     | 6.0.21, 7.2.14, 8.4.3  | v4.1, v4.2, v4.3 |
-| v5.0.0                                     | 6.0.21, 7.2.12, 8.4.2  | v4.1, v4.2, v4.3 |
+| v5.0.1                                     | 6.0.21, 7.2.14         | v4.1, v4.2, v4.3 |
+| v5.0.0                                     | 6.0.21, 7.2.12         | v4.1, v4.2, v4.3 |
 | v4.1.x                                     | 5.0.14, 6.0.20, 7.2.10 | v4.1, v4.2       |
 | v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x  | v4.0             |
 
@@ -57,20 +57,6 @@ The two module generations do not interoperate, so the whole group must be upgra
 
 The `ActiveRedis`, `ActiveRedisMesh`, and `ActiveRedisInspection` resources are documented under [Redis APIs](./apis/kubernetes_apis/redis/index.mdx).
 
-### Changes
-
-#### Redis 8.4 Is No Longer Shipped
-
-Alauda Cache Service for Redis OSS v5.1.0 ships **no Redis `8.4` server image**, because the Redis 8.x license terms do not permit redistribution. The supported Redis versions are `6.0` and `7.2`, and `7.2` is the default.
-
-<Directive type="danger" title="Migrate Redis 8.4 instances before upgrading">
-Upgrading the operator does not change the Redis version of existing instances, and it does not delete an already-running Redis `8.4` instance — its pods keep serving traffic. But the operator resolves an instance's server image from the shipped image set on every reconciliation, and v5.1.0 carries no `8.4` entry. A surviving Redis `8.4` instance therefore **fails to reconcile**: the operator can no longer manage it, and configuration changes, scaling, failover handling, and upgrades stop being applied to it.
-
-If you run Redis `8.4` instances on v5.0.x, migrate them to Redis `7.2` **before** upgrading to v5.1.0. See [Upgrade](./upgrade.mdx).
-</Directive>
-
-`spec.version` still accepts `8.4` as a value, so an operator instance can serve it if an `8.4` image is supplied out of band. This is outside the shipped configuration and is not covered by Alauda support.
-
 ### Fixed Issues
 
 {/* release-notes-for-bugs?template=mw-redis-v5.1.0-fixed&project=Middleware */}
@@ -100,10 +86,6 @@ If you run Redis `8.4` instances on v5.0.x, migrate them to Redis `7.2` **before
 ## v5.0.0
 
 ### New and Optimized Features
-
-#### Redis 8.4 Support
-
-Added support for Redis 8.4 (8.4.2), enabling users to provision and manage instances on the latest Redis Server release alongside the existing 6.0 and 7.2 series.
 
 #### Expanded APIs for Redis Modules
 

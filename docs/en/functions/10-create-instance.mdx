@@ -16,10 +16,6 @@ Following Redis versions are fully supported: `6.0` and `7.2`; other versions ar
   4. Active-active replication features introduced in v5.1.0 — including mesh mode — are available on `7.2` only.
 </Directive>
 
-<Directive type="note" title="Redis 8.4">
-  Alauda Cache Service for Redis OSS v5.1.0 ships no Redis `8.4` server image. Although the API still accepts `8.4` as a value for `spec.version`, an instance cannot be created on it with the images the product ships. See [Release Notes](../release_notes.mdx).
-</Directive>
-
 <Directive type="note" title="Architecture suggestion">
   `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your business's data and concurrency needs.
 </Directive>

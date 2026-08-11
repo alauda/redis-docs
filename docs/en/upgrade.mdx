@@ -40,8 +40,8 @@ The following matrix outlines the tested version combinations and their respecti
 | Alauda Cache Service for Redis OSS Version | Redis Server Versions      | ACP Version      |
 |:-------------------------------------------|:---------------------------|:-----------------|
 | v5.1.0                                     | 6.0.22, 7.2.15             | v4.1, v4.2, v4.3 |
-| v5.0.1                                     | 6.0.21, 7.2.14, 8.4.3      | v4.1, v4.2, v4.3 |
-| v5.0.0                                     | 6.0.21, 7.2.12, 8.4.2      | v4.1, v4.2, v4.3 |
+| v5.0.1                                     | 6.0.21, 7.2.14             | v4.1, v4.2, v4.3 |
+| v5.0.0                                     | 6.0.21, 7.2.12             | v4.1, v4.2, v4.3 |
 | v4.1.x                                     | 5.0.14, 6.0.20, 7.2.10     | v4.1, v4.2       |
 | v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x      | v4.0             |
 
@@ -57,18 +57,8 @@ Because ACP v4.3 requires Alauda Cache Service for Redis OSS v5.0.x, and v5.0.x 
 Confirm that no instance reports `5.0` in the `VERSION` column (for example, run `kubectl get redis -A`) before starting the ACP upgrade. Refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx) for the upgrade procedure.
 </Directive>
 
-<Directive type="danger" title="Migrate Redis 8.4 instances before upgrading to v5.1.0">
-Alauda Cache Service for Redis OSS v5.1.0 ships no Redis `8.4` server image, because the Redis 8.x license terms do not permit redistribution.
-
-The operator resolves an instance's server image from the shipped image set on every reconciliation. After the upgrade, a surviving Redis `8.4` instance keeps serving traffic from its running pods, but **fails to reconcile** — the operator can no longer manage it, so configuration changes, scaling, failover handling, and upgrades stop being applied.
-
-Before upgrading to v5.1.0, upgrade every Redis `8.4` instance to Redis `7.2`, and confirm that no instance reports `8.4` in the `VERSION` column:
-
-```bash
-$ kubectl get redis -A
-```
-
-Refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx) for the upgrade procedure. If an instance has active-active replication enabled, follow [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx) instead — the same constraints on group-wide coordination apply.
+<Directive type="note" title="Upgrading an active-active instance across Redis minor versions">
+If an instance has active-active replication enabled, its Redis version cannot be changed in isolation. Follow [Upgrade a Peer-of Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/50-upgrade-6.0-to-7.2.mdx), which coordinates the whole replication group.
 </Directive>
 
 ## Upgrade Strategies
