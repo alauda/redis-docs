@@ -59,7 +59,7 @@ spec:
                 description: |-
                   SecretName the secret name for redis authentication. for default user,
                   the password field is required. Optional: only the 6.0 legacy module
-                  authenticates the probe with this secret; the new (7.2/8.4) module uses
+                  authenticates the probe with this secret; the new (7.2) module uses
                   the instance-level peer-auth binding and ignores it.
                 type: string
               serviceID:

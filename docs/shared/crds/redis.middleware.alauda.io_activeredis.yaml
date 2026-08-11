@@ -1826,8 +1826,8 @@ spec:
               version:
                 description: |-
                   Version is the redis version of the bound instance. It selects the AA
-                  module generation: 6.0 uses the legacy module + proxy, 7.2/8.4 use the new
-                  module's native peer-port transport (no proxy).
+                  module generation: 6.0 uses the legacy module, 7.2 uses the new module's
+                  native peer-port transport.
                 type: string
             required:
             - phase

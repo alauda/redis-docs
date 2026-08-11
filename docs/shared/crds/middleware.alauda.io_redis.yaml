@@ -1645,13 +1645,13 @@ spec:
                     description: |-
                       RedisUserName names the RedisUser (same namespace) whose username/password
                       back the module's peer-auth credential (activeredis.peer-auth-user/-pass).
-                      The new module (7.2/8.4) REQUIRES peer-auth: without it every inbound peer
+                      The new module (7.2) REQUIRES peer-auth: without it every inbound peer
                       link (peerof and mesh) is rejected. The referenced RedisUser must target
                       this instance and be a custom account with at least one password, and the
                       SAME username/password must be bound on every instance participating in
                       the replication — the module rejects an inbound peer whose presented
                       username differs from the local peer-auth-user. Required when activeRedis
-                      is enabled on 7.2/8.4; ignored for the 6.0 legacy module.
+                      is enabled on 7.2; ignored for the 6.0 legacy module.
                     type: string
                   serviceID:
                     description: |-
@@ -6931,13 +6931,11 @@ spec:
               version:
                 description: |-
                   Version specifies the Redis version to deploy.
-                  Currently supports: 6.0, 6.2, 7.0, 7.2, 7.4, 8.0, 8.2, 8.4
+                  Currently supports: 6.0, 6.2, 7.0, 7.2, 7.4, 8.0, 8.2
 
                   The API accepts every version in the enum, but a version only deploys when the
                   installed bundle's ImageVersion carries a matching server image — today 6.0 and
-                  7.2. Redis 8.4 stays API-accepted while shipping no image (the bundle omits an
-                  8.4 server image for licensing reasons); deploying it requires supplying an 8.4
-                  image out of band.
+                  7.2.
                 enum:
                 - "6.0"
                 - "6.2"
@@ -6946,7 +6944,6 @@ spec:
                 - "7.4"
                 - "8.0"
                 - "8.2"
-                - "8.4"
                 type: string
             required:
             - arch

@@ -1,9 +1,9 @@
 # Terminology candidates — unconfirmed
 
-Terms introduced by the v5.1.0 documentation update (Cross-Datacenter
-Replication: the Disaster Recovery and Active-Active modes). None of them are
-registered, because
-this repository has no `TERMINOLOGY.md` — `CLAUDE.md` / `AGENTS.md` reference
+Terms introduced or changed by the v5.1.0 documentation update — the product
+rename to Alauda Cache Service E1, and Cross-Datacenter Replication with its
+Disaster Recovery and Active-Active modes. None of them are registered,
+because this repository has no `TERMINOLOGY.md` — `CLAUDE.md` / `AGENTS.md` reference
 `docs/agent/TERMINOLOGY.md`, `TECHNICAL_WRITING_POLICY.md`,
 `ARCHITECTURE_FACTS.md`, and `SOURCE_POLICY.md`, and none of those files exist
 in the repository.
@@ -25,6 +25,7 @@ Repository paths are relative to the sibling checkouts
 
 | Term as used in docs | Provenance | Note for the reviewer |
 |:---|:---|:---|
+| **Alauda Cache Service E1** | Product name. Renamed 2026-08-11 from "Alauda Cache Service for Redis OSS" (45 occurrences across `docs/en`, `doom.config.yml`, and `llms.txt`, including the site `title` and `logoText`). Applied to historical release-note sections too, so the docs use one name throughout. | Confirmed with the maintainer. Side effect worth noting: the product name no longer contains "Redis", which removes it from Redis Ltd's nominative-use requirements; remaining references to Redis in the docs describe compatibility with the Redis server and remain ordinary nominative use. |
 | **Cross-Datacenter Replication** | Umbrella name for the feature as a whole. Chosen 2026-08-11; replaces the earlier draft wording "active-active replication", which wrongly implied both modes were active-active. | Confirmed with the maintainer. |
 | **Disaster Recovery** (API value `peerof`) | `api/middleware/redis/v1alpha1/activeredis_types.go` — `ActiveRedisModePeerof` ("hot-standby / DR"), CRD enum value `peerof` | Display name for the mode; the API value stays `peerof` in YAML. Continues the name shipped in v4.1.0 ("Redis Disaster Recovery Support") and used by the Web Console tab. Confirmed with the maintainer 2026-08-11. |
 | **Active-Active** (API value `mesh`) | same file — `ActiveRedisModeMesh`; `activeredismesh_types.go` | Display name for the mode; the API value stays `mesh` in YAML. Chosen over "Mesh" because `mesh` collides with **Service Mesh** in the ACP console (`redis-frontend` uses `label="Service Mesh"`), and over "Multi-Active" because Cockroach Labs brands "Multi-Active Availability" as its own term. Confirmed with the maintainer 2026-08-11. |

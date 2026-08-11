@@ -9,7 +9,7 @@ title: Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
 # Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
 
 <Directive type="warning" title="Draft">
-This procedure is a **draft**. It describes the upgrade path implemented in Alauda Cache Service for Redis OSS v5.1.0, but it has not yet completed production validation. Rehearse it in a non-production environment, take a verified backup of every member first, and contact Alauda support before running it against production data.
+This procedure is a **draft**. It describes the upgrade path implemented in Alauda Cache Service E1 v5.1.0, but it has not yet completed production validation. Rehearse it in a non-production environment, take a verified backup of every member first, and contact Alauda support before running it against production data.
 </Directive>
 
 Redis `6.0` carries the frozen legacy replication module. Redis `7.2` carries the new module, which adds Active-Active mode, mandatory peer authentication, rotation-safe credentials, and the dedicated peer-port transport. Moving an existing Disaster Recovery group from `6.0` to `7.2` is an in-place version upgrade of every member, followed by re-wiring the links.

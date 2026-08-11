@@ -8,7 +8,7 @@ title: Upgrade
 
 # Upgrade
 
-The Alauda Cache Service for Redis OSS is engineered to provide service continuity and data security across all supported versions. This guide details version compatibility and outlines the recommended upgrade paths to facilitate a seamless transition for your environment.
+The Alauda Cache Service E1 is engineered to provide service continuity and data security across all supported versions. This guide details version compatibility and outlines the recommended upgrade paths to facilitate a seamless transition for your environment.
 
 <Directive type="tip" title="Upgrade Tips">
 Prior to upgrading a production environment, it is highly recommended to validate the upgrade process within a development or staging environment. This preliminary step helps identify and mitigate potential compatibility issues, including hardware-related conflicts, before they can affect production services.
@@ -16,7 +16,7 @@ Prior to upgrading a production environment, it is highly recommended to validat
 
 ## Version Compatibility Principles
 
-The Alauda Cache Service for Redis OSS adheres to semantic versioning principles, providing the following compatibility guarantees:
+The Alauda Cache Service E1 adheres to semantic versioning principles, providing the following compatibility guarantees:
 
 *   **Patch versions** (x.y.**z**) are fully backward and forward compatible within the same minor version series.
 *   **Minor versions** (x.**y**.z) maintain API and feature compatibility within the same major version.
@@ -37,7 +37,7 @@ The following matrix outlines the tested version combinations and their respecti
 
 {/* TODO(release): confirm the ACP version row for v5.1.0 before publishing — carried forward from v5.0.x. */}
 
-| Alauda Cache Service for Redis OSS Version | Redis Server Versions      | ACP Version      |
+| Alauda Cache Service E1 Version | Redis Server Versions      | ACP Version      |
 |:-------------------------------------------|:---------------------------|:-----------------|
 | v5.1.0                                     | 6.0.22, 7.2.15             | v4.1, v4.2, v4.3 |
 | v5.0.1                                     | 6.0.21, 7.2.14             | v4.1, v4.2, v4.3 |
@@ -46,13 +46,13 @@ The following matrix outlines the tested version combinations and their respecti
 | v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x      | v4.0             |
 
 <Directive type="note" title="ACP v4.3 Compatibility">
-Alauda Cache Service for Redis OSS v4.1.x and v4.0.x have not been tested on ACP v4.3. Before upgrading to ACP v4.3, please upgrade Alauda Cache Service for Redis OSS to v5.0.0 or later first.
+Alauda Cache Service E1 v4.1.x and v4.0.x have not been tested on ACP v4.3. Before upgrading to ACP v4.3, please upgrade Alauda Cache Service E1 to v5.0.0 or later first.
 </Directive>
 
 <Directive type="warning" title="Upgrade Redis 5.0 instances before upgrading to ACP v4.3">
-Upgrading the Alauda Cache Service for Redis OSS operator does **not** automatically upgrade the Redis version of existing instances; each instance's Redis version must be upgraded explicitly.
+Upgrading the Alauda Cache Service E1 operator does **not** automatically upgrade the Redis version of existing instances; each instance's Redis version must be upgraded explicitly.
 
-Because ACP v4.3 requires Alauda Cache Service for Redis OSS v5.0.x, and v5.0.x no longer supports Redis `5.0`, you must first upgrade every Redis `5.0` instance to a supported version (`6.0` or `7.2`) **before** upgrading from an ACP version earlier than v4.3 to v4.3.
+Because ACP v4.3 requires Alauda Cache Service E1 v5.0.x, and v5.0.x no longer supports Redis `5.0`, you must first upgrade every Redis `5.0` instance to a supported version (`6.0` or `7.2`) **before** upgrading from an ACP version earlier than v4.3 to v4.3.
 
 Confirm that no instance reports `5.0` in the `VERSION` column (for example, run `kubectl get redis -A`) before starting the ACP upgrade. Refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx) for the upgrade procedure.
 </Directive>
@@ -81,7 +81,7 @@ If an instance has cross-datacenter replication enabled, its Redis version canno
 
 ## Upgrade Steps
 
-1.  Download the target version of the `Alauda Cache Service for Redis OSS` plugin from AlaudaCloud to a node that has access to your ACP cluster.
+1.  Download the target version of the `Alauda Cache Service E1` plugin from AlaudaCloud to a node that has access to your ACP cluster.
 2.  Utilize the `violet` package management tool to upload the plugin to the target cluster. For detailed instructions, refer to the <ExternalSiteLink name="acp" href="extend/upload_package.html" children="Upload Packages" /> documentation.
 3.  Upgrades follow the strategy configured in the Subscription:
     *   `Automatic Upgrade`: The plugin upgrades automatically upon upload.
@@ -101,7 +101,7 @@ If an instance has cross-datacenter replication enabled, its Redis version canno
            </Tab>
            <Tab label="Web Console">
            - Log in to the web console and switch to the Administrator view.
-           - Navigate to **Marketplace** > **OperatorHub** > **Alauda Cache Service for Redis OSS detail page**.
+           - Navigate to **Marketplace** > **OperatorHub** > **Alauda Cache Service E1 detail page**.
            - Click the **Confirm** link in the **New Version Detected** notification, then click the **Confirm** button in the subsequent dialog to approve the update.
            - If the **New Version Detected** notification does not appear, no upgrade is available.
            </Tab>

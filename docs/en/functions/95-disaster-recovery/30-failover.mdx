@@ -22,7 +22,7 @@ In a disaster recovery group, when the upstream fails, the synchronization link 
 
 ### Failover Timing Description
 
-When a failure occurs at the upstream of the replication group, the Alauda Cache Service for Redis OSS on the downstream side will detect that the link with the upstream is interrupted. At this time, the status of the `ActiveRedisConnection` resource will be abnormal, and the Web Console of the downstream instance will prompt that a disaster recovery switch can be performed.
+When a failure occurs at the upstream of the replication group, Alauda Cache Service E1 on the downstream side will detect that the link with the upstream is interrupted. At this time, the status of the `ActiveRedisConnection` resource will be abnormal, and the Web Console of the downstream instance will prompt that a disaster recovery switch can be performed.
 
 <Directive type="danger" title="Disaster Recovery Switching Risk Description">
 <strong style={{color: "red"}}>It should be noted that this abnormal prompt is only an interactive alarm prompt and should not be used as the sole basis for judging that the client can perform a disaster recovery switch.</strong>
@@ -171,5 +171,5 @@ OR
 ```
 
 <Directive type="warning" title="Support Description">
-Alauda Cache Service for Redis OSS currently does not provide support for client-side disaster recovery switching. Customers need to implement a suitable client switching method according to their own infrastructure.
+Alauda Cache Service E1 currently does not provide support for client-side disaster recovery switching. Customers need to implement a suitable client switching method according to their own infrastructure.
 </Directive>

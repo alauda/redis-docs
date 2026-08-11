@@ -100,7 +100,7 @@ spec:
                 description: |-
                   SecretName the secret name for redis authentication (username/password
                   keys). Required for the 6.0 legacy module ONLY — enforced by the
-                  admission webhook, not the schema. The new (7.2/8.4) module ignores it:
+                  admission webhook, not the schema. The new (7.2) module ignores it:
                   its peer links authenticate with the instance-level peer-auth binding
                   (Redis spec.activeRedis.redisUserName), the same credential in every DC.
                 type: string

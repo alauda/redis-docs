@@ -40,7 +40,7 @@ spec:
       openAPIV3Schema:
         description: |-
           ActiveRedisMesh is the Schema for the activeredismeshes API. It drives full
-          gossip active-active (mesh mode) for the new 7.2/8.4 module.
+          gossip active-active (mesh mode) for the new 7.2 module.
         properties:
           apiVersion:
             description: |-
