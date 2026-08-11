@@ -27,7 +27,7 @@ The setup procedure differs between the two module generations. Follow the secti
 Replication between Redis `6.0` and Redis `7.2` is not supported. See [Module generations and version applicability](./10-intro.mdx#module-generations-and-version-applicability).
 </Directive>
 
-## Redis 7.2 — new module
+## Redis 7.2 — new module \{#redis-72--new-module}
 
 The new module requires a **peer-auth credential**: every instance in the replication group binds a `RedisUser` through `spec.activeRedis.redisUserName`. The operator pushes that credential to every node, and both inbound and outbound peer links authenticate with it. Without it the module rejects all inbound peer replication.
 
@@ -43,7 +43,7 @@ The peer-auth `RedisUser` must satisfy all of the following, otherwise link crea
 * The Secret is **dedicated** to this `RedisUser`; sharing a password Secret across `RedisUser` resources is rejected by admission for peer-auth users.
 * `status.phase` is `Success`.
 
-### Step 1: Create the peer-auth credential in each datacenter
+### Step 1: Create the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
 
 Perform these steps in **both** datacenters, using the same username and the same password value.
 
@@ -204,7 +204,7 @@ status:
 
 > The native Redis Sentinel mode does not have the concept of shards. Here, a master-replica pair of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
 
-## Redis 6.0 — legacy module
+## Redis 6.0 — legacy module \{#redis-60--legacy-module}
 
 <Directive type="warning" title="Legacy implementation">
 Redis `6.0` carries the frozen legacy module, kept for compatibility with existing instances. It supports peer-of only — no mesh mode, and no module-level peer authentication. Creating an active-active instance on Redis `6.0` returns an admission warning recommending Redis `7.2`. For new deployments, use Redis `7.2`.
@@ -380,7 +380,7 @@ Before a connection is accepted, the platform runs a set of pre-flight checks ag
 
 On Redis `7.2` the inspection dials with the peer-auth credential the data path will actually use, so a successful inspection also confirms that both datacenters carry the same credential. It additionally performs a TCP dial against the upstream peer port (`7379`).
 
-## Removing a connection
+## Removing a connection \{#removing-a-connection}
 
 Deleting an `ActiveRedisConnection` tears the link down according to its `spec.teardownPolicy`:
 

@@ -51,7 +51,7 @@ After replication is enabled, the module writes AUX information records such as 
 
 For the same reason, `spec.activeRedis.serviceID` is immutable after creation. Both removing `spec.activeRedis` and changing `serviceID` are rejected by admission.
 
-### AOF persistence is not supported (Redis 7.2)
+### AOF persistence is not supported (Redis 7.2) \{#aof-persistence-is-not-supported-redis-72}
 
 The new module is RDB-only. Its CRDT metadata and the Oplog resume offset persist only in the RDB auxiliary section, which AOF cannot carry. Setting `appendonly: "yes"` is rejected by admission; if it is somehow set at runtime, the module puts the node into a **degraded read-only** state in which all writes are rejected — both local application writes and replicated writes from peers.
 
@@ -103,7 +103,7 @@ In mesh mode on Redis `7.2`, a DNS name is the recommended form for the announce
 
 An instance with replication enabled writes Oplogs to storage in real time (fsync is executed once per second); when the Oplog reaches the limited size (3 GB), the Oplog file is cut; the cleaning logic regularly marks unused Oplog slice files and cleans them up in time. Therefore, the above will have the storage logic of Oplog reading and writing and RDB generation at the same time, which will increase the pressure on storage. It is recommended to use local SSD as storage to ensure persistence performance.
 
-#### For replication instances, it is recommended to use the RDB parameter template
+#### For replication instances, it is recommended to use the RDB parameter template \{#for-replication-instances-it-is-recommended-to-use-the-rdb-parameter-template}
 
 Using the RDB parameter template, combined with the `save` parameter, actively triggers snapshots and actively triggers the cleaning of Oplogs, which can ensure that new downstream instance connections can quickly synchronize snapshots.
 

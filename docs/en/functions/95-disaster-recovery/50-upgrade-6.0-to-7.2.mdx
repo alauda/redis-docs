@@ -166,7 +166,7 @@ Confirm that:
 
 Then restore normal client traffic.
 
-## Automatic peer-auth provisioning
+## Automatic peer-auth provisioning \{#automatic-peer-auth-provisioning}
 
 The new module makes the peer-auth binding mandatory, which would otherwise block the very update that performs the upgrade. The platform handles this specific transition:
 
@@ -180,7 +180,7 @@ Provisioning triggers only on this transition, and only for the deterministic `<
 * a mistyped manual binding surfaces as `RedisUser not found` rather than being silently created.
 </Directive>
 
-### When automatic provisioning is on hold
+### When automatic provisioning is on hold \{#when-automatic-provisioning-is-on-hold}
 
 The mint is skipped, and the binding points at a `RedisUser` that does not exist, in these cases:
 

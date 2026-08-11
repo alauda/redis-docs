@@ -171,7 +171,7 @@ A member is `alive`, `suspect`, or `dead`. `suspect` is an intermediate state en
 This is expected and handled by the module; it does not fail the mesh phase. It becomes `true` again once the fleet converges.
 </Directive>
 
-## Tuning
+## Tuning \{#tuning}
 
 `spec.tuning` pushes optional gossip and membership timers to every node.
 
@@ -198,7 +198,7 @@ Only fields with a value greater than zero are pushed. Clearing a previously-set
 
 Enable mesh mode on the new instance (Step 1), then create its `ActiveRedisMesh` with the existing members as seeds. The new member joins and is discovered by the whole mesh through gossip — existing members do **not** need their seed lists updated for the mesh to converge. Updating them is still recommended, so that a member that restarts while the original seeds are unreachable can still rejoin.
 
-### Removing a member
+### Removing a member \{#removing-a-member}
 
 1. Remove the departing member's address from the surviving members' `spec.seeds`.
 2. Delete the departing member's `ActiveRedisMesh` resource, and then its `Redis` instance.
