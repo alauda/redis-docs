@@ -67,17 +67,19 @@ An `ActiveRedisConnection` name is used verbatim as the module's peer name, whic
 
 ## Command limitations
 
+**[Command Support](./60-commands.mdx) is the complete reference** — which commands are refused with an error, which execute locally and never replicate, which write commands are replicated and how each one resolves a conflict, and what the legacy Redis `6.0` module does differently. This section lists only the constraints that shape a deployment.
+
 ### Some commands are not replicated
 
-The following commands execute on the local node but are **never replicated** to peers. Each datacenter's state for them is independent.
+Pub/sub (`PUBLISH`/`SPUBLISH` and the `SUBSCRIBE` family), every stream command including all consumer-group operations, and the cluster-resharding pair `MIGRATE`/`RESTORE-ASKING` execute on the local node and are **never replicated**. Each datacenter's state for them is independent, and there is no error. If you need cross-datacenter pub/sub or streams, use a message-queue component.
 
-| Commands | Behavior | Notes |
-|:---------|:---------|:------|
-| `PUBLISH`/`SPUBLISH` and the `SUBSCRIBE` family | Node-local | Pub/sub is ephemeral and per-connection. Use an MQ component if cross-datacenter delivery is required. |
-| Stream commands — `XADD`, `XDEL`, `XTRIM`, `XSETID`, and all consumer-group operations | Local-only | Each datacenter's streams are self-contained. Use an MQ component as an alternative. On Redis `7.2`, setting a TTL on a stream key is refused, because a replicated expiry would delete peers' unrelated local streams. |
-| `MIGRATE`, `RESTORE-ASKING` | Local-only | Intra-datacenter cluster resharding is a per-datacenter topology operation. |
+On Redis `7.2`, setting a TTL on a stream key is additionally refused, because a replicated expiry would delete peers' unrelated local streams.
 
-On Redis `6.0` this list also covers the legacy module's unsupported write commands (`migrate`, pub/sub-related and stream-related commands).
+### MOVE, SWAPDB, and RESTORE are refused (Redis 7.2)
+
+The new module refuses these three commands outright — in **both** Disaster Recovery and Active-Active mode — because their effect cannot be made to converge across peers. Applications that use them must be changed before the instance joins a replication group. See [Refused with an error](./60-commands.mdx#refused-with-an-error).
+
+The legacy Redis `6.0` module does not refuse them.
 
 ### FLUSHALL and FLUSHDB are refused while peers are attached (Redis 7.2)
 
@@ -85,7 +87,17 @@ A flush executes locally and is never replicated. Because a flush inside a live 
 
 To empty a replication group: remove the connections, flush each isolated instance, then re-create the connections. Alternatively, recreate the instances.
 
+<Directive type="warning" title="On Redis 6.0 a flush reaches the downstream">
+The legacy module has no such guard: it replicates `FLUSHALL` and `FLUSHDB`, so a flush on a Redis `6.0` upstream **also empties every downstream instance**. See [Redis 6.0 — the legacy module](./60-commands.mdx#redis-60-the-legacy-module).
+</Directive>
+
 ## Operational risks
+
+### Active-Active requires synchronized clocks across datacenters (Redis 7.2)
+
+Conflict resolution is decided by wall-clock time, and the retention floor for tombstones is measured in wall-clock time. A member whose clock runs ahead silently wins conflicts it should have lost, and skew approaching 150 s can let a deleted element reappear. The module measures the skew and alarms on it, but it never blocks a write and never drops a peer — synchronizing the clocks is the operator's responsibility.
+
+Run a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in an Active-Active group, and monitor the alarms. See [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement) for the measurement, the two alarm tiers, and how to confirm that skew caused a particular problem.
 
 ### The provided address of the upstream instance must be highly available
 

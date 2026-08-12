@@ -29,6 +29,7 @@ Active-Active mode (`spec.activeRedis.mode: mesh`) lets every datacenter serve r
 * Every member binds a peer-auth `RedisUser` with the **same username and password value**, exactly as described in [Set Up Disaster Recovery Replication](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter). Active-Active links authenticate with the same credential.
 * Each member has a distinct `serviceID` in the range `[0-15]`.
 * Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
+* **The system clocks of all members are synchronized**, through a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the group. This is a hard prerequisite, not a recommendation — see [Clock synchronization](#clock-synchronization-requirement).
 
 ## Step 1: Enable Active-Active mode on each instance
 
@@ -165,6 +166,8 @@ status:
 
 A member is `alive`, `suspect`, or `dead`. `suspect` is an intermediate state entered when gossip stops hearing from a member; it becomes `dead` after the dead timeout elapses.
 
+`clockOffsetMs` is each member's clock offset relative to this instance, in milliseconds. See [Clock synchronization](#clock-synchronization-requirement).
+
 ### Version fields
 
 `status.fleetFloorVersion` reports the lowest Redis version across non-dead members that report a known version — the feature ceiling for the whole mesh. `status.versionConverged` is `true` once every non-dead member runs the same Redis and module version.
@@ -172,6 +175,82 @@ A member is `alive`, `suspect`, or `dead`. `suspect` is an intermediate state en
 <Directive type="info" title="versionConverged is false during a rolling upgrade">
 This is expected and handled by the module; it does not fail the mesh phase. It becomes `true` again once the fleet converges.
 </Directive>
+
+## Clock synchronization \{#clock-synchronization-requirement}
+
+<Directive type="warning" title="Synchronized clocks are a prerequisite for Active-Active">
+The module **measures and alarms on** clock skew, but it never blocks a write and never drops a peer because of it. Keeping the clocks of every member synchronized is the operator's responsibility. Run a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the replication group, preferably against a common time source, and monitor the alarms described below.
+
+This requirement is specific to Active-Active. In Disaster Recovery mode only the upstream takes application writes, so there are no concurrent conflicting writes for a skewed clock to arbitrate.
+</Directive>
+
+### Why the clocks matter \{#why-the-clocks-matter}
+
+Both of the effects below are proportional to how far the clocks are apart, and neither produces an error at the time it happens.
+
+* **Conflict resolution is decided by wall-clock time.** The last-write-wins rule compares a Hybrid Logical Clock whose physical component is the local wall-clock millisecond. A member whose clock runs ahead of the others therefore wins conflicts it should have lost: a value written *later* in real time on another member is silently overwritten by the earlier write from the fast member. Every last-write-wins command in [Command Support](./60-commands.mdx#replicated-write-commands) is affected — including the per-field resolution used by hashes and sorted sets.
+* **Deleted data can come back.** A deletion is retained as a [tombstone](./60-commands.mdx#deleted-data-occupies-memory) until every active member has acknowledged it *and* the tombstone is at least five minutes old. That age floor is measured in wall-clock time. Once skew approaches half of it, a tombstone can be released on one member while a concurrent addition from a skewed member is still in flight, and the deleted element reappears there. This is a genuine convergence break, not a transient inconsistency.
+
+### How the difference is measured \{#how-the-difference-is-measured}
+
+* At the peer-port handshake, members exchange four timestamps and compute a round-trip-corrected offset — the same calculation NTP uses. Of the samples taken for a peer, the one with the shortest round trip is kept, and it is replaced when it goes stale, so queueing delay does not bias the reading.
+* Between handshakes, gossip refreshes a coarser offset for every member roughly once per gossip round.
+* About once per second the module takes the largest absolute offset across all members as the current skew, and evaluates the two alarm tiers against it.
+
+An offset is always reported as `remote clock − local clock` in milliseconds, relative to the member you read it from. A **positive** value means the listed member's clock is **ahead** of the one you are reading.
+
+### Alarm tiers \{#alarm-tiers}
+
+| Tier | Threshold | Consequence |
+|:-----|:----------|:------------|
+| Advisory | `spec.tuning.maxClockSkewMs` — module default `2000` ms | Conflict resolution is skewed and a fast clock wins, but the members still converge. Logged as a warning; counted in `clock_skew_violations`. |
+| Critical | Fixed at `150000` ms (150 s) — half the five-minute tombstone age floor. Not configurable. | Deleted data can be resurrected on a member. Logged as `CRITICAL`; counted in `clock_skew_critical_violations`. Synchronize the clocks immediately. |
+
+An alarm clears on its own, with hysteresis, once the skew falls below 0.8 times its threshold. No restart is needed.
+
+### How to check the difference \{#how-to-check-the-difference}
+
+Start from the resource, which reports the offset to every member the local instance knows about:
+
+```bash
+$ kubectl -n default get activeredismesh mesh-dc1 \
+    -o jsonpath='{range .status.members[*]}{.address}{"\t"}{.state}{"\t"}{.clockOffsetMs}{"\n"}{end}'
+redis-dc1.example.com   alive   0
+redis-dc2.example.com   alive   -5
+redis-dc3.example.com   alive   4180
+```
+
+For the aggregated gauges and the attribution flag, read them on the instance itself:
+
+```bash
+$ redis-cli INFO activeredis | grep -E \
+    'mesh_max_clock_skew_ms|current_max_skew_ms|peak_skew_ms|clock_skew_violations|clock_skew_critical_violations|local_clock_is_outlier'
+```
+
+| Field | Meaning |
+|:------|:--------|
+| `mesh_max_clock_skew_ms` | The advisory threshold currently in effect on this node. |
+| `current_max_skew_ms` | The largest absolute offset to any member right now. This is the measurement to alert on. |
+| `peak_skew_ms` | The high-water mark since the node started. |
+| `clock_skew_violations` | How many advisory episodes have occurred. |
+| `clock_skew_critical_violations` | How many critical episodes have occurred. |
+| `local_clock_is_outlier` | `1` when **this** node's clock is the one that disagrees with all the others. |
+
+Per-member offsets are also available directly from the module, as `clock_offset_ms` on each line:
+
+```bash
+$ redis-cli as.mesh nodes
+```
+
+### How to confirm that clock skew caused a problem \{#how-to-confirm-that-clock-skew-caused-a-problem}
+
+1. **Confirm an alarm actually fired.** `clock_skew_violations` or `clock_skew_critical_violations` is non-zero, and the Redis log carries the matching line. The advisory line begins `clock-skew advisory:` and the critical line begins `CRITICAL clock-skew (resurrection risk):`; both name the offending member's `svc=` (its `serviceID`) and the measured offset. A problem that predates any alarm is not a skew problem.
+2. **Identify which clock is wrong.** If `local_clock_is_outlier` is `1`, this node's clock is the outlier and this node is the one to fix. Otherwise the wrong clock belongs to the member with the largest `clockOffsetMs`.
+3. **Check that attribution is even possible.** Blame can only be assigned with at least three members. In a two-member group the module can report only that the pair disagrees; compare both nodes against an external time reference instead.
+4. **Match the symptom to the tier.** A value that was written later in real time but lost to an earlier write matches the advisory tier. An element that was deleted and later reappeared on one member matches the critical tier — check whether `clock_skew_critical_violations` rose in the same window.
+5. **Do not read `hlc_drift_rejected` as a skew measurement.** That counter, in the `crdt` section of `INFO activeredis`, counts writes that lost the timestamp comparison. It rises during ordinary concurrent writes as well. It is a corroborating symptom when it climbs alongside a non-zero `current_max_skew_ms`, nothing more — `current_max_skew_ms` is the measurement.
+
+Once the offending clock is corrected the alarm clears by itself. Data that was already resolved the wrong way is **not** re-resolved: a value lost to a skewed comparison stays lost, and a resurrected element stays resurrected until it is deleted again.
 
 ## Tuning \{#tuning}
 
@@ -183,7 +262,13 @@ This is expected and handled by the module; it does not fail the mesh phase. It 
 | `suspectTimeoutMs` | `8000` | How long before an unresponsive member becomes `suspect`. |
 | `deadTimeoutMs` | `15000` | How long before a suspect member becomes `dead`. |
 | `banTTLMs` | approximately 1 hour | The base ban duration applied after a member is forgotten. |
-| `maxClockSkewMs` | `0` (disabled) | An advisory clock-skew alarm threshold. |
+| `maxClockSkewMs` | `2000` | The advisory clock-skew alarm threshold, in milliseconds. See [Clock synchronization](#clock-synchronization-requirement). |
+
+<Directive type="warning" title="maxClockSkewMs cannot be disabled through the resource">
+The API description of `maxClockSkewMs` says that `0` disables the alarm. That is true of the module setting, but it cannot be reached through `spec.tuning`: only values greater than zero are pushed to the nodes, so `0` means "push nothing" — the module keeps its own default of `2000` ms, or whatever value was last pushed.
+
+Raising the threshold only silences the advisory tier. The critical tier is fixed at 150 s and cannot be changed or disabled.
+</Directive>
 
 ```bash
 $ kubectl -n default patch activeredismesh mesh-dc1 --type=merge \
@@ -212,3 +297,5 @@ There is no resource-level orchestration for forgetting or unbanning a departed 
 ## Limitations
 
 Active-Active mode inherits the constraints listed in [Limitations and Risks](./90-limitations.mdx), including matching architectures and shard layouts across members, the `[0-15]` `serviceID` range, and RDB-only persistence.
+
+Because every member accepts writes, Active-Active exercises the conflict-resolution rules continuously. Read [Command Support](./60-commands.mdx) before pointing an application at an Active-Active group — it lists which commands are refused, which run locally without replicating, and how each replicated command resolves a conflict.

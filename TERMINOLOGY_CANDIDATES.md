@@ -43,6 +43,26 @@ Repository paths are relative to the sibling checkouts
 | **seed** / **seed list** | `ActiveRedisMeshSpec.Seeds` | |
 | **pre-flight inspection** | `activeredisinspection_types.go`; `activeredisconnection_webhook.go` | Named after the Web Console `Inspect` action. |
 
+## Command support and clock synchronization (added 2026-08-11)
+
+Terms introduced by `docs/en/functions/95-disaster-recovery/60-commands.mdx`
+(Command Support) and the *Clock synchronization* section of `40-mesh.mdx`.
+Repository paths are relative to the sibling checkout
+`redis-group/redis-modules/active-redis`.
+
+| Term as used in docs | Provenance | Note for the reviewer |
+|:---|:---|:---|
+| **last-write-wins** | `src/crdt.zig`; `docs/reference/commands.md` policy legend ("LWW") | Industry-standard CRDT term. The docs spell it out rather than using the abbreviation LWW, which is never introduced. |
+| **additive counter** (PN-Counter) | same — policy `P` | PN-Counter is the standard name; "additive counter" is the plain-language gloss the docs lead with. Confirm the pairing. |
+| **add-wins set** (observed-remove set) | same — policy `A` | The implementation calls it an OR-Set. "Add-wins set" is chosen because it states the behavior a reader needs; the standard name is given in parentheses. Confirm. |
+| **element-level list** | `src/list_crdt.zig`; `docs/reference/commands.md` Lists section (an RGA — Replicated Growable Array) | **Coined for these docs.** RGA is the implementation term and is not customer-facing. "Element-level list" describes the observable property (every element has its own identity, so concurrent list changes converge). Needs confirmation, or a better phrase. |
+| **TTL register** | `src/crdt.zig` `ttlMerge`; `docs/reference/commands.md` policy `T` ("TTL-register") | Used unhyphenated in the docs. Confirm the spelling. |
+| **tombstone** | `src/tombstone.zig`; the `__arcr_tomb:` / `__arcr_ortomb:` / `__arcr_ftomb:` key families | Already used in `90-limitations.mdx` ("dead-key tombstones"). Now glossed on first use in `60-commands.mdx` and used consistently across the three pages; the earlier draft wording "deletion marker" was removed. |
+| **Hybrid Logical Clock** | `src/crdt.zig` (`hlc_value`, `hlc_physical_ms` in `INFO activeredis`) | Industry-standard term, written out in full; the abbreviation HLC is not used in the docs. |
+| **clock skew** — advisory tier / critical tier | `src/clockskew.zig` `Tier` (`advisory`, `critical`); `src/runtime.zig` `evalClockSkew` | The module's own words. The critical threshold is derived at `src/runtime.zig` from `CRDTState.TOMBSTONE_MIN_AGE_MS / 2` (`src/crdt.zig` — `300_000` ms), i.e. 150 s. |
+| **clock offset** | `activeredismesh_types.go` — `ClockOffsetMs`; module `clock_offset_ms` | Always `remote − local` in milliseconds, positive when the remote clock is ahead — the NTP sign convention, stated explicitly in the docs. |
+| **module generation guards** — "refused with an error" / "executed locally, never replicated" / "replicated" | `src/runtime.zig` `ActiveRedis_GlobalFilter`, `isForbiddenInActiveActive`, `isStreamLocalOnlyCmd`, `isFlushLocalOnlyCmd`; `src/command.zig` `rewrite_commands` | The three behavior classes the Command Support page is organized around. They are documentation categories, not names used in the code. Confirm. |
+
 ## Known inconsistencies to resolve
 
 1. **"Source side" / "Target side" (Web Console) vs. "upstream" / "downstream"
@@ -74,6 +94,23 @@ Repository paths are relative to the sibling checkouts
    "Disaster Recovery" tab now happens to be accurate for the `peerof` mode
    specifically. When Active-Active reaches the console, both the tab naming
    and the Source/Target labels should be aligned with this vocabulary.
+
+5. **`maxClockSkewMs` — the API description promises something the operator
+   cannot do.** `activeredismesh_types.go` documents the field as "the advisory
+   clock-skew alarm threshold (0 disables it)", and the generated CRD repeats
+   it. That is true of the module setting
+   `activeredis.mesh-max-clock-skew-ms`, but not of the resource:
+   `internal/controller/middleware/activeredis/meshconfig.go`
+   (`tuningConfigPairs`) pushes only values greater than zero, so `0` means
+   "push nothing" and the module keeps its default of `2000` ms — or whatever
+   value was last pushed, because the tuning fields are sticky. The
+   documentation states the actual behavior and flags the discrepancy; the
+   field description should be corrected in the operator.
+
+6. **`maxClockSkewMs` default was documented as `0`.** `40-mesh.mdx` previously
+   listed the module default as "`0` (disabled)". The module default is `2000`
+   ms (`src/config.zig`, `mesh-max-clock-skew-ms`; also
+   `src/context.zig`). Corrected 2026-08-11.
 
 ## Trademark scan (2026-08-11)
 
