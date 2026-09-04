@@ -1,11 +1,16 @@
-# Alauda Container Platform - Redis Operator Docs
+# Alauda Cache Service E1 Docs
 
-> Documentation for the Alauda Container Platform Redis operator: architecture, installation, lifecycle, upgrades, and operational how-tos.
+> Documentation for Alauda Cache Service E1: architecture, installation, lifecycle, upgrades, and operational how-tos.
 
 This index covers user-facing documentation under docs/en/ for managing
-Redis instances on Alauda Container Platform: installation, architecture,
-Kubernetes API references, function guides (creation, access, scaling,
-monitoring, disaster recovery), how-to guides, and troubleshooting.
+Alauda Cache Service E1 instances on Alauda Container Platform: installation,
+architecture, Kubernetes API references, function guides (creation, access,
+scaling, monitoring, disaster recovery), how-to guides, and troubleshooting.
+
+Redis® is a registered trademark of Redis Ltd. Any rights therein are
+reserved to Redis Ltd. Any use by Alauda is for referential purposes only and
+does not indicate any sponsorship, endorsement or affiliation between Redis
+Ltd. and Alauda.
 
 
 ## Root
