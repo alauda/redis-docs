@@ -1,0 +1,212 @@
+---
+weight: 50
+i18n:
+  title:
+    zh: 从 Redis 6.0 升级到 Redis 7.2
+title: Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
+---
+
+# Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2
+
+<Directive type="warning" title="Draft">
+This procedure is a **draft**. It describes the upgrade path implemented in Alauda Cache Service E1 v5.1.0, but it has not yet completed production validation. Rehearse it in a non-production environment, take a verified backup of every member first, and contact Alauda support before running it against production data.
+</Directive>
+
+Redis `6.0` carries the frozen legacy replication module. Redis `7.2` carries the new module, which adds Active-Active mode, mandatory peer authentication, rotation-safe credentials, and the dedicated peer-port transport. Moving an existing Disaster Recovery group from `6.0` to `7.2` is an in-place version upgrade of every member, followed by re-wiring the links.
+
+## What this upgrade involves
+
+<Directive type="warning" title="Replication is interrupted for the duration of the upgrade">
+The two module generations do not interoperate — cross-generation replication is not a designed path. A group cannot be upgraded member by member while continuing to replicate. Replication stops when the first member is upgraded and resumes only after **every** member is on Redis `7.2` and the links have been re-created.
+
+Plan a maintenance window that covers the whole group, and keep the client traffic on a single member for the duration.
+</Directive>
+
+Changes that take effect with the new module:
+
+| Area | Redis `6.0` | Redis `7.2` |
+|:-----|:------------|:------------|
+| Link authentication | The `ActiveRedisConnection` `spec.secretName` | A peer-auth `RedisUser` bound with `spec.activeRedis.redisUserName` |
+| Peer transport | Proxy RESP port (`6379`) | Proxy peer port (`7379`) |
+| Persistence | RDB recommended | RDB only — `appendonly=yes` is rejected |
+| Database count | Standard | `databases` must be `<= 16` |
+| Active-Active mode | Not available | Available |
+
+## Prerequisites
+
+Before starting, confirm each of the following for **every** member of the group.
+
+1. **The operator is on v5.1.0 or later** in every cluster that hosts a member.
+2. **A verified backup exists** for every member. See [Backup and Restore](../70-backup-restore.mdx).
+3. **Persistence is RDB-only.** If any member sets `customConfig.appendonly: "yes"`, the upgrade is rejected by admission. Change it to `no` before the upgrade.
+
+   ```bash
+   $ kubectl -n default get redis s6-dc1 -o jsonpath='{.spec.customConfig.appendonly}'
+   ```
+
+4. **The database count is 16 or fewer.** If any member sets `customConfig.databases` above `16`, the upgrade is rejected. The module refuses to load beyond 16 databases and the pods would crash-loop.
+
+   ```bash
+   $ kubectl -n default get redis s6-dc1 -o jsonpath='{.spec.customConfig.databases}'
+   ```
+
+5. **Port `7379` is reachable between datacenters.** The new module replicates exclusively over the proxy peer port. Update firewall rules and external load balancers to expose `7379` — unchanged, not remapped — on every member's proxy before you begin, so the links can be re-created at the end.
+6. **Record the current topology.** Note each member's `serviceID`, and which member holds the `ActiveRedisConnection` pointing at which upstream. You will re-create these links.
+
+   ```bash
+   $ kubectl -n default get activeredisconnections -o wide
+   $ kubectl -n default get redis s6-dc1 -o jsonpath='{.spec.activeRedis.serviceID}'
+   ```
+
+## Procedure
+
+### Step 1: Quiesce the group
+
+Direct client write traffic to the member you intend to keep as the upstream, and confirm the downstream members have caught up.
+
+```bash
+$ kubectl -n default get activeredisconnections
+NAME              INSTANCE   STATUS    MESSAGE   AGE
+conn-dc2-to-dc1   s6-dc2     Healthy             8d
+```
+
+Confirm `status.shards[].syncStatus` is `PartialSync` and the offsets are advancing before proceeding.
+
+### Step 2: Delete the connections
+
+Remove the `ActiveRedisConnection` in each downstream cluster. Use the default `Detach` teardown policy — the members are returning to the group after the upgrade, so their module-side bookkeeping should be retained.
+
+```bash
+$ kubectl -n default delete activeredisconnections conn-dc2-to-dc1
+```
+
+<Directive type="warning" title="Do not use Decommission here">
+`Decommission` permanently releases the peer's Oplog retention and tombstone garbage-collection floors and cannot be reversed. It is for a datacenter that is gone for good, not for an upgrade.
+</Directive>
+
+### Step 3: Upgrade each member to Redis 7.2
+
+Change `spec.version` on each member. The instance performs a rolling restart.
+
+```bash
+$ kubectl -n default patch redis s6-dc1 --type=merge --patch='{"spec": {"version": "7.2"}}'
+```
+
+Wait for the instance to return to `Ready` before upgrading the next member:
+
+```bash
+$ kubectl -n default get redis s6-dc1
+```
+
+<Directive type="info" title="Upgrade order">
+Because the links were deleted in Step 2, there is no live replication to order the upgrade around, so members may be upgraded in any order.
+
+The ordering rule matters for later, within-generation upgrades of a **live** group: the safe order is **downstream before upstream**, because a downstream can apply an equal-or-older upstream's Oplog but never a newer one. Bumping an upstream ahead of a live downstream returns an admission warning, and the module holds the affected edge — replication to that downstream pauses until the version skew is resolved.
+</Directive>
+
+### Step 4: Confirm the peer-auth binding
+
+The new module requires a peer-auth credential on every instance. On the in-place upgrade of an instance that already had cross-datacenter replication enabled, the platform provisions one automatically — see [Automatic peer-auth provisioning](#automatic-peer-auth-provisioning).
+
+Check what each member ended up with:
+
+```bash
+$ kubectl -n default get redis s6-dc1 -o jsonpath='{.spec.activeRedis.redisUserName}'
+s6-dc1-aa-peer
+
+$ kubectl -n default get redisusers s6-dc1-aa-peer
+NAME             INSTANCE   USERNAME     PHASE     AGE
+s6-dc1-aa-peer   s6-dc1     aapeerrepl   Success   2m
+```
+
+If the `RedisUser` does not exist, or its phase is not `Success`, the automatic provisioning is on hold. Resolve it as described in [When automatic provisioning is on hold](#when-automatic-provisioning-is-on-hold) before continuing.
+
+<Directive type="warning" title="Every member needs the same credential">
+The module accepts an inbound peer only when the username it presents matches the local peer-auth username. Automatic provisioning converges on the fixed username `aapeerrepl` in every datacenter, and derives the password from the shared connection Secret the group already used — so members that were wired to each other converge on the same value without coordination.
+
+If you bound credentials manually on any member, verify that **every** member carries the same username and the same password value before creating any link.
+</Directive>
+
+### Step 5: Re-create the connections
+
+Create the `ActiveRedisConnection` in each downstream cluster, now without `secretName` and with the peer port:
+
+```bash
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisConnection
+metadata:
+  name: conn-dc2-to-dc1
+spec:
+  instance: s6-dc2
+  addresses:
+  - 192.168.1.10:6379
+  peerPort: 7379
+  teardownPolicy: Detach
+EOF
+```
+
+Admission resolves the peer-auth binding, runs the pre-flight inspection with the credential the data path will use, and dials the upstream peer port. A failure at this point names the specific problem.
+
+### Step 6: Verify
+
+```bash
+$ kubectl -n default get activeredisconnections conn-dc2-to-dc1
+NAME              INSTANCE   STATUS    MESSAGE   AGE
+conn-dc2-to-dc1   s6-dc2     Healthy             45s
+```
+
+Confirm that:
+
+* the connection status is `Healthy`;
+* `status.credentialMode` is `peer-auth-global`;
+* `status.shards[].status` is `Connected` and the offsets advance;
+* the upstream's `ActiveRedis` reports the expected `status.downstreamPeerCount`;
+* a key written on the upstream appears on each downstream.
+
+Then restore normal client traffic.
+
+## Automatic peer-auth provisioning \{#automatic-peer-auth-provisioning}
+
+The new module makes the peer-auth binding mandatory, which would otherwise block the very update that performs the upgrade. The platform handles this specific transition:
+
+1. When you change `spec.version` from `6.0` to `7.2` on an instance that **already** has cross-datacenter replication enabled and carries no `spec.activeRedis.redisUserName`, the defaulting webhook fills in the deterministic name `<instance-name>-aa-peer`.
+2. The operator then mints a matching `RedisUser` with the fixed username `aapeerrepl`, plus a dedicated password Secret named `<instance-name>-aa-peer-secret`. The password **value** is copied from the instance's existing Redis `6.0` `ActiveRedisConnection` Secret — the credential the replication group already shared — so every datacenter converges on the same username and password independently.
+
+<Directive type="info" title="Scope of the automatic path">
+Provisioning triggers only on this transition, and only for the deterministic `<instance-name>-aa-peer` name:
+
+* a **fresh** instance created on Redis `7.2` with replication enabled must be given a binding explicitly — it is rejected without one;
+* a mistyped manual binding surfaces as `RedisUser not found` rather than being silently created.
+</Directive>
+
+### When automatic provisioning is on hold \{#when-automatic-provisioning-is-on-hold}
+
+The mint is skipped, and the binding points at a `RedisUser` that does not exist, in these cases:
+
+| Situation | Why | Resolution |
+|:----------|:----|:-----------|
+| The instance has no local `ActiveRedisConnection` carrying a Secret | There is nothing to derive the password from. This is normal for a pure upstream, whose downstreams' connection resources live in other clusters. | Create the peer-auth `RedisUser` manually and set `spec.activeRedis.redisUserName` to it. |
+| The instance's connection Secrets diverge | The operator cannot tell which credential the group shares. | Create the peer-auth `RedisUser` manually with the group's intended credential. |
+| The source Secret has no `password` key | There is no password to copy. | Create the peer-auth `RedisUser` manually. |
+
+In every case the resolution is the same: create the credential yourself, exactly as described in [Step 1 of the Disaster Recovery setup](./20-setup.mdx#step-1-create-the-peer-auth-credential-in-each-datacenter), using the **same username and password value across every member**, and bind it:
+
+```bash
+$ kubectl -n default patch redis s6-dc1 --type=merge \
+    --patch='{"spec": {"activeRedis": {"redisUserName": "s6-dc1-peer"}}}'
+```
+
+## After the upgrade
+
+Once the group is running on Redis `7.2`, the following become available:
+
+* **Active-Active mode**, in which every datacenter accepts writes instead of following a single upstream. See [Set Up Active-Active Replication](./40-mesh.mdx). Note that `spec.activeRedis.mode` selects the wiring for the instance; moving an established Disaster Recovery group to Active-Active is a separate change and is not covered by this procedure.
+* **Rotation-safe credentials.** Peer links no longer freeze the credential at wiring time, so rotating the peer-auth password no longer breaks the link on the next reconnect.
+* **Decommission teardown**, for permanently retiring a datacenter.
+
+## Known gaps in this draft
+
+* The procedure requires a full-group maintenance window. There is no supported way to upgrade a group while keeping replication live.
+* Downgrading from Redis `7.2` back to Redis `6.0` is not supported. If the upgrade must be abandoned, restore the members from the backups taken in the prerequisites.
+* The Web Console does not provide a guided flow for this upgrade; the steps above are CLI-driven.

@@ -5,14 +5,15 @@ sourceSHA: f9bfcbdca6540fe5c33b1d774fbf710c3808a2b3c37f3beb9c252bd5845b999e
 
 # Create Instance
 
-Following Redis versions are fully supported: `6.0`, `7.2`, `8.4`; other versions are not supported by default.
+Following Redis versions are fully supported: `6.0` and `7.2`; other versions are not supported by default.
 
 <Directive type="tip" title="Version suggestion">
-  When used in a production environment, it is recommended to prioritize the `7.2` or `8.4` version, followed by `6.0`.
+  When used in a production environment, it is recommended to prioritize the `7.2` version over `6.0`. `7.2` is the default version.
 
-  1. `7.2` and `8.4` are still maintained by the community and fix known issues in `6.0`. The `6.0` version is no longer maintained by the community.
-  2. `7.2` and `8.4` are fully compatible with `6.0`.
-  3. `7.2` and `8.4` have further improved the ACL features.
+  1. `7.2` is still maintained by the community and fixes known issues in `6.0`. The `6.0` version is no longer maintained by the community.
+  2. `7.2` is fully compatible with `6.0`.
+  3. `7.2` has further improved the ACL features.
+  4. Cross-datacenter replication features introduced in v5.1.0 — including Active-Active mode — are available on `7.2` only.
 </Directive>
 
 <Directive type="note" title="Architecture suggestion">
@@ -240,13 +241,11 @@ After the instance is created, you can use the following command to check the st
 ```bash
 $ kubectl -n default get redis
 NAME         ARCH         VERSION   ACCESS     STATUS         MESSAGE   BUNDLE VERSION   AUTOUPGRADE   AGE
-c6           cluster      6.0                  Initializing             4.0.1                         3m26s
-c7           cluster      7.2       NodePort   Initializing             4.0.1                         98s
-c8           cluster      8.4       NodePort   Ready                    4.0.1                         2m46s
-s6           sentinel     6.0                  Ready                    4.0.1                         25m
-s7           sentinel     7.2       NodePort   Ready                    4.0.1                         2m15s
-s8           sentinel     8.4                  Ready                    4.0.1                         3m10s
-standalone   standalone   6.0                  Initializing             4.0.1                         6s
+c6           cluster      6.0                  Initializing             5.1.0                         3m26s
+c7           cluster      7.2       NodePort   Initializing             5.1.0                         98s
+s6           sentinel     6.0                  Ready                    5.1.0                         25m
+s7           sentinel     7.2       NodePort   Ready                    5.1.0                         2m15s
+standalone   standalone   6.0                  Initializing             5.1.0                         6s
 ```
 
 The meanings of the output table fields are as follows:
@@ -255,7 +254,7 @@ The meanings of the output table fields are as follows:
 | :------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | NAME           | Instance name                                                                                                                                                                               |
 | ARCH           | This value corresponds to the architecture of Redis. <ul><li>`cluster`: Cluster mode</li><li> `sentinel`: Sentinel mode </li><li>`standalone`: Single-node Redis</li></ul>  This field indicates whether this CR resource manages a standalone, Sentinel, or Cluster mode of Redis. |
-| VERSION        | Currently supports only the 3 versions: `6.0`, `7.2`, `8.4`                                                                                                                                       |
+| VERSION        | Currently supports the 2 versions: `6.0` and `7.2`                                                                                                                                       |
 | ACCESS         | The access methods supported by the instance. <ul><li>` `: The instance provides services via ClusterIP</li><li>`NodePort`: The instance provides services via NodePort</li><li>`LoadBalancer`: The instance provides services via LoadBalancer</li></ul> |
 | STATUS         | The current status of the instance, which may include the following states: <ul><li>`Initializing`: The instance is initializing or updating</li><li>`Rebalancing`: The cluster instance is scaling up or down</li><li>`Error`: The instance has encountered a non-recoverable error</li><li>`Paused`: The instance has been manually paused</li><li>`Ready`: The instance is ready</li></ul> |
 | MESSAGE        | The reason for the instance being in its current status                                                                                                                                           |

@@ -1,0 +1,243 @@
+---
+weight: 60
+i18n:
+  title:
+    zh: 命令支持
+title: Command Support
+---
+
+# Command Support
+
+Which Redis commands are replicated across datacenters, which execute locally and never leave the datacenter, and which are refused with an error.
+
+<Directive type="info" title="The command rules follow the module generation, not the replication mode">
+On Redis `7.2` the same replication module serves both Disaster Recovery (`peerof`) and Active-Active (`mesh`), and it classifies every command identically in both modes. What the mode changes is *which members accept application writes*, and therefore how often the conflict-resolution behavior below is actually exercised.
+
+Redis `6.0` runs the legacy module, which supports Disaster Recovery only, replicates a smaller command set, and applies none of the guards. See [Redis 6.0 — the legacy module](#redis-60-the-legacy-module).
+</Directive>
+
+## Summary by mode \{#summary-by-mode}
+
+| | Disaster Recovery (`peerof`) | Active-Active (`mesh`) |
+|:--|:--|:--|
+| Redis versions | `6.0`, `7.2` | `7.2` |
+| Refused with an error (Redis `7.2`) | `MOVE`, `SWAPDB`, `RESTORE` always; `FLUSHALL`/`FLUSHDB` while any peer is attached | Identical |
+| Executed locally, never replicated | Identical on Redis `7.2` — see [Executed locally, never replicated](#executed-locally-never-replicated) | Identical |
+| Replicated write commands | Identical on Redis `7.2`; a smaller set on Redis `6.0` | Identical to Redis `7.2` Disaster Recovery |
+| Conflict resolution in practice | Rarely exercised — only the upstream takes application writes, so concurrent conflicting writes do not normally arise | Exercised continuously — every member takes writes, so every rule in [Replicated write commands](#replicated-write-commands) is live |
+
+<Directive type="warning" title="Both modes enforce the same refusals">
+The refusals are enforced by the module's command filter, which is installed whenever cross-datacenter replication is enabled on Redis `7.2`. A `MOVE`, `SWAPDB`, or `RESTORE` therefore fails on a Disaster Recovery instance exactly as it does on an Active-Active member, even though a Disaster Recovery instance has a single writer. Applications that rely on these commands must be changed before the instance joins a replication group.
+</Directive>
+
+## Refused with an error \{#refused-with-an-error}
+
+These commands do not execute at all on Redis `7.2`. The client receives an error and nothing is written locally or replicated.
+
+| Command | When it is refused | Why |
+|:--------|:-------------------|:----|
+| `MOVE`, `SWAPDB` | Always, once replication is enabled | Moving a key between logical databases, or swapping two whole databases, has no per-key ordering that peers can reproduce. Concurrent writes would interleave differently on each member and the datasets would diverge permanently, with nothing to repair them. |
+| `RESTORE` (key-level) | Always, once replication is enabled | A serialized value carries its own embedded write timestamp. Replicating it would put that timestamp in conflict with the timestamp of the frame that carries it, letting a stale payload win against newer data on peers; executing it locally only would silently diverge the member that ran it. `RESTORE-ASKING` is a different command, used internally by Redis Cluster resharding, and is **not** refused. |
+| `FLUSHALL`, `FLUSHDB` | While the instance has any peer attached — an upstream configured, or a downstream connected | A flush is local-only and is never replicated. Running one inside a live replication group would diverge that member from the rest, and would discard the tombstones it keeps for previously deleted keys, so a delayed write from a peer could later resurrect a key that everyone else had deleted. |
+
+The errors are, respectively:
+
+```text
+ERR move is not supported in active-active — its effect cannot converge across peers; Redis Enterprise refuses it the same way
+```
+
+```text
+ERR flushall is refused while this node has peers attached (1 upstream, 0 downstream) — FLUSH is local-only and must not run inside a live active-active mesh; detach all peers first, then flush the isolated node
+```
+
+To empty a replication group, remove the connections (or the `ActiveRedisMesh` resources), flush each isolated instance, then re-create them. Alternatively, recreate the instances.
+
+`FUNCTION RESTORE` is **not** in this list — it is supported. Only the key-level `RESTORE` is refused.
+
+## Executed locally, never replicated \{#executed-locally-never-replicated}
+
+These commands run exactly as they do on unmodified Redis. There is no error and no rejection — they simply produce no cross-datacenter effect, so each datacenter's state for them is independent.
+
+| Command(s) | Notes |
+|:-----------|:------|
+| All stream commands — `XADD`, `XDEL`, `XTRIM`, `XSETID`, and every consumer-group operation (`XGROUP`, `XREADGROUP`, `XACK`, `XCLAIM`, `XAUTOCLAIM`) | Each datacenter's streams are self-contained. Consumer groups work fully *within* a datacenter but do not converge *across* datacenters, because pending-entry and consumer-ownership state is node-local. Use a message-queue component if you need cross-datacenter delivery. |
+| `PUBLISH`, `SPUBLISH`, and the `SUBSCRIBE` family | Pub/sub is ephemeral and per-connection. Use a message-queue component if cross-datacenter delivery is required. |
+| `MIGRATE`, `RESTORE-ASKING` | The Redis Cluster resharding pair. Resharding is a per-datacenter topology operation; replicating it would permanently lose the migrated key in every peer datacenter. |
+| `WAIT`, `WAITAOF`, `CONFIG`, `DEBUG`, `CLIENT`, `ACL`, and server-administration commands | Not write commands. |
+| `MULTI`, `EXEC`, `DISCARD`, `WATCH` | The transaction boundary is not preserved. Each command inside the transaction is replicated individually — see [No cross-datacenter atomicity](#no-cross-datacenter-atomicity). |
+
+<Directive type="warning" title="Key-lifecycle commands are isolated for stream keys">
+Because a peer's same-named key is an unrelated local stream, generic key commands are prevented from crossing datacenters when they touch a stream key:
+
+* Setting a TTL on a stream key is **refused** — a replicated expiry would delete a peer's unrelated local stream.
+* `PERSIST` on a stream key executes locally but does not replicate.
+* `DEL`, `RENAME`, and `COPY` involving a stream key are not replicated.
+</Directive>
+
+## Replicated write commands \{#replicated-write-commands}
+
+Everything listed here is replicated to every other member of the replication group. The **Conflict behavior** column describes how two members that wrote the same key at the same time are reconciled. In Disaster Recovery mode only the upstream takes application writes, so these rules apply but are rarely exercised; in Active-Active mode they are exercised continuously.
+
+Five conflict rules are used throughout:
+
+| Rule | Behavior |
+|:-----|:---------|
+| **Last-write-wins** | The write with the higher timestamp wins; ties are broken by the higher `serviceID`. Hashes and sorted sets apply it per field and per member rather than to the whole key. This rule depends on synchronized clocks — see [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement). |
+| **Additive counter** (PN-Counter) | Each member's contribution is tracked separately and the value is the sum across all members, so concurrent increments from different datacenters all count. |
+| **Add-wins set** (observed-remove set) | A removal only cancels the additions it has already seen, so an addition made concurrently on another member survives the removal. |
+| **Element-level list** | Every list element has its own identity, so concurrent list changes in different datacenters converge to one consistent list. The resulting order is deterministic but is not necessarily insertion order. |
+| **TTL register** | A key's expiry is resolved separately from its value: a causally later change wins even when it shortens the TTL, and two genuinely concurrent changes resolve to the **longer** deadline. `PERSIST` asserts an infinite deadline and therefore beats any concurrent finite TTL. |
+
+### Strings
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `SET` | Last-write-wins | A conditional `SET` (`NX`/`XX`) is evaluated on the writing member; peers receive an unconditional `SET` when it performed, and nothing when it did not. |
+| `SETNX` | Last-write-wins | Replicated as an unconditional `SET` when it set the key. |
+| `SETEX`, `PSETEX` | Last-write-wins | The relative TTL is converted to an absolute deadline before replication, so peers do not recompute it against their own clock. |
+| `SETRANGE`, `APPEND`, `GETSET` | Last-write-wins | Replicated as the resulting absolute value, not as the modification. |
+| `GETDEL` | Last-write-wins | The read is local; the deletion replicates. |
+| `GETEX` | Last-write-wins | Only the TTL change replicates. |
+| `INCR`, `DECR`, `INCRBY`, `DECRBY` | Additive counter | Concurrent increments in different datacenters are summed rather than overwriting one another. The key's TTL is preserved. |
+| `INCRBYFLOAT` | Additive counter | Merged at full floating-point precision. |
+| `MSET`, `MSETNX` | Last-write-wins per key | Split into independent per-key writes — replicated, but **not atomic** across datacenters. |
+| `COPY` | Last-write-wins | Replicated as a rebuild of the destination key. |
+
+### Hashes
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `HSET`, `HMSET` | Last-write-wins per field | Two datacenters writing different fields of the same hash both keep their writes. |
+| `HSETNX` | Last-write-wins per field | Replicated as `HSET` when it set the field. |
+| `HDEL` | Add-wins set | A field written concurrently on another member survives the deletion. |
+| `HINCRBY`, `HINCRBYFLOAT` | Additive counter per field | Concurrent increments of the same field are summed. |
+
+### Sets
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `SADD` | Add-wins set | |
+| `SREM` | Add-wins set | A concurrent, not-yet-observed `SADD` of the same member survives. |
+| `SMOVE` | Add-wins set | Split into a removal on the source and an addition on the destination. |
+| `SPOP` | Last-write-wins | Replicated as a removal of the members actually popped. **At-least-once** across datacenters — see [At-least-once pops](#at-least-once-pops). |
+| `SINTERSTORE`, `SUNIONSTORE`, `SDIFFSTORE` | Last-write-wins on the destination | The result is computed locally and the destination key is rebuilt on peers. |
+
+### Sorted sets
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `ZADD` | Last-write-wins per member | A flagged `ZADD` (`NX`/`XX`/`GT`/`LT`/`INCR`) is evaluated locally, and only the members whose score actually changed are replicated, with their exact resulting scores. |
+| `ZINCRBY` | Additive counter | Applied on peers as a relative increment, preserving any base score set by `ZADD`. |
+| `ZREM` | Add-wins set | |
+| `ZREMRANGEBYSCORE`, `ZREMRANGEBYRANK`, `ZREMRANGEBYLEX` | Last-write-wins | |
+| `ZPOPMIN`, `ZPOPMAX`, `BZPOPMIN`, `BZPOPMAX`, `ZMPOP`, `BZMPOP` | Last-write-wins | Replicated as a removal of the members actually popped. **At-least-once** across datacenters. Blocking variants run non-blocking on the receiving member. |
+| `ZUNIONSTORE`, `ZINTERSTORE`, `ZDIFFSTORE`, `ZRANGESTORE` | Last-write-wins on the destination | The destination key is rebuilt on peers. |
+
+### Lists
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `LPUSH`, `RPUSH`, `LPUSHX`, `RPUSHX` | Element-level list | |
+| `LINSERT` | Element-level list | |
+| `LSET` | Element-level list | Last-write-wins on the value of that one element. |
+| `LTRIM`, `LREM` | Element-level list | |
+| `LPOP`, `RPOP`, `BLPOP`, `BRPOP`, `LMPOP`, `BLMPOP` | Element-level list | **At-least-once** across datacenters. Blocking variants run non-blocking on the receiving member. |
+| `RPOPLPUSH`, `BRPOPLPUSH`, `LMOVE`, `BLMOVE` | Element-level list | Replicated as a removal on the source plus an insertion on the destination. |
+
+<Directive type="warning" title="Do not use a list as an exactly-once queue across datacenters">
+Pops are at-least-once: the same element can be popped in two datacenters before they synchronize. Consume from a single datacenter, or make consumers idempotent.
+</Directive>
+
+### Keyspace
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `DEL`, `UNLINK` | Last-write-wins | A concurrent write with a newer timestamp beats the deletion. `UNLINK` runs synchronously rather than in the background. |
+| `EXPIRE`, `EXPIREAT`, `PEXPIRE`, `PEXPIREAT` | TTL register | Converted to an absolute deadline before replication. A causally later change wins even if it shortens the TTL; two concurrent changes resolve to the **longer** deadline. `NX`/`XX`/`GT`/`LT` are evaluated on the writing member, and an unmet condition replicates nothing. |
+| `PERSIST` | TTL register | Beats any concurrent finite TTL; a causally later `PEXPIREAT` still re-expires the key. |
+| `RENAME`, `RENAMENX` | Last-write-wins on the destination | Replicated as a rebuild of the destination key plus a deletion of the source, so that the destination's own conflict resolution stays correct. |
+| `SORT ... STORE` | Last-write-wins on the destination | `SORT` without `STORE` is a read and is not replicated. |
+
+### Bitmaps, HyperLogLog, and geospatial
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `SETBIT` | Last-write-wins | Replicated as the resulting absolute value, so a concurrent bit set on another member can be lost. |
+| `BITFIELD` | Last-write-wins | Replicated as the resulting absolute value. `INCRBY` subcommands are **not** treated as additive counters. `BITFIELD_RO` is a read. |
+| `BITOP` | Last-write-wins on the destination | |
+| `PFADD` | Commutative | HyperLogLog registers only grow, so concurrent additions converge. |
+| `PFMERGE` | Commutative | The result is unioned into the destination on peers, so concurrent `PFADD` and `PFMERGE` converge to the true union. |
+| `GEOADD` | Last-write-wins per member | A conditional `GEOADD` (`NX`/`XX`/`CH`) replicates only the members that actually changed. |
+| `GEORADIUS ... STORE`, `GEORADIUSBYMEMBER ... STORE`, `GEOSEARCHSTORE` | Last-write-wins on the destination | Without `STORE` these are reads and are not replicated. |
+
+### Scripting and functions
+
+| Command | Conflict behavior | Notes |
+|:--------|:------------------|:------|
+| `EVAL`, `EVALSHA`, `FCALL` | Per command inside the script | The **individual writes the script performs** are replicated, not the script call itself. Each write follows the rule for its own command. `EVAL_RO`, `EVALSHA_RO`, and `FCALL_RO` write nothing. |
+| `SCRIPT LOAD`, `SCRIPT FLUSH` | Last-write-wins | The script registry is replicated so a script loaded in one datacenter becomes available in the others. |
+| `FUNCTION LOAD`, `FUNCTION DELETE`, `FUNCTION FLUSH`, `FUNCTION RESTORE` | Last-write-wins per library | The function-library registry is replicated per library. `FUNCTION LIST`, `FUNCTION DUMP`, and `FUNCTION STATS` are local reads. |
+
+<Directive type="info" title="Scripts do not get transactional replication">
+Because each write a script performs is replicated on its own, a script is subject to the same per-command rules as any other client. A script that is not idempotent is not made idempotent by being a script.
+</Directive>
+
+## Behavior that differs from standalone Redis \{#behavior-that-differs-from-standalone-redis}
+
+Design application logic around these. They are consequences of the replication model, not defects.
+
+### At-least-once pops \{#at-least-once-pops}
+
+`LPOP`, `RPOP`, `SPOP`, `ZPOPMIN`, `ZPOPMAX`, and their blocking and multi-key variants are exactly-once on a single member but **at-least-once across the replication group**. Two members popping concurrently, before they synchronize, can each consume the same element. Consume from a single member, or make consumers idempotent.
+
+### No cross-datacenter atomicity \{#no-cross-datacenter-atomicity}
+
+`MULTI`/`EXEC`, `MSET`, and `MSETNX` are replicated per key or per command. The keys all arrive and the members converge, but peers do not apply the group atomically — a peer can briefly observe part of a transaction.
+
+### Writes of different types to one key resolve silently \{#writes-of-different-types-to-one-key-resolve-silently}
+
+Concurrent writes of *different types* to the same key (`SET key` in one datacenter, `HSET key` in another) resolve by timestamp, with ties broken by the higher `serviceID`. The loser's data is discarded without a merge and without an error.
+
+### Deleted data occupies memory until every member has acknowledged it \{#deleted-data-occupies-memory}
+
+Deletions are retained as **tombstones** — records that a key, field, or element was deleted — so that a delayed write from a peer cannot resurrect deleted data. A tombstone is released only after every active peer has acknowledged it and a minimum age of five minutes has passed. A peer that is unreachable for a long time therefore holds tombstones alive on every other member — decommission a datacenter that is gone for good, as described in [Limitations and Risks](./90-limitations.mdx). Large clock skew narrows this protection; see [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement).
+
+### The module's bookkeeping keys are visible \{#the-modules-bookkeeping-keys-are-visible}
+
+The module stores some replication bookkeeping as ordinary Redis keys under the reserved `__arcr_` prefix. They are counted by `DBSIZE` and returned by `SCAN` and `KEYS` until they are collected, and they are derived independently on each member, so their number and timing legitimately differ between datacenters. **Any tooling that compares datasets across datacenters must exclude the whole `__arcr_` prefix.** Applications must not write to it.
+
+## Redis 6.0 — the legacy module \{#redis-60-the-legacy-module}
+
+Redis `6.0` runs the frozen legacy module and supports Disaster Recovery only. Its behavior differs from Redis `7.2` in two ways that matter operationally.
+
+**It replicates a smaller set of commands.** The commands it replicates are:
+
+| Group | Commands |
+|:------|:---------|
+| Keyspace | `DEL`, `UNLINK`, `RENAME`, `RENAMENX`, `EXPIRE`, `EXPIREAT`, `PEXPIRE`, `PEXPIREAT`, `PERSIST` |
+| Strings | `SET`, `SETNX`, `SETEX`, `PSETEX`, `APPEND`, `SETRANGE`, `GETSET`, `MSET`, `MSETNX`, `INCR`, `DECR`, `INCRBY`, `DECRBY`, `INCRBYFLOAT` |
+| Hashes | `HSET`, `HSETNX`, `HMSET`, `HDEL`, `HINCRBY`, `HINCRBYFLOAT` |
+| Sets | `SADD`, `SREM`, `SMOVE`, `SPOP`, `SINTERSTORE`, `SUNIONSTORE`, `SDIFFSTORE` |
+| Sorted sets | `ZADD`, `ZINCRBY`, `ZREM`, `ZREMRANGEBYSCORE`, `ZREMRANGEBYRANK`, `ZREMRANGEBYLEX`, `ZUNIONSTORE`, `ZINTERSTORE`, `ZPOPMIN`, `ZPOPMAX`, `BZPOPMIN`, `BZPOPMAX` |
+| Lists | `LPUSH`, `RPUSH`, `LPUSHX`, `RPUSHX`, `LINSERT`, `LSET`, `LTRIM`, `LREM`, `LPOP`, `RPOP`, `BLPOP`, `BRPOP`, `RPOPLPUSH`, `BRPOPLPUSH`, `SORT ... STORE` |
+| Bitmaps | `SETBIT`, `BITFIELD`, `BITOP` |
+| HyperLogLog | `PFADD`, `PFMERGE` |
+| Geospatial | `GEOADD`, `GEORADIUS ... STORE`, `GEORADIUSBYMEMBER ... STORE` |
+| Scripting | `SCRIPT LOAD`, `SCRIPT FLUSH` |
+
+Commands introduced after Redis 6.0, and the commands listed under [Executed locally, never replicated](#executed-locally-never-replicated), are **not** replicated by the legacy module — including all stream commands, pub/sub, `MIGRATE`, and the `MULTI`/`EXEC` boundary.
+
+**It has none of the guards.** The legacy module does not refuse any command. `FLUSHALL`, `FLUSHDB`, `MOVE`, `SWAPDB`, and `RESTORE` are wrapped and replicated to the downstream instead of being rejected.
+
+<Directive type="warning" title="On Redis 6.0, a flush reaches the downstream">
+Because the legacy module replicates them, a `FLUSHALL` or `FLUSHDB` issued on a Redis `6.0` upstream **also empties every downstream instance**. There is no confirmation and no error. Treat both commands as destructive across the whole replication group on Redis `6.0`, and consider restricting them with an ACL.
+
+On Redis `7.2` the same commands are refused while peers are attached — see [Refused with an error](#refused-with-an-error).
+</Directive>
+
+To move an existing Redis `6.0` group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+
+## Related pages
+
+* [Limitations and Risks](./90-limitations.mdx) — topology, configuration, and operational constraints
+* [Set Up Active-Active Replication](./40-mesh.mdx) — including the [clock synchronization requirement](./40-mesh.mdx#clock-synchronization-requirement)
