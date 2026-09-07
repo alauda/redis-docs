@@ -46,7 +46,8 @@ Repository paths are relative to the sibling checkouts
 ## Command support and clock synchronization (added 2026-08-11)
 
 Terms introduced by `docs/en/functions/95-disaster-recovery/60-commands.mdx`
-(Command Support) and the *Clock synchronization* section of `40-mesh.mdx`.
+(Command Support) and the *Clock synchronization* section now at
+`docs/en/functions/95-disaster-recovery/30-active-active/30-operations.mdx`.
 Repository paths are relative to the sibling checkout
 `redis-group/redis-modules/active-redis`.
 
@@ -62,6 +63,21 @@ Repository paths are relative to the sibling checkout
 | **clock skew** — advisory tier / critical tier | `src/clockskew.zig` `Tier` (`advisory`, `critical`); `src/runtime.zig` `evalClockSkew` | The module's own words. The critical threshold is derived at `src/runtime.zig` from `CRDTState.TOMBSTONE_MIN_AGE_MS / 2` (`src/crdt.zig` — `300_000` ms), i.e. 150 s. |
 | **clock offset** | `activeredismesh_types.go` — `ClockOffsetMs`; module `clock_offset_ms` | Always `remote − local` in milliseconds, positive when the remote clock is ahead — the NTP sign convention, stated explicitly in the docs. |
 | **module generation guards** — "refused with an error" / "executed locally, never replicated" / "replicated" | `src/runtime.zig` `ActiveRedis_GlobalFilter`, `isForbiddenInActiveActive`, `isStreamLocalOnlyCmd`, `isFlushLocalOnlyCmd`; `src/command.zig` `rewrite_commands` | The three behavior classes the Command Support page is organized around. They are documentation categories, not names used in the code. Confirm. |
+
+## Section restructure (added 2026-09-06)
+
+Terms introduced by splitting the *Cross-Datacenter Replication* section into a
+shared umbrella plus one sub-section per mode
+(`docs/en/functions/95-disaster-recovery/20-disaster-recovery/` and
+`.../30-active-active/`). Repository paths are relative to the sibling
+checkouts `redis-group/redis-operator` and `redis-group/redis-modules`.
+
+| Term as used in docs | Provenance | Note for the reviewer |
+|:---|:---|:---|
+| **replication engine** | The shared mechanism described in `10-intro.mdx` — Oplog capture, full and incremental synchronization, log slicing — confirmed shared by both modes at `redis-modules/active-redis/docs/guides/deployment.md:36` (a downstream "connects to and pulls the upstream's oplog" whether the edge came from `as.peerof` or from gossip). | **Coined for these docs**, as an umbrella for "the parts both modes have in common". Needed because the section now separates what is shared from what is per-mode. Confirm, or propose a plainer phrase. |
+| **declared links** (Disaster Recovery) / **discovered membership** (Active-Active) | `redis-modules/active-redis/docs/guides/deployment.md:53` — "Membership: `as.peerof` vs `as.mesh`", contrasting "Static (`as.peerof`) — you declare each upstream edge explicitly" with "Gossip auto-mesh (`as.mesh`) — nodes discover each other". | **Coined for these docs.** The module's own pair is *static* / *auto-mesh*; the docs use declared / discovered because "static" reads as "unchanging" rather than "operator-declared". This is the single distinction the two mode sections are organized around, so it deserves confirmation. |
+| **membership lifecycle** | `activeredismesh_types.go` — `MeshMemberAlive`, `MeshMemberSuspect`, `MeshMemberDead` | Heading only, for the alive → suspect → dead progression. The state names themselves are already registered above. |
+| **announced RESP address** | `activeredis_types.go` — `Access.AnnounceAddress`, `Access.AnnouncePort`; the `mesh-seeds` grammar `host:redis-port@peer-port` in `internal/controller/middleware/activeredis/meshconfig.go:46` | Names the address that identifies a member inside the mesh, as distinct from the peer port that carries the traffic. The component words are already registered; confirm the compound. |
 
 ## Known inconsistencies to resolve
 
@@ -81,12 +97,21 @@ Repository paths are relative to the sibling checkout
    `spec.activeRedis.proxy.service.announceAddress`. The documentation uses the
    CRD path. The operator's message text should be corrected.
 
-3. **Directory and page slugs no longer match the display names.** The
-   section is now titled *Cross-Datacenter Replication* but still lives at
-   `docs/en/functions/95-disaster-recovery/`, and the Active-Active page is
-   still `40-mesh.mdx`. Slugs were deliberately left unchanged so existing
-   inbound links keep working. Renaming them is a separate decision with a
-   link-breakage cost.
+3. **Directory and page slugs no longer match the display names — partly
+   resolved 2026-09-06.** The section is still titled *Cross-Datacenter
+   Replication* while living at `docs/en/functions/95-disaster-recovery/`;
+   that top-level slug is **unchanged**, because renaming it would break every
+   inbound link into the section at once.
+
+   Inside it, the pages were reorganized into one sub-directory per mode
+   (`20-disaster-recovery/`, `30-active-active/`), and `40-mesh.mdx` is gone —
+   the Active-Active pages are now `30-active-active/{10-architecture,
+   20-setup, 30-operations}.mdx`. The cost was accepted knowingly and is
+   bounded: `20-setup.mdx` and `30-failover.mdx` had shipped on `master` and
+   their published URLs change, while `40-mesh.mdx`, `50-upgrade-6.0-to-7.2.mdx`
+   and `60-commands.mdx` existed only on this unmerged branch and cost nothing
+   to move. `doom` has no page-level redirect, so the two changed URLs 404
+   rather than forward.
 
 4. **Console labels lag the docs.** The Web Console has no `ActiveRedisMesh`
    support yet (`redis-frontend` knows `activeredis`,

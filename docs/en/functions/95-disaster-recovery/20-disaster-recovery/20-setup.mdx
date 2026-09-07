@@ -2,15 +2,15 @@
 weight: 20
 i18n:
   title:
-    zh: 配置容灾
-title: Set Up Disaster Recovery Replication
+    zh: 配置
+title: Setup
 ---
 
 # Set Up Disaster Recovery Replication
 
 Disaster Recovery (`spec.activeRedis.mode: peerof`) is the hot-standby topology: an upstream instance fans out directed replication links to one or more downstream instances, each ready to be promoted if the upstream datacenter is lost. Setting it up involves two parts — enabling cross-datacenter replication on each Redis instance, and establishing a connection from the downstream instance to the upstream instance.
 
-For the alternative topology, in which every datacenter accepts writes, see [Set Up Active-Active Replication](./40-mesh.mdx).
+For the alternative topology, in which every datacenter accepts writes, see [Set Up Active-Active Replication](../30-active-active/20-setup.mdx).
 
 <Directive type="info" title="Cluster Role Description">
 In a disaster recovery group, the role of each Redis instance is not fixed; it can be either an upstream or a downstream. The downstream does not restrict data writing, but data written to the downstream will be overwritten by data synchronized from the upstream or cause synchronization failure due to data type conflicts.
@@ -26,7 +26,7 @@ The setup procedure differs between the two module generations. Follow the secti
 | `6.0` | [Redis 6.0 — legacy module](#redis-60--legacy-module) | A Secret referenced by the connection |
 
 <Directive type="warning" title="Both ends must run the same Redis version">
-Replication between Redis `6.0` and Redis `7.2` is not supported. See [Module generations and version applicability](./10-intro.mdx#module-generations-and-version-applicability).
+Replication between Redis `6.0` and Redis `7.2` is not supported. See [Module generations and version applicability](../10-intro.mdx#module-generations-and-version-applicability).
 </Directive>
 
 ## Redis 7.2 — new module \{#redis-72--new-module}
@@ -376,7 +376,7 @@ Before a connection is accepted, the platform runs a set of pre-flight checks ag
 |:-----------|:--------------|:----------------|
 | Network connection | Network connectivity check, password check | Confirm that the upstream address is correct; the address is accessible from the downstream side; the credential is correct. |
 | Architectures | Redis instance architecture check | Confirm that the instance architectures of the upstream and downstream instances are consistent. |
-| Cluster mode slices inspect | Cluster mode shard number and slot distribution check | Confirm that the number of shards and slot distribution of the upstream and downstream instances are the same. If not, you can refer to [Initialize Cluster Instance Slot Distribution](../../how_to/40-cluster-slots-distribution.mdx) to create a new instance. |
+| Cluster mode slices inspect | Cluster mode shard number and slot distribution check | Confirm that the number of shards and slot distribution of the upstream and downstream instances are the same. If not, you can refer to [Initialize Cluster Instance Slot Distribution](../../../how_to/40-cluster-slots-distribution.mdx) to create a new instance. |
 | Requirements inspect | Instance resource rule check | Need to ensure that the memory resources of the downstream instance must be greater than or equal to the upstream instance. |
 | Config inspect | Instance Service ID check | Need to ensure that in the replication group, the ServiceID is unique and within the range `[0-15]`. |
 

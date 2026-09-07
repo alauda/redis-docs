@@ -82,7 +82,7 @@ Five conflict rules are used throughout:
 
 | Rule | Behavior |
 |:-----|:---------|
-| **Last-write-wins** | The write with the higher timestamp wins; ties are broken by the higher `serviceID`. Hashes and sorted sets apply it per field and per member rather than to the whole key. This rule depends on synchronized clocks — see [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement). |
+| **Last-write-wins** | The write with the higher timestamp wins; ties are broken by the higher `serviceID`. Hashes and sorted sets apply it per field and per member rather than to the whole key. This rule depends on synchronized clocks — see [Clock synchronization](./30-active-active/30-operations.mdx#clock-synchronization-requirement). |
 | **Additive counter** (PN-Counter) | Each member's contribution is tracked separately and the value is the sum across all members, so concurrent increments from different datacenters all count. |
 | **Add-wins set** (observed-remove set) | A removal only cancels the additions it has already seen, so an addition made concurrently on another member survives the removal. |
 | **Element-level list** | Every list element has its own identity, so concurrent list changes in different datacenters converge to one consistent list. The resulting order is deterministic but is not necessarily insertion order. |
@@ -200,7 +200,7 @@ Concurrent writes of *different types* to the same key (`SET key` in one datacen
 
 ### Deleted data occupies memory until every member has acknowledged it \{#deleted-data-occupies-memory}
 
-Deletions are retained as **tombstones** — records that a key, field, or element was deleted — so that a delayed write from a peer cannot resurrect deleted data. A tombstone is released only after every active peer has acknowledged it and a minimum age of five minutes has passed. A peer that is unreachable for a long time therefore holds tombstones alive on every other member — decommission a datacenter that is gone for good, as described in [Limitations and Risks](./90-limitations.mdx). Large clock skew narrows this protection; see [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement).
+Deletions are retained as **tombstones** — records that a key, field, or element was deleted — so that a delayed write from a peer cannot resurrect deleted data. A tombstone is released only after every active peer has acknowledged it and a minimum age of five minutes has passed. A peer that is unreachable for a long time therefore holds tombstones alive on every other member — decommission a datacenter that is gone for good, as described in [Limitations and Risks](./90-limitations.mdx). Large clock skew narrows this protection; see [Clock synchronization](./30-active-active/30-operations.mdx#clock-synchronization-requirement).
 
 ### The module's bookkeeping keys are visible \{#the-modules-bookkeeping-keys-are-visible}
 
@@ -235,9 +235,10 @@ Because the legacy module replicates them, a `FLUSHALL` or `FLUSHDB` issued on a
 On Redis `7.2` the same commands are refused while peers are attached — see [Refused with an error](#refused-with-an-error).
 </Directive>
 
-To move an existing Redis `6.0` group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+To move an existing Redis `6.0` group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./20-disaster-recovery/40-upgrade-6.0-to-7.2.mdx).
 
 ## Related pages
 
 * [Limitations and Risks](./90-limitations.mdx) — topology, configuration, and operational constraints
-* [Set Up Active-Active Replication](./40-mesh.mdx) — including the [clock synchronization requirement](./40-mesh.mdx#clock-synchronization-requirement)
+* [Disaster Recovery](./20-disaster-recovery/index.mdx) — the hot-standby mode, where a single member takes the writes
+* [Active-Active](./30-active-active/index.mdx) — the mode that exercises these rules continuously, including the [clock synchronization requirement](./30-active-active/30-operations.mdx#clock-synchronization-requirement)

@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2120" height="1180" viewBox="0 0 2120 1180" role="img" aria-labelledby="title description">
+<defs>
+<marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#7C3AED"/></marker>
+<marker id="arrow-violet-back" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#7C3AED"/></marker>
+<marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0E7C6B"/></marker>
+<marker id="arrow-teal-back" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#0E7C6B"/></marker>
+<marker id="arrow-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#94A3B8"/></marker>
+<marker id="arrow-grey-back" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#94A3B8"/></marker>
+<marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#2563EB"/></marker>
+<marker id="arrow-blue-back" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#2563EB"/></marker>
+</defs>
+<rect width="2120" height="1180" fill="#FFFFFF"/>
+<title id="title">Active-Active · Sentinel mode · Three datacenters</title>
+<desc id="description">Datacenters A, B and C have Service IDs 0, 1 and 2. Each has a local application, a Primary, a Replica and its own replication proxy. Each Primary feeds its own proxy, which serves both peer Primaries. All three pairs replicate in both directions: A to B, B to A, A to C, C to A, B to C and C to B. Proxies do not connect to one another. Gossip discovers all three members. Sentinel monitoring is omitted.</desc>
+<text x="1060.0" y="60" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="48" font-weight="700" fill="#16243C" text-anchor="middle" letter-spacing="-0.4">Active-Active · Sentinel mode</text>
+<text x="1060.0" y="104" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="24" font-weight="400" fill="#55637A" text-anchor="middle">Three datacenters · Every member accepts local reads and writes</text>
+<text x="1060.0" y="144" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="500" fill="#94A3B8" text-anchor="middle">Gossip membership — seeds bootstrap, then all three members discover each other</text>
+<g id="gossip-membership">
+<path d="M380.0 166 H1740.0" fill="none" stroke="#94A3B8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 8" marker-start="url(#arrow-grey-back)" marker-end="url(#arrow-grey)"/>
+<g data-member="A">
+<path d="M380.0 166 V210" fill="none" stroke="#94A3B8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 8"/>
+<circle cx="380.0" cy="166" r="4.5" fill="#94A3B8"/>
+</g>
+<g data-member="B">
+<path d="M1060.0 166 V210" fill="none" stroke="#94A3B8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 8"/>
+<circle cx="1060.0" cy="166" r="4.5" fill="#94A3B8"/>
+</g>
+<g data-member="C">
+<path d="M1740.0 166 V210" fill="none" stroke="#94A3B8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 8"/>
+<circle cx="1740.0" cy="166" r="4.5" fill="#94A3B8"/>
+</g>
+</g>
+<g id="datacenter-a" data-service-id="0">
+<rect x="100" y="210" width="560" height="664" rx="18" fill="#F7FAFD" stroke="#DDE7F2" stroke-width="1.6"/>
+<text x="128" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="700" fill="#16243C" text-anchor="start">Datacenter A</text>
+<rect x="370" y="232" width="164" height="32" rx="16.0" fill="#EEF4FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="452.0" y="254.48" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#2563EB" text-anchor="middle">Service ID 0</text>
+<g data-role="application">
+<rect x="270" y="282" width="220" height="52" rx="10" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<text x="380" y="305" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#2563EB" text-anchor="middle">Application</text>
+<text x="380" y="325" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="400" fill="#2563EB" text-anchor="middle">Local reads and writes</text>
+<path d="M380 334 V380" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="a-primary" data-role="primary">
+<rect x="220" y="380" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+<rect x="240" y="402" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="247" cy="409.5" r="2.1" fill="#2563EB"/>
+<path d="M254 409.5 H266" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="240" y="421" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="247" cy="428.5" r="2.1" fill="#2563EB"/>
+<path d="M254 428.5 H266" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="286" y="430" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#2563EB" text-anchor="start">Primary</text>
+<text x="240" y="468" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="240" y="480" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="288.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">RDB</text>
+<rect x="350" y="480" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="403.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">Oplog</text>
+</g>
+<g id="a-replica" data-role="replica">
+<rect x="220" y="580" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="2"/>
+<rect x="240" y="602" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="247" cy="609.5" r="2.1" fill="#0E7C6B"/>
+<path d="M254 609.5 H266" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="240" y="621" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="247" cy="628.5" r="2.1" fill="#0E7C6B"/>
+<path d="M254 628.5 H266" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="286" y="630" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#0E7C6B" text-anchor="start">Replica</text>
+<text x="240" y="668" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="240" y="680" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="288.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">RDB</text>
+<rect x="350" y="680" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="403.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">Oplog</text>
+</g>
+<path d="M380 528 V580" fill="none" stroke="#0E7C6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arrow-teal)"/>
+<text x="397" y="560" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#0E7C6B" text-anchor="start">Native replication</text>
+<g id="a-proxy" data-role="proxy">
+<rect x="220" y="778" width="320" height="62" rx="10" fill="#FBF7FF" stroke="#7C3AED" stroke-width="1.8"/>
+<rect x="251" y="794" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="242" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="260" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<path d="M258 805 V809 M249 813 V809 H267 V813" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="286" y="805" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#7C3AED" text-anchor="start">Replication proxy</text>
+<text x="286" y="827" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="500" fill="#7C3AED" text-anchor="start">Datacenter A · outbound Oplog</text>
+</g>
+<g data-source="a-primary" data-target="a-proxy">
+<path d="M220 472 H170 V809 H220" fill="none" stroke="#7C3AED" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="datacenter-b" data-service-id="1">
+<rect x="780" y="210" width="560" height="664" rx="18" fill="#F7FAFD" stroke="#DDE7F2" stroke-width="1.6"/>
+<text x="808" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="700" fill="#16243C" text-anchor="start">Datacenter B</text>
+<rect x="1050" y="232" width="164" height="32" rx="16.0" fill="#EEF4FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1132.0" y="254.48" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#2563EB" text-anchor="middle">Service ID 1</text>
+<g data-role="application">
+<rect x="950" y="282" width="220" height="52" rx="10" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<text x="1060" y="305" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#2563EB" text-anchor="middle">Application</text>
+<text x="1060" y="325" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="400" fill="#2563EB" text-anchor="middle">Local reads and writes</text>
+<path d="M1060 334 V380" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="b-primary" data-role="primary">
+<rect x="900" y="380" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+<rect x="920" y="402" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="927" cy="409.5" r="2.1" fill="#2563EB"/>
+<path d="M934 409.5 H946" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="920" y="421" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="927" cy="428.5" r="2.1" fill="#2563EB"/>
+<path d="M934 428.5 H946" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="966" y="430" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#2563EB" text-anchor="start">Primary</text>
+<text x="920" y="468" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="920" y="480" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="968.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">RDB</text>
+<rect x="1030" y="480" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1083.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">Oplog</text>
+</g>
+<g id="b-replica" data-role="replica">
+<rect x="900" y="580" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="2"/>
+<rect x="920" y="602" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="927" cy="609.5" r="2.1" fill="#0E7C6B"/>
+<path d="M934 609.5 H946" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="920" y="621" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="927" cy="628.5" r="2.1" fill="#0E7C6B"/>
+<path d="M934 628.5 H946" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="966" y="630" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#0E7C6B" text-anchor="start">Replica</text>
+<text x="920" y="668" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="920" y="680" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="968.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">RDB</text>
+<rect x="1030" y="680" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="1083.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">Oplog</text>
+</g>
+<path d="M1060 528 V580" fill="none" stroke="#0E7C6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arrow-teal)"/>
+<text x="1077" y="560" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#0E7C6B" text-anchor="start">Native replication</text>
+<g id="b-proxy" data-role="proxy">
+<rect x="900" y="778" width="320" height="62" rx="10" fill="#FBF7FF" stroke="#7C3AED" stroke-width="1.8"/>
+<rect x="931" y="794" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="922" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="940" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<path d="M938 805 V809 M929 813 V809 H947 V813" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="966" y="805" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#7C3AED" text-anchor="start">Replication proxy</text>
+<text x="966" y="827" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="500" fill="#7C3AED" text-anchor="start">Datacenter B · outbound Oplog</text>
+</g>
+<g data-source="b-primary" data-target="b-proxy">
+<path d="M900 472 H850 V809 H900" fill="none" stroke="#7C3AED" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="datacenter-c" data-service-id="2">
+<rect x="1460" y="210" width="560" height="664" rx="18" fill="#F7FAFD" stroke="#DDE7F2" stroke-width="1.6"/>
+<text x="1488" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="700" fill="#16243C" text-anchor="start">Datacenter C</text>
+<rect x="1730" y="232" width="164" height="32" rx="16.0" fill="#EEF4FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1812.0" y="254.48" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="600" fill="#2563EB" text-anchor="middle">Service ID 2</text>
+<g data-role="application">
+<rect x="1630" y="282" width="220" height="52" rx="10" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<text x="1740" y="305" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#2563EB" text-anchor="middle">Application</text>
+<text x="1740" y="325" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="400" fill="#2563EB" text-anchor="middle">Local reads and writes</text>
+<path d="M1740 334 V380" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+</g>
+<g id="c-primary" data-role="primary">
+<rect x="1580" y="380" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+<rect x="1600" y="402" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="1607" cy="409.5" r="2.1" fill="#2563EB"/>
+<path d="M1614 409.5 H1626" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1600" y="421" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="1607" cy="428.5" r="2.1" fill="#2563EB"/>
+<path d="M1614 428.5 H1626" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1646" y="430" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#2563EB" text-anchor="start">Primary</text>
+<text x="1600" y="468" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="1600" y="480" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1648.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">RDB</text>
+<rect x="1710" y="480" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1763.0" y="501.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#2563EB" text-anchor="middle">Oplog</text>
+</g>
+<g id="c-replica" data-role="replica">
+<rect x="1580" y="580" width="320" height="148" rx="12" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="2"/>
+<rect x="1600" y="602" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="1607" cy="609.5" r="2.1" fill="#0E7C6B"/>
+<path d="M1614 609.5 H1626" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1600" y="621" width="32" height="15" rx="3" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.5"/>
+<circle cx="1607" cy="628.5" r="2.1" fill="#0E7C6B"/>
+<path d="M1614 628.5 H1626" fill="none" stroke="#0E7C6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1646" y="630" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#0E7C6B" text-anchor="start">Replica</text>
+<text x="1600" y="668" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="400" fill="#55637A" text-anchor="start">Redis + replication module</text>
+<rect x="1600" y="680" width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="1648.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">RDB</text>
+<rect x="1710" y="680" width="106" height="32" rx="16.0" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="1.3"/>
+<text x="1763.0" y="701.76" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#0E7C6B" text-anchor="middle">Oplog</text>
+</g>
+<path d="M1740 528 V580" fill="none" stroke="#0E7C6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arrow-teal)"/>
+<text x="1757" y="560" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#0E7C6B" text-anchor="start">Native replication</text>
+<g id="c-proxy" data-role="proxy">
+<rect x="1580" y="778" width="320" height="62" rx="10" fill="#FBF7FF" stroke="#7C3AED" stroke-width="1.8"/>
+<rect x="1611" y="794" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="1602" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<rect x="1620" y="813" width="14" height="11" rx="2.5" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.5"/>
+<path d="M1618 805 V809 M1609 813 V809 H1627 V813" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1646" y="805" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="600" fill="#7C3AED" text-anchor="start">Replication proxy</text>
+<text x="1646" y="827" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="500" fill="#7C3AED" text-anchor="start">Datacenter C · outbound Oplog</text>
+</g>
+<g data-source="c-primary" data-target="c-proxy">
+<path d="M1580 472 H1530 V809 H1580" fill="none" stroke="#7C3AED" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-b-to-a" data-source="b-proxy" data-destination="a">
+<path d="M900 824 H700 V468" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M900 824 H700 V468" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="a-primary">
+<path d="M700 468 H540" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M700 468 H540" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-a-to-b" data-source="a-proxy" data-destination="b">
+<path d="M540 794 H740 V440" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M540 794 H740 V440" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="b-primary">
+<path d="M740 440 H900" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M740 440 H900" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-c-to-b" data-source="c-proxy" data-destination="b">
+<path d="M1580 824 H1380 V468" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1580 824 H1380 V468" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="b-primary">
+<path d="M1380 468 H1220" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1380 468 H1220" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-b-to-c" data-source="b-proxy" data-destination="c">
+<path d="M1220 794 H1420 V440" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1220 794 H1420 V440" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="c-primary">
+<path d="M1420 440 H1580" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1420 440 H1580" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-c-to-a" data-source="c-proxy" data-destination="a">
+<path d="M1900 794 H2040 V992 H40 V440" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1900 794 H2040 V992 H40 V440" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="a-primary">
+<path d="M40 440 H220" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M40 440 H220" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<g id="oplog-a-to-c" data-source="a-proxy" data-destination="c">
+<path d="M220 824 H80 V932 H2080 V468" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M220 824 H80 V932 H2080 V468" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<g data-target="c-primary">
+<path d="M2080 468 H1900" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M2080 468 H1900" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+</g>
+</g>
+<text x="692" y="400" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="600" fill="#7C3AED" text-anchor="end">A</text>
+<path d="M702 394 H738" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" marker-start="url(#arrow-violet-back)" marker-end="url(#arrow-violet)"/>
+<text x="748" y="400" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="600" fill="#7C3AED" text-anchor="start">B</text>
+<text x="1372" y="400" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="600" fill="#7C3AED" text-anchor="end">B</text>
+<path d="M1382 394 H1418" fill="none" stroke="#7C3AED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" marker-start="url(#arrow-violet-back)" marker-end="url(#arrow-violet)"/>
+<text x="1428" y="400" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="600" fill="#7C3AED" text-anchor="start">C</text>
+<text x="1060.0" y="919" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="500" fill="#7C3AED" text-anchor="middle">Datacenter A to Datacenter C</text>
+<text x="1060.0" y="979" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="500" fill="#7C3AED" text-anchor="middle">Datacenter C to Datacenter A</text>
+<path d="M367.54999999999995 1060 H429.54999999999995" fill="none" stroke="#7C3AED" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-violet)"/>
+<text x="443.54999999999995" y="1067" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="start">Cross-datacenter replication</text>
+<path d="M780.75 1060 H842.75" fill="none" stroke="#94A3B8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 8" marker-end="url(#arrow-grey)"/>
+<text x="856.75" y="1067" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="start">Gossip membership</text>
+<path d="M1085.05 1060 H1147.05" fill="none" stroke="#0E7C6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arrow-teal)"/>
+<text x="1161.05" y="1067" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="start">Native replication</text>
+<path d="M1399.25 1060 H1461.25" fill="none" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<text x="1475.25" y="1067" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="start">Application reads and writes</text>
+<text x="1060.0" y="1110" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="middle">Six independent Oplog streams: one in each direction for A–B, A–C and B–C. Each peer pulls through the source datacenter's own proxy.</text>
+<text x="1060.0" y="1144" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="400" fill="#55637A" text-anchor="middle">RDB: snapshot · Oplog: operation log. A group holds up to 16 members. Service IDs are illustrative; Sentinel monitoring is omitted.</text>
+</svg>

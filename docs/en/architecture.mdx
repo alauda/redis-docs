@@ -8,32 +8,36 @@ title: Architecture
 
 Alauda Cache Service E1 offers two distinct deployment architectures, each designed to address specific performance, scalability, and high-availability requirements.
 
-- **Sentinel Mode**: A high-availability configuration consisting of a primary Redis instance and configurable replica nodes. The replicas provide read scalability and maintain synchronization with the primary node to ensure data consistency. Redis Sentinel monitors instance health and orchestrates automatic failover when necessary.
+- **Sentinel Mode**: A high-availability configuration consisting of a primary Redis instance and configurable replica nodes. Replicas receive updates asynchronously and can serve reads, which may return stale data. Redis Sentinel monitors instance health and orchestrates automatic failover when necessary.
 
 - **Cluster Mode**: A distributed architecture that implements horizontal scaling through data sharding across multiple Redis nodes. This configuration provides enhanced read/write throughput, automatic failover capabilities, and intelligent data partitioning for optimal performance and availability in high-scale environments.
 
 ## Sentinel Mode
 
-Sentinel Mode implements a high-availability solution based on Redis's native master-replica replication. The Redis Sentinel subsystem continuously monitors the health of all Redis instances and automatically promotes a replica to primary status during failure scenarios, maintaining service continuity. Key characteristics include:
+Sentinel Mode implements a high-availability solution based on Redis's native primary-replica replication. Redis Sentinel monitors the Redis nodes and can promote a replica to primary when the primary fails and the required quorum and majority authorization are available. Key characteristics include:
 
 - **Operational Simplicity**: The architecture offers straightforward implementation and management compared to distributed clustering solutions.
-- **Automated Failover**: Sentinel provides robust health monitoring and automatic failure detection with configurable thresholds for primary-to-replica promotion.
+- **Automated Failover**: Sentinel detects primary failures and coordinates replica-to-primary promotion.
 - **Vertical Scaling**: While supporting vertical resource scaling, this architecture has limited horizontal scalability as all write operations must be directed to the primary node.
 - **Sentinel Resilience**: For complete high availability, multiple Sentinel instances must be deployed to avoid introducing the Sentinel itself as a single point of failure.
 
-![Sentinel Architecture Diagram](./assets/sentinel_arch.png)
+![Sentinel architecture with three Sentinels, one primary, two replicas, and separate client, monitoring, and replication paths](./assets/sentinel_arch.png)
+
+Clients use Sentinel to discover the current primary and connect directly to Redis for data operations. Event subscriptions can help clients react to topology changes. The diagram shows example node counts; replica reads are optional and may be stale. See the [Sentinel client specification](https://redis.io/docs/latest/develop/reference/sentinel-clients/) for discovery and reconnection behavior.
 
 ## Cluster Mode
 
-Cluster Mode represents Redis's comprehensive distributed solution. Through Redis Cluster protocol, the system achieves horizontal scalability by distributing data across multiple nodes using hash slot allocation and consistent hashing algorithms for automatic data partitioning and rebalancing. Key characteristics include:
+Cluster Mode distributes keys across 16,384 hash slots. Each primary owns a subset of these slots and replicates its data to replicas within the same shard. Cluster-aware clients route commands to the primary responsible for the key's slot. Redis Cluster uses hash-slot sharding, not consistent hashing; see the [Redis Cluster specification](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/). Key characteristics include:
 
 - **High Availability**: The architecture implements automatic node failure detection and recovery mechanisms, ensuring continuous data service accessibility.
 - **Dynamic Scaling**: Supports runtime addition or removal of nodes with automatic data rebalancing to accommodate changing workload requirements.
-- **Workload Distribution**: Implements intelligent load balancing across the cluster to prevent hotspots and ensure optimal resource utilization.
+- **Client Routing**: Cluster-aware clients use the slot-to-node mapping and handle `MOVED` and `ASK` redirections when the topology changes. Workload balance depends on key distribution and access patterns.
 - **Data Distribution**: Partitions datasets across multiple nodes, preventing single-node memory constraints and enabling support for substantially larger total datasets.
-- **Operational Complexity**: Requires understanding of sharding mechanisms, consistent hashing principles, data migration strategies, and cluster topology management.
+- **Operational Complexity**: Requires understanding of hash-slot allocation, data migration strategies, and cluster topology management.
 
-![Cluster Architecture Diagram](./assets/cluster_arch.png)
+![Redis Cluster architecture with three primaries covering slots 0 to 16383 and two replicas per primary](./assets/cluster_arch.png)
+
+The diagram shows three example shards with two replicas per primary. The slot ranges cover the complete keyspace without overlap. Cluster bus connections between nodes are omitted to keep client routing and primary-replica replication readable.
 
 ## Architecture Selection Guide
 

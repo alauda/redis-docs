@@ -16,7 +16,7 @@ Cross-datacenter replication is currently in `alpha`. If you plan to use this so
 
 The core functions of the system cover the entire replication link, including data interception, command parsing, operation log (Oplog) persistence, full and incremental data synchronization, and log slicing. The workflow begins with intercepting all write operations at the command execution entry point. Subsequently, the system deeply parses the commands and converts them into an idempotent, structured Oplog format. These logs are efficiently persisted to the local disk, forming a complete and reliable history of data changes, which provides a solid foundation for subsequent data recovery and failover.
 
-In terms of data synchronization, the system has designed a synchronization mechanism that is both efficient and flexible. It supports full synchronization, which quickly builds a complete data copy on the downstream side by generating an RDB snapshot and combining it with the starting position of the Oplog. More importantly, we have innovatively introduced an Offset mechanism that is tightly integrated with the Oplog, building an incremental synchronization capability with an ultra-large window period. Unlike Redis's native replication, which relies on a limited memory backlog, our Oplog is persisted on disk, which means that the catch-up range of incremental synchronization is limited only by disk space. Therefore, even if a network interruption of several hours or even days occurs between the upstream and downstream instances, once the connection is restored, the downstream side can still request incremental data from the last recorded Offset point, achieving efficient data catch-up and consistency recovery, which greatly improves the reliability and robustness of the architecture.
+In terms of data synchronization, the system has designed a synchronization mechanism that is both efficient and flexible. It supports full synchronization, which quickly builds a complete data copy on the downstream side by generating a Redis Database (RDB) snapshot and combining it with the starting position of the Oplog. More importantly, we have innovatively introduced an Offset mechanism that is tightly integrated with the Oplog, building an incremental synchronization capability with an ultra-large window period. Unlike Redis's native replication, which relies on a limited memory backlog, our Oplog is persisted on disk, which means that the catch-up range of incremental synchronization is limited only by disk space. Therefore, even if a network interruption of several hours or even days occurs between the upstream and downstream instances, once the connection is restored, the downstream side can still request incremental data from the last recorded Offset point, achieving efficient data catch-up and consistency recovery, which greatly improves the reliability and robustness of the architecture.
 
 In addition, in order to ensure the long-term stable operation of the system and controllable resources, we have designed a refined log slicing function. This function will automatically scroll and segment the local Oplog file according to the preset size policy. This mechanism not only effectively prevents a single log file from growing indefinitely and exhausting storage resources, but also greatly facilitates the archiving, cleaning, and management of logs, which is a key part of ensuring the continuous and stable operation of the service in a production environment.
 
@@ -31,16 +31,31 @@ Finally, the system provides comprehensive and powerful observability. By compar
 
 ## Replication modes
 
-Starting with Alauda Cache Service E1 v5.1.0, cross-datacenter replication offers two modes, selected per instance through `spec.activeRedis.mode` on the `Redis` resource.
+Starting with Alauda Cache Service E1 v5.1.0, cross-datacenter replication offers two modes, selected per instance through `spec.activeRedis.mode` on the `Redis` resource. Both modes run the replication engine described above — the same Oplog, the same full and incremental synchronization, the same proxy layer. What differs is **how members find each other, and which of them accept application writes**.
 
-| Mode | `spec.activeRedis.mode` | Topology | Membership resource | Redis versions |
-|:-----|:------------------------|:---------|:--------------------|:---------------|
-| Disaster Recovery | `peerof` (default) | Directed links. One upstream fans out to multiple downstreams (star). | `ActiveRedisConnection` | `6.0`, `7.2` |
-| Active-Active | `mesh` | Every member accepts writes and replicates with every other member, with membership maintained by a gossip mesh. | `ActiveRedisMesh` | `7.2` only |
+| | Disaster Recovery | Active-Active |
+|:--|:--|:--|
+| `spec.activeRedis.mode` | `peerof` — the default when `mode` is empty | `mesh` |
+| Application writes | The upstream only. Downstreams stand by. | Every member, in its own datacenter. |
+| Topology | Directed links. One upstream fans out to several downstreams (a star). | Every member replicates with every other member. |
+| Membership | Declared. One `ActiveRedisConnection` per link, created on the downstream side. | Discovered. One `ActiveRedisMesh` per member naming a few seed addresses; gossip finds the rest. |
+| Losing a datacenter | Manual failover — break the link, promote a downstream, redirect clients. | No promotion step — redirect clients to a surviving member. |
+| Concurrent conflicting writes | Do not arise while writes stay on the upstream. | Continuous, and resolved automatically by the module. |
+| Synchronized clocks across datacenters | Not required. | **Required.** |
+| Redis versions | `6.0`, `7.2` | `7.2` only |
 
-**Disaster Recovery** is the hot-standby topology: one instance takes the writes and the others follow it, ready to be promoted if a datacenter is lost. It is documented in [Set Up Disaster Recovery Replication](./20-setup.mdx).
+Each mode has its own pages: [Disaster Recovery](./20-disaster-recovery/index.mdx) and [Active-Active](./30-active-active/index.mdx). [Command Support](./60-commands.mdx) and [Limitations and Risks](./90-limitations.mdx) apply to both.
 
-**Active-Active** lets every datacenter serve reads and writes locally, with conflicts resolved automatically. It is documented in [Set Up Active-Active Replication](./40-mesh.mdx).
+### Choosing a mode \{#choosing-a-mode}
+
+Choose **Disaster Recovery** when one datacenter owns the workload and the others exist to take it over if that datacenter is lost. It is the default, it is available on both module generations, and its consistency story is the simple one: a single writer, so no write has to be reconciled against a concurrent write somewhere else. The cost is that recovery is a deliberate manual operation rather than an automatic one — see [Failover](./20-disaster-recovery/30-failover.mdx).
+
+Choose **Active-Active** when applications in more than one datacenter have to write to their local instance — for local write latency, or to keep serving through the loss of any single datacenter without a promotion step. The cost is that every member is a writer, so concurrent writes to the same key are reconciled by rules that differ from standalone Redis, and those rules are decided by wall-clock time. Two obligations follow from that, and neither is optional:
+
+* Read [Command Support](./60-commands.mdx) before pointing an application at an Active-Active group. It states, command by command, which writes are refused, which stay local, and how each replicated write resolves a conflict.
+* Keep the system clocks of every member synchronized. The module measures and alarms on clock skew, but it never blocks a write because of it — see [Clock synchronization](./30-active-active/30-operations.mdx#clock-synchronization-requirement).
+
+Active-Active is `alpha` and available on Redis `7.2` only. An instance that is already replicating in Disaster Recovery mode should not be converted in place; build an Active-Active group from instances that are not yet wired into a Disaster Recovery group.
 
 <Directive type="info" title="The mode names and the API values differ">
 The `spec.activeRedis.mode` field takes the literal values `peerof` and `mesh`. `peerof` selects Disaster Recovery and is the default when `mode` is empty; `mesh` selects Active-Active. This document uses the mode names in prose and the API values wherever a resource is being written.
@@ -58,17 +73,19 @@ The replication module ships in two generations. Which one an instance loads is 
 | Replicated command set | Smaller — commands introduced after Redis 6.0 are not replicated | Full; see [Command Support](./60-commands.mdx) |
 | Command guards | None — `MOVE`, `SWAPDB`, `RESTORE`, `FLUSHALL`, and `FLUSHDB` are replicated rather than refused | `MOVE`, `SWAPDB`, and `RESTORE` are always refused; `FLUSHALL` and `FLUSHDB` are refused while peers are attached |
 | Peer authentication | None at the module level; the link credential comes from the `ActiveRedisConnection` `spec.secretName` | Mandatory. The instance binds a `RedisUser` through `spec.activeRedis.redisUserName`; `spec.secretName` is ignored |
-| Peer transport | Proxy RESP port (`6379`) | Dedicated peer port (`7379`) fronted by the proxy |
+| Peer transport | Proxy Redis Serialization Protocol (RESP) port (`6379`) | Dedicated peer port (`7379`) fronted by the proxy |
 | Persistence | RDB recommended | RDB only — `appendonly=yes` is rejected by admission |
 | Database count | Standard | `databases` must be `<= 16` |
 
 <Directive type="warning" title="Cross-generation replication is not supported">
 Replication between a Redis `6.0` instance and a Redis `7.2` instance is **not a designed path** — the protocols of the two module generations are not compatible. Every member of one replication group must run the same module generation. Enabling replication on Redis `6.0` returns an admission warning recommending Redis `7.2`.
 
-To move an existing Redis `6.0` replication group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+To move an existing Redis `6.0` replication group onto the new module, follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./20-disaster-recovery/40-upgrade-6.0-to-7.2.mdx).
 </Directive>
 
 ## Architecture Description
+
+The components described in this section — the proxy layer, its two ports, and the Service ID — are common to both modes.
 
 To simplify the complexity of accessing the replication system for different Redis architectures, we have designed a dedicated proxy layer. As the core component of the system, the proxy layer provides a unified status detection and data synchronization entry point for Sentinel and cluster modes. Regardless of the deployment form of the back-end Redis, peers interact through this unified proxy interface. The proxy layer is responsible for encapsulating the internal logic of communication with the specific architecture (Sentinel, cluster), thereby decoupling the replication system from the implementation details of the back-end Redis, which greatly simplifies the access and management of instances.
 
@@ -99,25 +116,13 @@ To uniquely identify and manage each Redis instance in the replication system, w
 `spec.activeRedis.serviceID` cannot be changed after the instance is created, and cross-datacenter replication cannot be turned off once enabled. Both are rejected by admission, because the module's Oplog state is bound to the identity.
 </Directive>
 
-### Deployment Architecture
-
-#### Redis Sentinel Mode Deployment Architecture
-
-When a replication request is initiated, the proxy layer will query the Sentinel cluster to obtain the information of the currently active master node. After locating it, the proxy will route the request to the master node, and directly copy data between the two network sockets to ensure network communication performance.
-
-![Redis Sentinel Mode Disaster Recovery Architecture](../../assets/failover-dr.png)
-
-#### Redis Cluster Mode Deployment Architecture
-
-For cluster mode, the proxy layer is responsible for handling more complex shard routing. It will parse the cluster topology and accurately locate the master node responsible for the shard based on the shard information involved in the request. Then, the synchronization traffic is directly routed to the correct master node. This mechanism avoids the memory and CPU overhead of data transfer in the proxy layer, ensuring high-performance, low-latency data synchronization in a distributed environment.
-
-![Redis Cluster Mode Disaster Recovery Architecture](../../assets/cluster-dr.png)
-
 ## Terminology
 
 The replication direction is described as **upstream** (the instance that produces changes) and **downstream** (the instance that consumes them). These are the terms used by the `ActiveRedis` resource status fields `upstreamPeer`, `downstreamPeers`, and `downstreamPeerCount`.
 
 The Web Console presents the same concepts as **Source side** and **Target side** when you configure a Disaster Recovery instance. A source is an upstream; a target is a downstream. In Disaster Recovery mode the role of an instance is not fixed — a target may itself be promoted to a source during a failover.
+
+The pair names a direction of flow, not a permanent role. In Active-Active mode every member is at once an upstream for the changes it originates and a downstream for the changes it receives from each of its peers.
 
 ## Command Support
 
@@ -125,4 +130,4 @@ Not every Redis command can cross a datacenter boundary. Some are refused with a
 
 ## Limitations and Risks
 
-For the risks and limitations of cross-datacenter replication, please refer to the document [Limitations and Risks](./90-limitations).
+For the risks and limitations of cross-datacenter replication, please refer to the document [Limitations and Risks](./90-limitations.mdx).

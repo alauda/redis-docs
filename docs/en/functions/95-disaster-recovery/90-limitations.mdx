@@ -14,7 +14,7 @@ Unless a limitation is marked as applying to a specific Redis version, it applie
 
 ### Both ends of a replication group must run the same Redis version
 
-Replication between Redis `6.0` (legacy module) and Redis `7.2` (new module) is **not a designed path** — the protocols of the two generations are not compatible. Every member of a replication group must run the same module generation. To move an existing group across generations, see [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./50-upgrade-6.0-to-7.2.mdx).
+Replication between Redis `6.0` (legacy module) and Redis `7.2` (new module) is **not a designed path** — the protocols of the two generations are not compatible. Every member of a replication group must run the same module generation. To move an existing group across generations, see [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./20-disaster-recovery/40-upgrade-6.0-to-7.2.mdx).
 
 Within the new module, all members of a replication group must additionally be running Alauda Cache Service E1 v5.1.0 or later. Links between a v5.1.0 member and an earlier build are not supported.
 
@@ -97,7 +97,7 @@ The legacy module has no such guard: it replicates `FLUSHALL` and `FLUSHDB`, so 
 
 Conflict resolution is decided by wall-clock time, and the retention floor for tombstones is measured in wall-clock time. A member whose clock runs ahead silently wins conflicts it should have lost, and skew approaching 150 s can let a deleted element reappear. The module measures the skew and alarms on it, but it never blocks a write and never drops a peer — synchronizing the clocks is the operator's responsibility.
 
-Run a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in an Active-Active group, and monitor the alarms. See [Clock synchronization](./40-mesh.mdx#clock-synchronization-requirement) for the measurement, the two alarm tiers, and how to confirm that skew caused a particular problem.
+Run a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in an Active-Active group, and monitor the alarms. See [Clock synchronization](./30-active-active/30-operations.mdx#clock-synchronization-requirement) for the measurement, the two alarm tiers, and how to confirm that skew caused a particular problem.
 
 ### The provided address of the upstream instance must be highly available
 
