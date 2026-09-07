@@ -1,0 +1,209 @@
+---
+weight: 20
+i18n:
+  title:
+    zh: 配置
+title: Setup
+---
+
+# Set Up Active-Active Replication
+
+<Directive type="warning" title="Feature Maturity Notice">
+Active-Active mode is `alpha` and is available on Redis `7.2` only. It is not supported on Redis `6.0` — admission rejects it.
+</Directive>
+
+Setting up Active-Active replication has two parts: enabling Active-Active mode on each `Redis` instance, and creating one `ActiveRedisMesh` per member so that the members can find each other. For how the mode works — discovered membership, the two ports, conflict resolution, and the clock requirement — read [Architecture](./10-architecture.mdx) first. For how it compares with Disaster Recovery, see [Choosing a mode](../10-intro.mdx#choosing-a-mode).
+
+## Prerequisites
+
+* Every member runs Redis `7.2`.
+* Each member has a distinct `serviceID` in the range `[0-15]`.
+* Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
+* **The system clocks of all members are synchronized**, through a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the group. This is a hard prerequisite, not a recommendation — see [Clock synchronization](./30-operations.mdx#clock-synchronization-requirement).
+
+## Step 1: Create the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
+
+Every peer link in an Active-Active group authenticates, and every member must present the **same username and the same password value**. Create the credential in each datacenter before enabling the mode. This is the same credential Disaster Recovery uses; if these instances already carry one, skip to Step 2.
+
+```bash
+# The dedicated password secret for the peer-auth account
+$ kubectl -n default create secret generic s72-dc1-peer-secret --from-literal=password='Peer@Repl123'
+
+# The peer-auth RedisUser
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: redis.middleware.alauda.io/v1
+kind: RedisUser
+metadata:
+  name: s72-dc1-peer
+spec:
+  accountType: custom
+  arch: sentinel
+  redisName: s72-dc1
+  username: aapeerrepl
+  passwordSecrets:
+  - s72-dc1-peer-secret
+EOF
+```
+
+> `spec.arch` must match the architecture of the referenced instance (`sentinel`, `cluster`, or `standalone`).
+
+Wait for the user to be applied:
+
+```bash
+$ kubectl -n default get redisusers s72-dc1-peer
+NAME           INSTANCE   USERNAME     PHASE     AGE
+s72-dc1-peer   s72-dc1    aapeerrepl   Success   12s
+```
+
+<Directive type="warning" title="The same username and password in every datacenter">
+The module accepts an inbound peer only when the username it presents equals the local peer-auth username. Every member of the group must therefore bind a `RedisUser` with the **same `spec.username` and the same password value**. The `RedisUser` resource names may differ, but the credential values may not.
+</Directive>
+
+## Step 2: Enable Active-Active mode on each instance
+
+<Directive type="warning" title="Set the mode when you enable replication">
+These steps assume instances that are being placed into an Active-Active group from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established Disaster Recovery group to Active-Active is not a covered procedure and has not been validated. Build an Active-Active group from instances that are not already wired into a Disaster Recovery group.
+</Directive>
+
+Members must advertise an externally-routable address, because a peer re-resolves it on every dial. This is the `announceAddress`, set on the proxy Service configuration.
+
+```bash
+$ kubectl -n default patch redis s72-dc1 --type=merge --patch='
+spec:
+  activeRedis:
+    serviceID: 0
+    mode: mesh
+    redisUserName: s72-dc1-peer
+    proxy:
+      service:
+        type: LoadBalancer
+        announceAddress: redis-dc1.example.com
+        announcePort: 6379
+'
+```
+
+| Field | Description |
+|:------|:------------|
+| `mode` | `mesh`. |
+| `serviceID` | Unique within the mesh, range `[0-15]`, immutable. |
+| `redisUserName` | The peer-auth `RedisUser` binding. Mandatory. |
+| `proxy.service.announceAddress` | The externally-reachable host peers dial to reach this member — the host on the external load balancer or VIP, decoupled from the in-cluster Service. Must be a **bare host**: no scheme, no port, no path. |
+| `proxy.service.announcePort` | The externally-reachable RESP port for the gossip control plane. Defaults to the proxy Service port `6379`; override it only when an external load balancer exposes that port under a different number. |
+
+<Directive type="warning" title="announceAddress rules">
+* A **DNS name is recommended**: the module re-resolves it on every dial, so it survives IP changes, and a multi-A record can cover several NodePort addresses. When the announce address is a DNS name, the operator binds it to the proxy Service through ExternalDNS.
+* A **bare IP is accepted with a warning** — it will not re-resolve after an IP change, so it is only appropriate for a stable VIP.
+* Leaving it **empty produces a warning** and the module advertises the pod IP, which is not routable across datacenters.
+* An address containing a scheme (`tcp://…`), a port (`host:7379`), or a path is **rejected**. The port belongs in `announcePort`.
+</Directive>
+
+<Directive type="warning" title="announcePort does not affect the data plane">
+`announcePort` applies to the gossip control plane only. The module always advertises its own local peer port (`7379`) for replication, so any external endpoint must expose `7379` as `7379`.
+</Directive>
+
+## Step 3: Create an ActiveRedisMesh in each cluster
+
+Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the externally-routable proxy RESP addresses of members in other datacenters.
+
+```bash
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: redis.middleware.alauda.io/v1alpha1
+kind: ActiveRedisMesh
+metadata:
+  name: mesh-dc1
+spec:
+  instance: s72-dc1
+  seeds:
+  - redis-dc2.example.com:6379
+  - redis-dc3.example.com:6379
+EOF
+```
+
+### Seed syntax
+
+A seed is `host:port`, where the port is the remote proxy's RESP endpoint — normally `6379`. An optional `@peer-port` suffix overrides the peer port when an external load balancer remaps it; when the suffix is omitted the operator appends the conventional `7379`. The operator normalizes the list before injecting it, so `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`.
+
+<Directive type="info" title="Seeds are a bootstrap list, not a membership list">
+One reachable seed per remote datacenter is enough — gossip discovers everything else. The local member's own entry may be included, so every datacenter can carry the same uniform seed list; the module skips its own record.
+</Directive>
+
+The operator injects the normalized set on **every** node, replicas included, so the mesh auto-starts on every pod. Restart and failover re-entry are therefore zero-touch.
+
+### Optional fields
+
+| Field | Description |
+|:------|:------------|
+| `pause` | Suspends mesh participation. Defaults to `false`. |
+| `enableTLS` | Enables TLS for the peer transport. |
+| `tuning` | Optional gossip and membership timers. See [Tuning](#tuning). |
+| `secretName` | **Deprecated and ignored.** The peer-auth credential is the instance-level `RedisUser` binding. |
+
+## Step 4: Verify convergence
+
+```bash
+$ kubectl -n default get activeredismesh
+NAME       INSTANCE   PHASE     MEMBERS   ALIVE   AGE
+mesh-dc1   s72-dc1    Healthy   3         3       2m
+```
+
+```bash
+$ kubectl -n default get activeredismesh mesh-dc1 -o yaml
+...
+status:
+  phase: Healthy
+  instance: s72-dc1
+  epoch: 7
+  memberCount: 3
+  aliveCount: 3
+  suspectCount: 0
+  deadCount: 0
+  fleetFloorVersion: "7.2"
+  versionConverged: true
+  members:
+  - uid: 9f2c1a...
+    serviceID: 0
+    shardID: 0
+    address: redis-dc1.example.com
+    state: alive
+    epoch: 7
+    clockOffsetMs: 2
+    version: "7.2"
+    moduleVersion: 10
+  - uid: 4b81d3...
+    serviceID: 1
+    shardID: 0
+    address: redis-dc2.example.com
+    state: alive
+    epoch: 7
+    clockOffsetMs: -5
+    version: "7.2"
+    moduleVersion: 10
+```
+
+### Mesh phases
+
+| Phase | Meaning |
+|:------|:--------|
+| `Healthy` | Membership is converged and every known member is alive. |
+| `Degraded` | The mesh is operating with suspect or dead members. |
+| `Pending` | No ready master could be reached to read membership yet — the bootstrap window, or an outage. |
+| `Paused` | `spec.pause` is `true`. |
+| `Failed` | The mesh could not be configured; `status.message` carries the reason (for example `invalid mesh seed`). |
+
+### Member states
+
+A member is `alive`, `suspect`, or `dead` — see [Membership lifecycle](./10-architecture.mdx#membership-lifecycle).
+
+`clockOffsetMs` is each member's clock offset relative to this instance, in milliseconds. See [Clock synchronization](./30-operations.mdx#clock-synchronization-requirement).
+
+### Version fields
+
+`status.fleetFloorVersion` reports the lowest Redis version across non-dead members that report a known version — the feature ceiling for the whole mesh. `status.versionConverged` is `true` once every non-dead member runs the same Redis and module version.
+
+<Directive type="info" title="versionConverged is false during a rolling upgrade">
+This is expected and handled by the module; it does not fail the mesh phase. It becomes `true` again once the fleet converges.
+</Directive>
+
+## Next steps
+
+Day-2 work — monitoring clock skew, adjusting the gossip timers, and adding or removing members — is covered in [Operations](./30-operations.mdx).

@@ -1,0 +1,34 @@
+.doom-trademark-footer {
+  border-top: 1px solid var(--rp-c-divider-light);
+  background: var(--rp-c-bg);
+  padding: 20px 24px 28px;
+  color: var(--rp-c-text-3, var(--rp-c-text-2));
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.doom-trademark-footer p {
+  margin: 0 0 8px;
+  max-width: 860px;
+}
+
+.doom-trademark-footer p:last-child {
+  margin-bottom: 0;
+}
+
+/* Doc pages reserve the left gutter for the sidebar. Start the notice at the
+   content area's own left padding edge (64px, matching .rspress-doc) so it
+   never runs under the sidebar. The article column itself sits further right
+   on pages that show an outline, because it is centred by auto margins. */
+@media (min-width: 960px) {
+  .doom-trademark-footer--inset {
+    padding-left: calc(var(--rp-sidebar-width, 280px) + 64px);
+  }
+}
+
+@media print {
+  .doom-trademark-footer {
+    border-top: 1px solid #ccc;
+    color: #000;
+  }
+}

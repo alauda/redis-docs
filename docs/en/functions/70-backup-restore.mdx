@@ -7,7 +7,7 @@ sourceSHA: 9c95e7d9fb50f09a7876e8fd94ebb61443a7736c873510baea5cb0cb18d7d5e6
 
 Implementing a robust backup strategy is essential for data protection. Regular backups provide recovery options in case of database anomalies or data corruption incidents.
 
-Alauda Cache Service for Redis OSS supports two backup methodologies:
+Alauda Cache Service E1 supports two backup methodologies:
 
 * **S3 Backup:** Stores backup data in S3-compatible object storage systems, providing scalable and durable off-cluster backup capabilities.
 * **PVC Backup:** Utilizes Kubernetes PersistentVolumeClaims to store backup data on persistent volumes. This method requires PV infrastructure that supports both node migration and the ReadWriteMany access mode, such as NFS or Ceph storage systems.

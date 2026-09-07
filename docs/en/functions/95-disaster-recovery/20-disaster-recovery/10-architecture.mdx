@@ -1,0 +1,47 @@
+---
+weight: 10
+i18n:
+  title:
+    zh: 架构
+title: Architecture
+---
+
+# Disaster Recovery Architecture
+
+How a Disaster Recovery replication group is put together: who declares the links, which way the data flows, and where the proxy sits in each Redis topology. For the replication engine itself — the Oplog, full and incremental synchronization, the ports, and the Service ID — see [Introduction](../10-intro.mdx).
+
+## Declared links, one direction
+
+Membership in Disaster Recovery mode is **declared, not discovered**. Every link is one `ActiveRedisConnection`, created in the downstream datacenter and naming the upstream's proxy address. Nothing is inferred: an instance replicates from exactly the upstream it was told about, and from no one else.
+
+* The **downstream initiates** the connection. It dials the upstream's proxy, then pulls the upstream's Oplog and applies it locally. The upstream never dials out, which is why setup exposes the **upstream's** proxy and not the downstream's.
+* An instance holds **at most one upstream connection**. An upstream, in contrast, can fan out to several downstreams, which gives the star topology.
+* The fan-out ceiling is the Service ID range: with `service_id` in `[0-15]`, one replication group holds at most 16 members, so a single upstream can feed at most 15 downstreams.
+
+Because the links are declared, promoting a downstream after an outage is also a declared act — you delete the connection to the failed upstream, and the instance becomes independent. Nothing promotes itself. See [Failover](./30-failover.mdx).
+
+## Deployment Architecture
+
+The following diagrams show one upstream instance producing changes and two example downstream instances receiving them. Violet arrows indicate replication data flowing from upstream to downstream; the downstream initiates the connection to the upstream proxy. Each instance deploys a replication proxy, but a downstream's local proxy is not on its incoming data path in this topology.
+
+Within each datacenter, **Primary** and **Replica** describe local Redis roles. A downstream primary receives cross-datacenter changes and replicates them to its local replicas; application writes remain on the upstream in the illustrated topology. The replication module runs inside the Redis process. `RDB` denotes a local snapshot, and `Oplog` denotes the module's operation log. Local automatic failover and the manual disaster recovery switching described in [Failover](./30-failover.mdx) are separate operations.
+
+### Redis Sentinel Mode Deployment Architecture
+
+For Sentinel mode, the proxy routes incoming replication requests to the current primary. Sentinel provides monitoring and local failover for the primary-replica group. Sentinel monitoring links are omitted from this diagram; see [Sentinel Mode](../../../architecture.mdx#sentinel-mode) for the local topology.
+
+![Sentinel disaster recovery with one upstream proxy feeding two downstream primaries, each with a local replica and replication module](../../../assets/failover-dr.png)
+
+### Redis Cluster Mode Deployment Architecture
+
+For Cluster mode, the proxy routes each replication connection to the current primary of the requested shard. The upstream and downstream instances must have matching shard counts and slot layouts. In the example, shard A replicates to shard A at each downstream, and the same applies to B and C. The shared violet paths represent separate per-shard connections; the plain lines between the upstream proxy and its primaries show backend connectivity.
+
+![Cluster disaster recovery with three matching shards at each datacenter, replication through the upstream proxy, and local primary-replica replication](../../../assets/cluster-dr.png)
+
+The shared node detail applies to every primary and replica. The slot ranges and replica counts are illustrative; matching layouts are checked during [setup](./20-setup.mdx).
+
+## What a local failover does not disturb
+
+The proxy is what keeps a declared link stable across local role changes. A cross-datacenter link is addressed to the peer *instance*, not to a particular pod: the proxy resolves it to whichever primary — or, in Cluster mode, whichever primary of the requested shard — is current at that moment.
+
+So a Sentinel or Cluster failover inside one datacenter is a local event. The replication link is re-established through the same proxy address once the new primary is serving, and neither `ActiveRedisConnection` changes. This is separate from a cross-datacenter failover, which is the manual promotion of a whole downstream instance.

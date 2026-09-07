@@ -1,0 +1,19 @@
+---
+weight: 30
+i18n:
+  title:
+    zh: 双活
+title: Active-Active
+---
+
+# Active-Active
+
+<Directive type="warning" title="Feature Maturity Notice">
+Active-Active mode is `alpha` and is available on Redis `7.2` only. It is not supported on Redis `6.0` — admission rejects it.
+</Directive>
+
+Active-Active (`spec.activeRedis.mode: mesh`) is the mode of [Cross-Datacenter Replication](../10-intro.mdx) in which **every** member serves reads and writes in its own datacenter. Members discover one another through a gossip mesh instead of through declared links, and concurrent writes to the same key are reconciled automatically by the module.
+
+For how it compares with Disaster Recovery, and for the mechanics both modes share, see [Introduction](../10-intro.mdx#choosing-a-mode).
+
+<Overview />

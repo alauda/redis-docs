@@ -1,0 +1,248 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: activeredismeshes.redis.middleware.alauda.io
+spec:
+  group: redis.middleware.alauda.io
+  names:
+    kind: ActiveRedisMesh
+    listKind: ActiveRedisMeshList
+    plural: activeredismeshes
+    singular: activeredismesh
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Redis Instance
+      jsonPath: .spec.instance
+      name: Instance
+      type: string
+    - description: ActiveRedisMesh phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Known mesh members
+      jsonPath: .status.memberCount
+      name: Members
+      type: integer
+    - description: Alive members
+      jsonPath: .status.aliveCount
+      name: Alive
+      type: integer
+    - description: Time since creation
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ActiveRedisMesh is the Schema for the activeredismeshes API. It drives full
+          gossip active-active (mesh mode) for the new 7.2 module.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ActiveRedisMeshSpec defines the desired state of ActiveRedisMesh. It is a
+              per-instance membership resource: each Kubernetes cluster owns one for its
+              local Redis instance, naming the externally-routable seed addresses of peer
+              members in other datacenters. The local instance's own announce addresses are
+              derived by the operator from its per-shard peer-port Services.
+            properties:
+              enableTLS:
+                description: EnableTLS enables TLS for the peer (mesh) transport.
+                type: boolean
+              instance:
+                description: Instance is the local redis instance that participates
+                  in the mesh.
+                minLength: 1
+                type: string
+              pause:
+                default: false
+                description: Pause suspends mesh participation.
+                type: boolean
+              secretName:
+                description: |-
+                  SecretName is the secret holding peer-auth credentials (username/password)
+                  used for gossip and replication to peers.
+                  Deprecated: never wired. The peer-auth credential is the instance-level
+                  RedisUser binding (Redis spec.activeRedis.redisUserName), resolved and
+                  pushed by the ActiveRedis reconciler; mesh mode only exists on the new
+                  module, so this field has no remaining consumer. Ignored.
+                type: string
+              seeds:
+                description: |-
+                  Seeds are the externally-routable proxy addresses of peer members in
+                  other datacenters, used to bootstrap the gossip mesh: `host:port` (the
+                  remote proxy's RESP endpoint, normally :6379) with an optional
+                  `@peer-port` suffix when an external LB remaps the module peer-port
+                  (unset, the operator appends the conventional peer-port 7379). The
+                  operator normalizes the list and injects it on every node as the
+                  module's strict `activeredis.mesh-seeds` desired set, from which the
+                  mesh auto-starts on every pod — replicas included, so restart and
+                  failover re-entry are zero-touch. At least one reachable seed per remote
+                  DC is enough — gossip discovers the rest. The local instance's own entry
+                  may be included (each DC can carry the same uniform list); the module
+                  skips the self record.
+                items:
+                  type: string
+                minItems: 1
+                type: array
+              tuning:
+                description: Tuning holds optional gossip/membership timers.
+                properties:
+                  banTTLMs:
+                    description: |-
+                      BanTTLMs is the base ban TTL after a forget (module default ~1h; unset
+                      leaves the module default).
+                    format: int32
+                    type: integer
+                  deadTimeoutMs:
+                    description: DeadTimeoutMs is the dead timeout (module default
+                      15000ms).
+                    format: int32
+                    type: integer
+                  gossipIntervalMs:
+                    description: GossipIntervalMs is the gossip round interval (module
+                      default 1000ms).
+                    format: int32
+                    type: integer
+                  maxClockSkewMs:
+                    description: MaxClockSkewMs is the advisory clock-skew alarm threshold
+                      (0 disables it).
+                    format: int32
+                    type: integer
+                  suspectTimeoutMs:
+                    description: SuspectTimeoutMs is the suspect timeout (module default
+                      8000ms).
+                    format: int32
+                    type: integer
+                type: object
+            required:
+            - instance
+            - seeds
+            type: object
+          status:
+            description: |-
+              ActiveRedisMeshStatus defines the observed state of ActiveRedisMesh, populated
+              from `as.mesh info` and `as.mesh nodes`.
+            properties:
+              aliveCount:
+                description: AliveCount is the number of alive members.
+                format: int32
+                type: integer
+              deadCount:
+                description: DeadCount is the number of dead members.
+                format: int32
+                type: integer
+              epoch:
+                description: Epoch is the highest mesh epoch observed.
+                format: int64
+                type: integer
+              fleetFloorVersion:
+                description: |-
+                  FleetFloorVersion is the lowest Redis major.minor across non-dead members
+                  that report a known version — the feature ceiling for the whole mesh.
+                  Empty when no member's version is known yet.
+                type: string
+              instance:
+                description: Instance is the local redis instance name.
+                type: string
+              memberCount:
+                description: MemberCount is the total number of known members.
+                format: int32
+                type: integer
+              members:
+                description: Members is the list of known mesh members.
+                items:
+                  description: MeshMember is one member of the gossip mesh, from `as.mesh
+                    nodes`.
+                  properties:
+                    address:
+                      description: Address is the announce address peers dial to replicate
+                        from this member.
+                      type: string
+                    clockOffsetMs:
+                      description: ClockOffsetMs is the RTT-corrected clock offset
+                        to this member.
+                      format: int64
+                      type: integer
+                    epoch:
+                      description: Epoch is the member's gossip epoch.
+                      format: int64
+                      type: integer
+                    moduleVersion:
+                      description: |-
+                        ModuleVersion is the member's active-active module compat level A (the
+                        module's `mver` token). 0 when unknown.
+                      format: int32
+                      type: integer
+                    serviceID:
+                      description: |-
+                        ServiceID is the member's service id (0-15, unique per shard ring). Always
+                        serialized: it is parsed from the member's gossip node-line, so it is never
+                        unset, and one DC of every mesh legitimately holds id 0 — which omitempty
+                        would erase from the published membership.
+                      format: int32
+                      type: integer
+                    shardID:
+                      description: |-
+                        ShardID is the member's shard id. Always serialized for the same reason: a
+                        sentinel-arch member is always shard 0, as is the first shard of every
+                        cluster-arch member.
+                      format: int32
+                      type: integer
+                    state:
+                      description: State is alive | suspect | dead.
+                      type: string
+                    uid:
+                      description: UID is the member's stable service_uid.
+                      type: string
+                    version:
+                      description: |-
+                        Version is the member's Redis major.minor as advertised over gossip (the
+                        module's `ver` token). Empty when unknown (a pre-P1 member reports ver=0.0).
+                      type: string
+                  type: object
+                type: array
+              message:
+                description: Message is a human-readable status message.
+                type: string
+              phase:
+                description: Phase is the overall mesh phase.
+                type: string
+              suspectCount:
+                description: SuspectCount is the number of suspect members.
+                format: int32
+                type: integer
+              versionConverged:
+                description: |-
+                  VersionConverged is true when every non-dead member with a known version
+                  runs the same Redis and module version. It is false during a rolling
+                  upgrade (an expected, module-HOLD-handled transient — it does NOT fail the
+                  mesh phase) and true once the fleet converges.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

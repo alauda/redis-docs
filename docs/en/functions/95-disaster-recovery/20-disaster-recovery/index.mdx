@@ -1,0 +1,15 @@
+---
+weight: 20
+i18n:
+  title:
+    zh: 容灾
+title: Disaster Recovery
+---
+
+# Disaster Recovery
+
+Disaster Recovery (`spec.activeRedis.mode: peerof`) is the hot-standby mode of [Cross-Datacenter Replication](../10-intro.mdx): an upstream instance takes the application writes and fans directed replication links out to one or more downstream instances, each of which stands ready to be promoted if the upstream datacenter is lost. It is the default mode, and the only one available on Redis `6.0`.
+
+For how it compares with Active-Active, and for the mechanics both modes share, see [Introduction](../10-intro.mdx#choosing-a-mode).
+
+<Overview />
