@@ -23,7 +23,7 @@ The following table shows the compatibility and support matrix between Alauda Ca
 
 ### New and Optimized Features
 
-#### Redesigned Cross-Datacenter Replication (Alpha)
+#### Cross-Datacenter Replication (Alpha)
 
 Redis `7.2` instances now run a redesigned replication module, offering two modes selected per instance through `spec.activeRedis.mode`:
 
@@ -50,21 +50,29 @@ The two module generations do not interoperate, so the whole group must be upgra
 
 `ActiveRedisConnection` now carries a `teardownPolicy`. `Detach` (the default) removes the link but keeps the peer's bookkeeping so the link can be re-created later. `Decommission` permanently retires a peer and releases the retention floors held for it — the correct teardown for a datacenter that is gone for good.
 
+#### PVC Backup and Restore on Node-Local Storage
+
+PVC backup no longer requires a `ReadWriteMany`-capable storage provider. The backup volume is now created with the `ReadWriteOnce` access mode by default — configurable through `spec.accessModes` on `RedisBackup` and `RedisClusterBackup` — so backups can be stored on node-local block storage. Restore no longer mounts the backup volume into every Redis pod either: the data is delivered to the pods over the network instead of through a shared mount.
+
+Existing backups on `ReadWriteMany` volumes stay restorable and take the same network-delivered path, and S3 backups keep their existing direct-pull path. The path is chosen by the instance's bundle version, not by the backup's access mode: an instance pinned to a bundle version earlier than `5.1.0` may still perform the previous mount-based restore, and needs its backup on a `ReadWriteMany` volume.
+
+Selecting a node-local `StorageClass` in the Web Console additionally requires Alauda Container Platform Data Services Essentials `v4.4.1` or later. See [Backup & Restore Instance](./functions/70-backup-restore.mdx).
+
 #### New APIs
 
 The `ActiveRedis`, `ActiveRedisMesh`, and `ActiveRedisInspection` resources are documented under [Redis APIs](./apis/kubernetes_apis/redis/index.mdx).
 
 ### Fixed Issues
 
-{/* release-notes-for-bugs?template=mw-redis-v5.1.0-fixed&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-fixed */}
 
 ### Known Issues
 
-{/* release-notes-for-bugs?template=mw-redis-v5.1.0-known&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-known */}
 
 ### Security Fixes
 
-{/* release-notes-for-bugs?template=mw-redis-v5.1.0-security&project=Middleware */}
+{/* release-notes-for-bugs?template=mw-redis-v5.1.0-security */}
 
 ## v5.0.1
 

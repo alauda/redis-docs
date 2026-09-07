@@ -1641,17 +1641,28 @@ spec:
                           type: object
                         type: array
                     type: object
-                  redisUserName:
+                  redisUserRef:
                     description: |-
-                      RedisUserName names the RedisUser (same namespace) whose username/password
-                      back the module's peer-auth credential (activeredis.peer-auth-user/-pass).
-                      The new module (7.2) REQUIRES peer-auth: without it every inbound peer
+                      RedisUserRef names the RedisUser OBJECT (same namespace) whose
+                      username/password back the module's peer-auth credential
+                      (activeredis.peer-auth-user/-pass). It is a resource reference, NOT an ACL
+                      username: the referenced object is what carries the username, which is
+                      typically "default" or a custom account name and rarely matches the object
+                      name (e.g. the object "rfr-acl-<instance>-default" holds username
+                      "default").
+
+                      The new module (7.2/8.4) REQUIRES peer-auth: without it every inbound peer
                       link (peerof and mesh) is rejected. The referenced RedisUser must target
-                      this instance and be a custom account with at least one password, and the
-                      SAME username/password must be bound on every instance participating in
-                      the replication — the module rejects an inbound peer whose presented
-                      username differs from the local peer-auth-user. Required when activeRedis
-                      is enabled on 7.2; ignored for the 6.0 legacy module.
+                      this instance and carry at least one password; it may be the instance's
+                      default account or a custom one, but never the system account (the
+                      operator's own internal account). The SAME username/password must be
+                      bound on every instance participating in the replication — the module
+                      rejects an inbound peer whose presented username differs from the local
+                      peer-auth-user — which usually means a custom account minted alike in
+                      every data center, since default-account passwords differ per instance.
+                      Required when activeRedis is enabled on 7.2/8.4. On the 6.0 legacy module
+                      the module itself has no peer-auth, but the binding is still provisioned
+                      and honoured by the proxy, so the same credential selection works there.
                     type: string
                   serviceID:
                     description: |-
@@ -6935,7 +6946,9 @@ spec:
 
                   The API accepts every version in the enum, but a version only deploys when the
                   installed bundle's ImageVersion carries a matching server image — today 6.0 and
-                  7.2.
+                  7.2. Redis 8.4 stays API-accepted while shipping no image (the bundle omits an
+                  8.4 server image for licensing reasons); deploying it requires supplying an 8.4
+                  image out of band.
                 enum:
                 - "6.0"
                 - "6.2"
