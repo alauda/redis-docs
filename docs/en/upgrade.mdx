@@ -35,15 +35,18 @@ Before initiating an upgrade, ensure that the following prerequisites are met:
 
 The following matrix outlines the tested version combinations and their respective dependencies:
 
-{/* TODO(release): confirm the ACP version row for v5.1.0 before publishing — carried forward from v5.0.x. */}
+| Alauda Cache Service E1 Version | Redis Server Versions  | ACP Version      |
+|:--------------------------------|:-----------------------|:-----------------|
+| v5.1.x                          | 6.0.22, 7.2.16         | v4.2, v4.3, v4.4 |
+| v5.0.x                          | 6.0.21, 7.2.12, 7.2.14 | v4.1, v4.2, v4.3 |
+| v4.1.x                          | 5.0.14, 6.0.20, 7.2.10 | v4.1, v4.2       |
+| v4.0.x                          | 5.0.14, 6.0.20, 7.2.x  | v4.0             |
 
-| Alauda Cache Service E1 Version | Redis Server Versions      | ACP Version      |
-|:-------------------------------------------|:---------------------------|:-----------------|
-| v5.1.0                                     | 6.0.22, 7.2.15             | v4.1, v4.2, v4.3 |
-| v5.0.1                                     | 6.0.21, 7.2.14             | v4.1, v4.2, v4.3 |
-| v5.0.0                                     | 6.0.21, 7.2.12             | v4.1, v4.2, v4.3 |
-| v4.1.x                                     | 5.0.14, 6.0.20, 7.2.10     | v4.1, v4.2       |
-| v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x      | v4.0             |
+<Directive type="note" title="ACP Compatibility for v5.1.x">
+Alauda Cache Service E1 v5.1.x runs on ACP v4.2, v4.3, and v4.4 only. It is not supported on ACP v4.1: upgrade ACP to v4.2 or later before upgrading Alauda Cache Service E1, or remain on v5.0.x.
+
+Conversely, Alauda Cache Service E1 v5.0.x and earlier have not been tested on ACP v4.4. Before upgrading to ACP v4.4, please upgrade Alauda Cache Service E1 to v5.1.0 or later first.
+</Directive>
 
 <Directive type="note" title="ACP v4.3 Compatibility">
 Alauda Cache Service E1 v4.1.x and v4.0.x have not been tested on ACP v4.3. Before upgrading to ACP v4.3, please upgrade Alauda Cache Service E1 to v5.0.0 or later first.
@@ -52,7 +55,7 @@ Alauda Cache Service E1 v4.1.x and v4.0.x have not been tested on ACP v4.3. Befo
 <Directive type="warning" title="Upgrade Redis 5.0 instances before upgrading to ACP v4.3">
 Upgrading the Alauda Cache Service E1 operator does **not** automatically upgrade the Redis version of existing instances; each instance's Redis version must be upgraded explicitly.
 
-Because ACP v4.3 requires Alauda Cache Service E1 v5.0.x, and v5.0.x no longer supports Redis `5.0`, you must first upgrade every Redis `5.0` instance to a supported version (`6.0` or `7.2`) **before** upgrading from an ACP version earlier than v4.3 to v4.3.
+Because ACP v4.3 requires Alauda Cache Service E1 v5.0.0 or later, and those versions no longer support Redis `5.0`, you must first upgrade every Redis `5.0` instance to a supported version (`6.0` or `7.2`) **before** upgrading from an ACP version earlier than v4.3 to v4.3.
 
 Confirm that no instance reports `5.0` in the `VERSION` column (for example, run `kubectl get redis -A`) before starting the ACP upgrade. Refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx) for the upgrade procedure.
 </Directive>
