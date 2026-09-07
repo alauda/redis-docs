@@ -12,6 +12,10 @@ body: |
   does not indicate any sponsorship, endorsement or affiliation between Redis
   Ltd. and Alauda.
 
+  Alauda is an independent vendor. This product is not affiliated with,
+  endorsed by, or sponsored by Redis Ltd. All trademarks are the property of
+  their respective owners and are used here for identification purposes only.
+
 include_patterns:
   - "**/*.md"
   - "**/*.mdx"
