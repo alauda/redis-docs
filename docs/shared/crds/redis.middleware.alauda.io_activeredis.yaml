@@ -1631,12 +1631,13 @@ spec:
                       type: object
                     type: array
                 type: object
-              redisUserName:
+              redisUserRef:
                 description: |-
-                  RedisUserName mirrors the bound instance's peer-auth RedisUser binding
-                  (spec.activeRedis.redisUserName on the Redis CR). The ActiveRedis
-                  reconciler resolves it and pushes activeredis.peer-auth-user/-pass to
-                  every node; link controllers reuse the same credential for as.peerof.
+                  RedisUserRef mirrors the bound instance's peer-auth RedisUser binding
+                  (spec.activeRedis.redisUserRef on the Redis CR) — a RedisUser OBJECT name,
+                  not an ACL username. The ActiveRedis reconciler resolves it and pushes
+                  activeredis.peer-auth-user/-pass to every node; link controllers reuse the
+                  same credential for as.peerof.
                 type: string
             required:
             - instance
@@ -1826,8 +1827,8 @@ spec:
               version:
                 description: |-
                   Version is the redis version of the bound instance. It selects the AA
-                  module generation: 6.0 uses the legacy module, 7.2 uses the new module's
-                  native peer-port transport.
+                  module generation: 6.0 uses the legacy module + proxy, 7.2/8.4 use the new
+                  module's native peer-port transport (no proxy).
                 type: string
             required:
             - phase

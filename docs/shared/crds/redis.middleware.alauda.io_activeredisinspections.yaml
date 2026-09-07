@@ -55,12 +55,19 @@ spec:
                 description: Instance is the instance name of local redis.
                 minLength: 1
                 type: string
-              secretName:
+              redisUserRef:
                 description: |-
-                  SecretName the secret name for redis authentication. for default user,
-                  the password field is required. Optional: only the 6.0 legacy module
-                  authenticates the probe with this secret; the new (7.2) module uses
-                  the instance-level peer-auth binding and ignores it.
+                  RedisUserRef names the RedisUser OBJECT whose credential the probe
+                  authenticates with on the new (7.2/8.4) module — a resource reference, not
+                  an ACL username (the referenced object carries the username). Optional: the
+                  inspection prefers the instance's own spec.activeRedis.redisUserRef
+                  binding; this field only fills in when the instance declares none — the
+                  pre-flight probe a console runs BEFORE active-active is enabled on the
+                  instance, when no binding exists yet and the account is still only a
+                  selection in the form. The RedisUser must target this instance and carry
+                  the same username/password every DC in the replication group binds. The 6.0
+                  legacy module has no peer-auth and ignores this field, authenticating
+                  the probe with SecretName instead.
                 type: string
               serviceID:
                 description: |-

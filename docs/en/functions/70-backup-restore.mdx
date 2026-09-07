@@ -10,11 +10,13 @@ Implementing a robust backup strategy is essential for data protection. Regular 
 Alauda Cache Service E1 supports two backup methodologies:
 
 * **S3 Backup:** Stores backup data in S3-compatible object storage systems, providing scalable and durable off-cluster backup capabilities.
-* **PVC Backup:** Utilizes Kubernetes PersistentVolumeClaims to store backup data on persistent volumes. This method requires PV infrastructure that supports both node migration and the ReadWriteMany access mode, such as NFS or Ceph storage systems.
+* **PVC Backup:** Utilizes Kubernetes PersistentVolumeClaims to store backup data on persistent volumes. The backup volume is created with the `ReadWriteOnce` access mode by default, so node-local block storage can be used; a `ReadWriteMany` provider such as NFS or Ceph is accepted but is not required. Set `spec.accessModes` on `RedisBackup` or `RedisClusterBackup` to request a different access mode.
 
 ## Prerequisites
 
-To utilize S3 backup functionality with your own storage buckets, confirm with your administrator that S3 storage integration has been properly configured for your project namespace. Alternatively, ensure your cluster provides a network-based `StorageClass` capable of provisioning appropriate storage resources.
+To utilize S3 backup functionality with your own storage buckets, confirm with your administrator that S3 storage integration has been properly configured for your project namespace. Alternatively, ensure your cluster provides a `StorageClass` capable of provisioning the backup volume; node-local block storage is sufficient.
+
+For PVC backup, the **Storage Class** selector — shown both when you create a backup and when you edit the automatic backup setting — offers only the StorageClasses whose provisioner appears in the allow-list the platform publishes on the `global` cluster: the `Redis.backup` key of `middleware_sc_map.yaml`, held in the `cpaas-system` namespace by the plugin-supplied `middleware-sc-cm-base` ConfigMap together with the optional `middleware-sc-cm` ConfigMap that carries your own additions. Alauda Container Platform Data Services Essentials `v4.4.1` and later ship `nfs.csi.k8s.io`, `rook-ceph.cephfs.csi.ceph.com`, and `topolvm.cybozu.com` in that list, so node-local TopoLVM volumes are selectable with no further configuration. If that version of the plugin cannot be installed, add the provisioner you use to `middleware-sc-cm`: its entries are added to the shipped list rather than replacing it, and are not overwritten when the plugin is upgraded.
 
 ## Immediate Backup
 
@@ -61,6 +63,12 @@ Automatic backups allow you to schedule regular, recurring backups of your Redis
 ## Restore
 
 The restore operation creates a new Redis instance populated with data from a previous backup.
+
+A PVC backup is delivered over the network: the platform mounts the backup volume read-only into a transient in-cluster source, each Redis pod pulls its own data from that source, and the source is removed once the instance is ready. Every PVC backup takes this path regardless of the access mode it was created with, which is why a `ReadWriteMany` volume is no longer required. An S3 backup is pulled directly from the object store, as before.
+
+<Directive type="note" title="Instances pinned to a bundle version earlier than 5.1.0">
+The restore path is chosen by the instance's bundle version, not by the backup's access mode. An instance whose **BUNDLE VERSION** — `status.upgradeStatus.crVersion`, shown by `kubectl get redis` — is earlier than `5.1.0` may still restore by mounting the backup volume into every Redis pod, which requires the backup to be on a `ReadWriteMany` volume: create the backup with `spec.accessModes: [ReadWriteMany]` when you intend to restore it into such an instance. An instance stays on an earlier bundle version only while it is held there, by `spec.upgradeOption.autoUpgrade` set to `false` together with a pinned `spec.upgradeOption.crVersion`.
+</Directive>
 
 ### Procedure
 

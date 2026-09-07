@@ -40,7 +40,7 @@ spec:
       openAPIV3Schema:
         description: |-
           ActiveRedisMesh is the Schema for the activeredismeshes API. It drives full
-          gossip active-active (mesh mode) for the new 7.2 module.
+          gossip active-active (mesh mode) for the new 7.2/8.4 module.
         properties:
           apiVersion:
             description: |-
@@ -84,7 +84,7 @@ spec:
                   SecretName is the secret holding peer-auth credentials (username/password)
                   used for gossip and replication to peers.
                   Deprecated: never wired. The peer-auth credential is the instance-level
-                  RedisUser binding (Redis spec.activeRedis.redisUserName), resolved and
+                  RedisUser binding (Redis spec.activeRedis.redisUserRef), resolved and
                   pushed by the ActiveRedis reconciler; mesh mode only exists on the new
                   module, so this field has no remaining consumer. Ignored.
                 type: string
