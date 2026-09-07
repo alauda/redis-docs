@@ -72,8 +72,8 @@ The replication module ships in two generations. Which one an instance loads is 
 | Active-Active (`mesh`) | Not supported | Supported |
 | Replicated command set | Smaller — commands introduced after Redis 6.0 are not replicated | Full; see [Command Support](./60-commands.mdx) |
 | Command guards | None — `MOVE`, `SWAPDB`, `RESTORE`, `FLUSHALL`, and `FLUSHDB` are replicated rather than refused | `MOVE`, `SWAPDB`, and `RESTORE` are always refused; `FLUSHALL` and `FLUSHDB` are refused while peers are attached |
-| Peer authentication | None at the module level; the link credential comes from the `ActiveRedisConnection` `spec.secretName` | Mandatory. The instance binds a `RedisUser` through `spec.activeRedis.redisUserName`; `spec.secretName` is ignored |
-| Peer transport | Proxy Redis Serialization Protocol (RESP) port (`6379`) | Dedicated peer port (`7379`) fronted by the proxy |
+| Peer authentication | None at the module level. The link authenticates as the instance's default account, which the operator binds for you through `spec.activeRedis.redisUserRef` | Mandatory. The instance binds a `RedisUser` through `spec.activeRedis.redisUserRef` — normally its own default account, which must then carry the same password in every datacenter |
+| Peer transport | Proxy Redis Serialization Protocol (RESP) port (`6379`) | The same proxy RESP port (`6379`) — one endpoint carries both transports. Active-Active additionally exposes the module peer port (`7379`) |
 | Persistence | RDB recommended | RDB only — `appendonly=yes` is rejected by admission |
 | Database count | Standard | `databases` must be `<= 16` |
 
@@ -97,11 +97,15 @@ A proxy is deployed for both module generations. Enabling cross-datacenter repli
 
 | Port | Name | Purpose | Applies to |
 |:-----|:-----|:--------|:-----------|
-| `6379` | `proxy` | RESP endpoint. Pre-flight inspection, and — on Redis `6.0` — the replication transport. Also the address used in mesh seed entries. | All versions |
-| `7379` | `peer` | The peer port. On the new module this is the **only** peer transport: it carries both Disaster Recovery replication and Active-Active gossip. | Redis `7.2` |
+| `6379` | `proxy` | RESP endpoint, and the replication transport for both module generations. The proxy tells a peer session apart from a client session and routes it accordingly, so one endpoint carries both. This is the address recorded in mesh seed entries and in an `ActiveRedisConnection`'s `spec.addresses`. | All versions |
+| `7379` | `peer` | The module peer port, aliased onto the same proxy listener. It is added to the proxy Service **only in Active-Active mode**, because a mesh member gossips its own local peer port and something must answer on it. | Redis `7.2`, Active-Active only |
 
-<Directive type="warning" title="Expose the peer port unchanged">
-When an external load balancer or firewall fronts the proxy of a Redis `7.2` instance, it must expose port `7379` as `7379`. The module always advertises its own local peer port for the data plane, so remapping it breaks replication. Only the RESP port may be remapped, through `announcePort` in Active-Active mode or `spec.peerPort` on an `ActiveRedisConnection`.
+<Directive type="info" title="A Disaster Recovery link uses one endpoint">
+The proxy Service of a `peerof` instance carries no `7379` port, and none needs to be opened between datacenters. A Disaster Recovery link addresses the proxy RESP endpoint alone — the address recorded in the downstream's `ActiveRedisConnection`.
+</Directive>
+
+<Directive type="warning" title="In Active-Active, expose the peer port unchanged">
+When an external load balancer or firewall fronts the proxy of an Active-Active member, it must expose port `7379` as `7379`. The module always advertises its own local peer port for that traffic, so remapping it breaks the mesh. Only the RESP port may be remapped, through `announcePort`.
 </Directive>
 
 ### Instance ID: Service ID
