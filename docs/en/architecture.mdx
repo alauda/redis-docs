@@ -12,7 +12,7 @@ Alauda Cache Service E1 offers two distinct deployment architectures, each desig
 
 - **Cluster Mode**: A distributed architecture that implements horizontal scaling through data sharding across multiple Redis nodes. This configuration provides enhanced read/write throughput, automatic failover capabilities, and intelligent data partitioning for optimal performance and availability in high-scale environments.
 
-## Sentinel Mode
+## Sentinel Mode \{#sentinel-mode}
 
 Sentinel Mode implements a high-availability solution based on Redis's native primary-replica replication. Redis Sentinel monitors the Redis nodes and can promote a replica to primary when the primary fails and the required quorum and majority authorization are available. Key characteristics include:
 
