@@ -4,7 +4,7 @@ Terms introduced or changed by the v5.1.0 documentation update — the product
 rename to Alauda Cache Service E1, and Cross-Datacenter Replication with its
 Disaster Recovery and Active-Active modes. None of them are registered,
 because this repository has no `TERMINOLOGY.md` — `CLAUDE.md` / `AGENTS.md` reference
-`docs/agent/TERMINOLOGY.md`, `TECHNICAL_WRITING_POLICY.md`,
+`agent/TERMINOLOGY.md`, `TECHNICAL_WRITING_POLICY.md`,
 `ARCHITECTURE_FACTS.md`, and `SOURCE_POLICY.md`, and none of those files exist
 in the repository.
 
@@ -13,12 +13,12 @@ confirmation** before it can be promoted into a canonical vocabulary. Each
 entry cites the code that the term is derived from, so a reviewer can check the
 wording against the implementation rather than against prose.
 
-> **Location note.** `CLAUDE.md` places the agent policy files under
-> `docs/agent/`, but `doom` treats every `.md` under `docs/` as a site page and
-> fails the build on one without page frontmatter (`yarn build` →
-> `Page "/agent/TERMINOLOGY_CANDIDATES" SSG rendering failed`). This file
-> therefore sits at the repository root, alongside `CLAUDE.md` and `AGENTS.md`.
-> Resolving where the policy files should actually live needs a decision.
+> **Location note.** The agent policy files live under `agent/` at the
+> repository root, not under `docs/`: `doom` treats every `.md` under `docs/`
+> as a site page and fails the build on one without page frontmatter
+> (`yarn build` → `Page "/agent/TERMINOLOGY_CANDIDATES" SSG rendering
+> failed`). This file sits at the repository root for the same reason,
+> alongside `CLAUDE.md` and `AGENTS.md`.
 
 Repository paths are relative to the sibling checkouts
 `redis-group/redis-operator` and `redis-group/redis-modules`.
