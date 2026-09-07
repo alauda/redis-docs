@@ -16,8 +16,10 @@
   margin-bottom: 0;
 }
 
-/* Doc pages keep a fixed sidebar in the left gutter; clear it so the notice
-   lines up with the article text instead of running underneath. */
+/* Doc pages reserve the left gutter for the sidebar. Start the notice at the
+   content area's own left padding edge (64px, matching .rspress-doc) so it
+   never runs under the sidebar. The article column itself sits further right
+   on pages that show an outline, because it is centred by auto margins. */
 @media (min-width: 960px) {
   .doom-trademark-footer--inset {
     padding-left: calc(var(--rp-sidebar-width, 280px) + 64px);
