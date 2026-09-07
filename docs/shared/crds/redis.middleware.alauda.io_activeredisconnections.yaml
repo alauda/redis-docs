@@ -85,25 +85,20 @@ spec:
                   This is useful for maintenance or temporary disabling of the connection.
                 type: boolean
               peerPort:
-                default: 7379
                 description: |-
-                  PeerPort is the upstream proxy's peer-port — the AS_MESH replication
-                  endpoint the local masters dial (the ONLY peer transport; the legacy
-                  as.peersync-over-RESP transport was removed). The host is taken from
-                  Addresses[0]; this is the port. Override it when an external LB/F5
-                  exposes the proxy peer-port under a different number.
+                  PeerPort is the port the local masters dial for the AS_MESH replication
+                  stream (the ONLY peer transport; the legacy as.peersync-over-RESP
+                  transport was removed). The host is taken from Addresses[0]; this is the
+                  port. LEAVE IT UNSET: the upstream proxy serves the replication stream and
+                  the RESP control plane on one endpoint, so the default is the port of
+                  Addresses[0] itself. Set it only when an external LB/F5 splits the two onto
+                  different numbers. There is deliberately NO schema default — a stamped
+                  value cannot be told apart from a deliberate one, and the port that used to
+                  be defaulted here (7379) is unreachable on a NodePort-exposed upstream.
                 format: int32
                 maximum: 65535
                 minimum: 1
                 type: integer
-              secretName:
-                description: |-
-                  SecretName the secret name for redis authentication (username/password
-                  keys). Required for the 6.0 legacy module ONLY — enforced by the
-                  admission webhook, not the schema. The new (7.2) module ignores it:
-                  its peer links authenticate with the instance-level peer-auth binding
-                  (Redis spec.activeRedis.redisUserName), the same credential in every DC.
-                type: string
               teardownPolicy:
                 default: Detach
                 description: |-

@@ -33,7 +33,7 @@ Two consequences follow, and they are the whole reason the rest of this page exi
 * **Concurrent writes to the same key are normal**, not exceptional. They are reconciled automatically, by rules that differ from standalone Redis.
 * **There is no promotion step** when a datacenter is lost. The surviving members were already accepting writes, so recovery is a matter of redirecting clients.
 
-## Discovered membership, not declared links
+## Discovered membership, not declared links \{#discovered-membership-not-declared-links}
 
 Disaster Recovery declares every link: one `ActiveRedisConnection` per edge, naming both ends. Active-Active declares only a **starting point**. Each cluster owns one `ActiveRedisMesh` for its local instance, carrying a short list of `seeds` — externally-routable addresses of members in other datacenters. From there the members gossip: they exchange membership records, learn about members nobody told them about, and form the remaining links themselves.
 
@@ -71,7 +71,7 @@ The operator pushes the seed list to **every** node of the instance, replicas in
 
 That is what makes re-entry automatic: when a pod restarts, or a Sentinel or Cluster failover promotes a replica, the newly-serving node already holds the seed list and rejoins the mesh on its own. No `ActiveRedisMesh` has to be edited and no other datacenter has to be reconfigured.
 
-## Redis Cluster members
+## Redis Cluster members \{#redis-cluster-members}
 
 In Cluster mode the mesh is not one ring but one **ring per shard**: shard 0 replicates with shard 0 in the other datacenters, shard 1 with shard 1, and so on. The module replicates within a shard position and does not route hash slots — Redis Cluster itself does that — so every member of the group must have a matching shard count and slot layout. The `ActiveRedisMesh` status reports a `shardID` alongside each member's `serviceID` for this reason.
 
