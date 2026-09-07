@@ -103,7 +103,7 @@ Run a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent
 
 The proxy address itself is not highly available. If you expose the proxy via NodePort, place it behind a front-end load balancer to ensure HA; alternatively, use MetalLB to provide a highly available virtual IP for the proxy.
 
-On Redis `7.2` the address must expose **both** the RESP port (`6379`) and the peer port (`7379`), and the peer port must not be remapped — the module always advertises its own local peer port for replication.
+In Active-Active mode on Redis `7.2` the address must expose **both** the RESP port (`6379`) and the peer port (`7379`), and the peer port must not be remapped — the module always advertises its own local peer port for gossip. A Disaster Recovery link uses the RESP endpoint alone.
 
 ### Only IP connection addresses are supported (Redis 6.0)
 
