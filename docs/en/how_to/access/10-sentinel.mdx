@@ -14,6 +14,15 @@ Redis Sentinel instances implement the following authentication options:
 - **Password Authentication**: When configured with a password, all client connections must provide valid credentials
 - **Password-less Access**: If the **Set Password** option is disabled during instance creation, clients can connect without authentication
 
+A Sentinel instance carries **two independent passwords**, set on two separate tabs during instance creation:
+
+| Password | Set on | Authenticates | Client configuration |
+| :--- | :--- | :--- | :--- |
+| **Redis password** | **Set Redis Password** tab (`spec.passwordSecret`) | The Redis data nodes that serve your commands | The client's ordinary password option |
+| **Sentinel password** | **Set Sentinel Password** tab (`spec.sentinel.passwordSecret`) | The Sentinel nodes the client queries for master discovery and failover | A dedicated Sentinel password option, listed per client below |
+
+Since v5.1.0, the **Set Sentinel Password** tab has **Set Password** enabled by default, so instances created from the Web Console normally have a Sentinel password. A client that sends only the Redis password will fail to reach the Sentinel nodes and cannot discover the master. Instances created before v5.1.0 are unchanged and keep whatever Sentinel authentication they were given.
+
 <Directive type="warning" title="Security Best Practice">
   For production environments, implementing password authentication is strongly recommended to protect your data. Refer to [User Management](../../functions/20-user) for detailed instructions on configuring and maintaining secure credentials.
 </Directive>
@@ -79,7 +88,10 @@ The following examples demonstrate best practices for connecting to Redis Sentin
         client := redis.NewFailoverClient(&redis.FailoverOptions{
             SentinelAddrs: []string{"<address>"},
             MasterName:    "mymaster",
-            Password:      "<password>",
+            // Password of the Redis data nodes.
+            Password: "<password>",
+            // Password of the Sentinel nodes, set on the "Set Sentinel Password" tab.
+            SentinelPassword: "<sentinel-password>",
             OnConnect: func(ctx context.Context, conn *redis.Conn) error {
                 ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
                 defer cancel()
@@ -171,12 +183,17 @@ The following examples demonstrate best practices for connecting to Redis Sentin
                     .connectionTimeoutMillis(2000)
                     // Command timeout
                     .timeoutMillis(10000)
+                    // Password of the Redis data nodes.
                     .password("<password>")
                     .build();
 
+            // A separate client config is used for the Sentinel nodes, so that they
+            // can be given their own password.
             DefaultJedisClientConfig sentinelConfig = DefaultJedisClientConfig.builder()
                     .connectionTimeoutMillis(2000)
                     .timeoutMillis(10000)
+                    // Password of the Sentinel nodes, set on the "Set Sentinel Password" tab.
+                    .password("<sentinel-password>")
                     .build();
 
             Set<HostAndPort> nodes =  new HashSet<>();
@@ -217,8 +234,12 @@ The following examples demonstrate best practices for connecting to Redis Sentin
     public class Main {
         public static void main(String[] args) {
             RedisURI.Builder redisUriBuilder = RedisURI.builder();
-            redisUriBuilder.withSentinel(RedisURI.create("<ip1>", <port1>));
-            redisUriBuilder.withSentinel(RedisURI.create("<ip2>", <port2>));
+            // The third argument is the password of the Sentinel nodes, set on the
+            // "Set Sentinel Password" tab. In Lettuce the password carried by the URI
+            // itself applies to the data nodes only, so each Sentinel is given its own.
+            redisUriBuilder.withSentinel("<ip1>", <port1>, "<sentinel-password>");
+            redisUriBuilder.withSentinel("<ip2>", <port2>, "<sentinel-password>");
+            // Password of the Redis data nodes.
             redisUriBuilder.withPassword("<password>");
 
             // Client name for debugging and tracking connection source.
@@ -311,7 +332,12 @@ The following examples demonstrate best practices for connecting to Redis Sentin
             config.setNettyThreads(64)
                     .useSentinelServers()
                     .addSentinelAddress(nodes.toArray(new String[0]))
+                    // Password of the Redis data nodes.
                     .setPassword("<password>")
+                    // Password of the Sentinel nodes, set on the "Set Sentinel Password" tab.
+                    // If unset, Redisson reuses the Redis password for the Sentinel nodes;
+                    // set it whenever the two differ.
+                    .setSentinelPassword("<sentinel-password>")
                     .setMasterName("mymaster")
                     // Enable discovery for sentinel nodes.
                     .setSentinelsDiscovery(true)

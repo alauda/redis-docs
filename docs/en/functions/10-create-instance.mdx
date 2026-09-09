@@ -80,6 +80,26 @@ Following Redis versions are fully supported: `6.0` and `7.2`; other versions ar
 
     Refer to the [Redis API documentation](../apis/kubernetes_apis/redis/redis.mdx) for field descriptions.
 
+    <Directive type="note" title="Sentinel password">
+      A Sentinel instance has two independent `default` user passwords: `spec.passwordSecret` authenticates the Redis data nodes, and `spec.sentinel.passwordSecret` authenticates the Sentinel nodes. The example above sets neither, which leaves both open. The Web Console enables the Sentinel password by default; when creating an instance from the CLI, set it explicitly.
+
+      Each field references a `Secret` in the same namespace that holds the password under the `password` key, and the password must be 8 to 32 characters long.
+
+      ```bash
+      $ kubectl -n default create secret generic s6-sentinel-password --from-literal=password='<sentinel-password>'
+      ```
+
+      Then reference it from the instance:
+
+      ```yaml
+      spec:
+        sentinel:
+          passwordSecret: s6-sentinel-password
+      ```
+
+      Clients connecting through Sentinel must supply this password separately from the Redis password — refer to [Accessing Instances (Sentinel Mode)](../how_to/access/10-sentinel.mdx).
+    </Directive>
+
   </Tab>
 
   <Tab label="Cluster CLI">
@@ -196,9 +216,14 @@ Following Redis versions are fully supported: `6.0` and `7.2`; other versions ar
              </tr>
 
              <tr>
-               <td rowspan="3"><b>Connection Configuration</b></td>
+               <td rowspan="4"><b>Connection Configuration</b></td>
                <td><b>Set Default Password</b></td>
-               <td>It is recommended to set a password for redis `default` user when startup instance. If no password is set, refer to <a href="../functions/20-user">User Management</a> to reset the password or create extra accounts.</td>
+               <td>It is recommended to set a password for redis `default` user when startup instance. If no password is set, refer to <a href="../functions/20-user">User Management</a> to reset the password or create extra accounts. <br />For <b>Sentinel architecture</b>, this field lives on the <b>Set Redis Password</b> tab and applies to the Redis data nodes only.</td>
+             </tr>
+
+             <tr>
+               <td><b>Set Sentinel Password</b></td>
+               <td>Shown for <b>Sentinel architecture</b> only, on a second tab next to <b>Set Redis Password</b>. The Sentinel nodes have a `default` user of their own, whose password is independent of the Redis data node password, so switch to the <b>Set Sentinel Password</b> tab and set it. <b>Set Password</b> is enabled there by default and both password fields are required while it stays enabled; if you click <b>Create</b> while they are empty, the tab label shows a warning icon and creation is blocked. <br />Clients connecting through Sentinel must supply this password separately from the Redis password — refer to <a href="../how_to/access/10-sentinel">Accessing Instances (Sentinel Mode)</a>.</td>
              </tr>
 
              <tr>
