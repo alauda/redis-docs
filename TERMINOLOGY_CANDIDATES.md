@@ -43,6 +43,17 @@ Repository paths are relative to the sibling checkouts
 | **seed** / **seed list** | `ActiveRedisMeshSpec.Seeds` | |
 | **pre-flight inspection** | `activeredisinspection_types.go`; `activeredisconnection_webhook.go` | Named after the Web Console `Inspect` action. |
 
+## Sentinel password (added 2026-09-09)
+
+Terms introduced by the documentation of the Web Console's **Set Sentinel
+Password** tab (release notes v5.1.0, `functions/10-create-instance.mdx`,
+`how_to/access/10-sentinel.mdx`).
+
+| Term as used in docs | Provenance | Note for the reviewer |
+|:---|:---|:---|
+| **Sentinel password** | `redis-operator/api/databases/v1/redissentinel_types.go:44` — `RedisSentinelSpec.PasswordSecret`, surfaced as `spec.sentinel.passwordSecret`; consumed at `internal/controller/middleware/redis_controller.go:1052` and validated at `internal/webhook/middleware/v1/redis_webhook.go:568` | Used in prose for the credential that authenticates the **Sentinel nodes**, as distinct from the **Redis password** (`spec.passwordSecret`) for the data nodes. The docs previously had no name for it at all. Confirm the pair "Redis password" / "Sentinel password" is the intended customer-facing wording — the Web Console tab labels use exactly this split. |
+| **Set Sentinel Password** (Web Console label) | `redis-frontend/src/assets/i18n/en.json:270` — `"set_sentinel_password": "Set Sentinel Password"`; tab defined in `src/app/components/form/template.html:607` | Quoted verbatim as a UI label, so no translation decision is needed. Its sibling label is `set_redis_password` → **Set Redis Password**. |
+
 ## Command support and clock synchronization (added 2026-08-11)
 
 Terms introduced by `docs/en/functions/95-disaster-recovery/60-commands.mdx`

@@ -58,6 +58,14 @@ Existing backups on `ReadWriteMany` volumes stay restorable and take the same ne
 
 Selecting a node-local `StorageClass` in the Web Console additionally requires Alauda Container Platform Data Services Essentials `v4.4.1` or later. See [Backup & Restore Instance](./functions/70-backup-restore.mdx).
 
+#### Sentinel Password Enabled by Default in the Web Console
+
+When a Sentinel instance is created — or restored from a backup — in the Web Console, the **Connection Configuration** section now offers two tabs: **Set Redis Password** and **Set Sentinel Password**. On the **Set Sentinel Password** tab, **Set Password** is enabled by default and the password fields are required while it stays enabled, so a new Sentinel instance receives a Sentinel credential of its own unless the toggle is deliberately turned off. If you click **Create** while those fields are empty, the tab label shows a warning icon and creation is blocked.
+
+The Sentinel credential is separate from the Redis credential: it is stored in `spec.sentinel.passwordSecret` and authenticates the Sentinel nodes, while `spec.passwordSecret` authenticates the Redis data nodes. Clients must therefore supply the two passwords separately — see [Accessing Instances (Sentinel Mode)](./how_to/access/10-sentinel.mdx).
+
+Existing instances are not affected. The tabs are only rendered while an instance is being created or restored; updating an instance leaves its Sentinel authentication unchanged.
+
 #### New APIs
 
 The `ActiveRedis`, `ActiveRedisMesh`, and `ActiveRedisInspection` resources are documented under [Redis APIs](./apis/kubernetes_apis/redis/index.mdx).
