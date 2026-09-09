@@ -21,42 +21,31 @@ Setting up Active-Active replication has two parts: enabling Active-Active mode 
 * Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
 * **The system clocks of all members are synchronized**, through a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the group. This is a hard prerequisite, not a recommendation — see [Clock synchronization](./30-operations.mdx#clock-synchronization-requirement).
 
-## Step 1: Create the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
+## Step 1: Confirm the default account in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
 
-Every peer link in an Active-Active group authenticates, and every member must present the **same username and the same password value**. Create the credential in each datacenter before enabling the mode. This is the same credential Disaster Recovery uses; if these instances already carry one, skip to Step 2.
+Every peer link in an Active-Active group authenticates, and every member must present the same credential. Bind the instance's own **default account**: every instance already has one, created by its own reconcile, so nothing has to be provisioned. This is the same credential Disaster Recovery uses — if these instances already carry a binding, skip to Step 2.
 
-```bash
-# The dedicated password secret for the peer-auth account
-$ kubectl -n default create secret generic s72-dc1-peer-secret --from-literal=password='Peer@Repl123'
+The default-account `RedisUser` is named after the instance:
 
-# The peer-auth RedisUser
-$ cat << EOF | kubectl -n default create -f -
-apiVersion: redis.middleware.alauda.io/v1
-kind: RedisUser
-metadata:
-  name: s72-dc1-peer
-spec:
-  accountType: custom
-  arch: sentinel
-  redisName: s72-dc1
-  username: aapeerrepl
-  passwordSecrets:
-  - s72-dc1-peer-secret
-EOF
-```
+| Instance architecture | `RedisUser` name |
+|:----------------------|:-----------------|
+| Cluster | `drc-acl-<instance-name>-default` |
+| Sentinel, standalone | `rfr-acl-<instance-name>-default` |
 
-> `spec.arch` must match the architecture of the referenced instance (`sentinel`, `cluster`, or `standalone`).
-
-Wait for the user to be applied:
+Check that it is provisioned in each datacenter — the binding is rejected unless its phase is `Success`:
 
 ```bash
-$ kubectl -n default get redisusers s72-dc1-peer
-NAME           INSTANCE   USERNAME     PHASE     AGE
-s72-dc1-peer   s72-dc1    aapeerrepl   Success   12s
+$ kubectl -n default get redisusers rfr-acl-s72-dc1-default
+NAME                      INSTANCE   USERNAME   PHASE     AGE
+rfr-acl-s72-dc1-default   s72-dc1    default    Success   3m
 ```
 
-<Directive type="warning" title="The same username and password in every datacenter">
-The module accepts an inbound peer only when the username it presents equals the local peer-auth username. Every member of the group must therefore bind a `RedisUser` with the **same `spec.username` and the same password value**. The `RedisUser` resource names may differ, but the credential values may not.
+<Directive type="warning" title="Every member needs the same default password">
+The module accepts an inbound peer only when the credential it presents matches the local peer-auth credential. Binding the default account therefore requires every member of the mesh to carry the **same `default` password**, and default passwords are generated per instance — set them to a common value before enabling the mode.
+</Directive>
+
+<Directive type="info" title="A dedicated account may be bound instead">
+A `custom` `RedisUser` narrows what the credential grants — anything holding the default password can otherwise act as a mesh peer — and lets the replication credential be rotated independently of the instance password. It must reference the local instance, own its password Secret, reach `status.phase: Success`, and carry the **same username and the same password value in every datacenter**. A `system` account is always refused.
 </Directive>
 
 ## Step 2: Enable Active-Active mode on each instance
@@ -73,7 +62,7 @@ spec:
   activeRedis:
     serviceID: 0
     mode: mesh
-    redisUserName: s72-dc1-peer
+    redisUserRef: rfr-acl-s72-dc1-default
     proxy:
       service:
         type: LoadBalancer
@@ -86,7 +75,7 @@ spec:
 |:------|:------------|
 | `mode` | `mesh`. |
 | `serviceID` | Unique within the mesh, range `[0-15]`, immutable. |
-| `redisUserName` | The peer-auth `RedisUser` binding. Mandatory. |
+| `redisUserRef` | The peer-auth `RedisUser` binding — normally the instance's default account. Mandatory. |
 | `proxy.service.announceAddress` | The externally-reachable host peers dial to reach this member — the host on the external load balancer or VIP, decoupled from the in-cluster Service. Must be a **bare host**: no scheme, no port, no path. |
 | `proxy.service.announcePort` | The externally-reachable RESP port for the gossip control plane. Defaults to the proxy Service port `6379`; override it only when an external load balancer exposes that port under a different number. |
 

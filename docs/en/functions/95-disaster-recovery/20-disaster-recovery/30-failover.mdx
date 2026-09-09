@@ -76,8 +76,8 @@ spec:
   addresses:
   - 192.168.1.11:30011
   instance: c6-dest
-  pause: true
-  secretName: c6-dest-conn-password
+  pause: false
+  teardownPolicy: Detach
 status:
   instance: c6-dest
   message: shard 0 status is Disconnected; shard 1 status is Disconnected; shard 2
