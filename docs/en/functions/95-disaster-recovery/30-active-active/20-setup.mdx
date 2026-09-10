@@ -19,7 +19,7 @@ Setting up Active-Active replication has two parts: enabling Active-Active mode 
 * Every member runs Redis `7.2`.
 * Each member has a distinct `serviceID` in the range `[0-15]`.
 * Each member has an externally-routable `announceAddress` set explicitly — see [Step 2](#step-2-enable-active-active-mode). Nothing defaults it to a cross-datacenter address, and admission only warns, so a member left without one advertises an address its peers cannot reach.
-* Each member's proxy endpoint is reachable from every other member on **both** its announced RESP port (`6379` by default) and the peer port (`7379`), and the peer port is not remapped.
+* Each member's proxy endpoint is reachable from every other member on **every port its proxy Service publishes**, each under its own number — not only the announced one.
 * **The system clocks of all members are synchronized**, through a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the group. This is a hard prerequisite, not a recommendation — see [Clock synchronization](./30-operations.mdx#clock-synchronization-requirement).
 
 ## Step 1: Provision the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
@@ -141,13 +141,13 @@ spec:
 * A **DNS name is recommended**: the module re-resolves it on every dial, so it survives IP changes, and a multi-A record can cover several NodePort addresses. When the announce address is a DNS name, the operator binds it to the proxy Service through ExternalDNS.
 * A **bare IP is accepted with a warning** — it will not re-resolve after an IP change, so it is only appropriate for a stable VIP.
 * Leaving it **empty produces a warning**, and what happens then depends on the operator: if it is configured with a managed DNS zone, it derives `<instance>.<namespace>.<zone>` and publishes that on the proxy Service through ExternalDNS; with no zone configured it sends no announce address at all and the module advertises the **pod IP**, which is not routable across datacenters. Nothing else fills the field in.
-* An address containing a scheme (`tcp://…`), a port (`host:7379`), or a path is **rejected**. The port belongs in `announcePort`.
+* An address containing a scheme (`tcp://…`), a port (`host:6379`), or a path is **rejected**. The port belongs in `announcePort`.
 </Directive>
 
 <Directive type="warning" title="announcePort is not a transport — peer traffic rides the peer port">
-Neither gossip nor replication travels on `announcePort`. Both ride the **peer port**, and a member advertises its own local peer port (`7379`) for them — there is no announce override for that number.
+`announcePort` is an identity value: it is how this member names its endpoint to its peers, and it carries no traffic of its own. Neither gossip nor replication is steered by it, and it does not override how the module addresses a peer.
 
-The proxy runs a **single listener**: it carries application traffic, gossip, and replication on one port and tells them apart per session. The `7379` entry on the proxy Service is an alias onto that same listener, added in Active-Active mode only, not a second listener. An external load balancer or firewall in front of the proxy must therefore forward **both** numbers — `announcePort` and `7379` — to it, and must not remap `7379`.
+The proxy runs a **single listener** — application traffic, gossip, and replication all arrive on it and are told apart per session — but the proxy Service publishes more than one port onto it. When an external load balancer or firewall fronts the proxy, forward **every port that Service publishes**, each under its own number. Remapping any of them to a different number breaks the mesh.
 </Directive>
 
 ## Step 3: Create an ActiveRedisMesh in each cluster
@@ -172,7 +172,7 @@ EOF
 
 A seed is `host:port` — the remote member's **`announceAddress:announcePort`**, written exactly as that member advertises itself. It is an externally-routable endpoint, so when a load balancer or VIP fronts that member's proxy, the seed is the load balancer's address and port, not the in-cluster proxy Service. Write the pair verbatim: a member recognizes its own entry by comparing a seed's address and port with the pair it announces, and a mismatch defeats that self-skip.
 
-Write seeds as plain `host:port` and let the operator complete them. It normalizes the list into the module's seed grammar before injecting it, appending the peer port — `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`, which is the form `CONFIG GET activeredis.mesh-seeds` reports back. That completion is not cosmetic: a seed carrying no peer port is undialable, because gossip has no other transport. The peer port is fixed at `7379` and must not be remapped, so there is nothing here for you to override.
+Write seeds as plain `host:port` and let the operator complete them. It normalizes the list into the module's internal seed grammar before injecting it, so `CONFIG GET activeredis.mesh-seeds` reports each entry in a longer form than the one you wrote. That completion is required for a seed to be usable at all, and there is nothing in it for you to set.
 
 <Directive type="info" title="Seeds are a bootstrap list, not a membership list">
 One reachable seed per remote datacenter is enough — gossip discovers everything else. The local member's own entry may be included, so every datacenter can carry the same uniform seed list; the module skips its own record.
