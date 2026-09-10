@@ -50,7 +50,7 @@ Before starting, confirm each of the following for **every** member of the group
    $ kubectl -n default get redis s6-dc1 -o jsonpath='{.spec.customConfig.databases}'
    ```
 
-5. **The upstream proxy endpoint stays reachable.** The new module replicates over the same proxy endpoint the Redis `6.0` links already used, so a Disaster Recovery group needs no new port opened. Leave the existing firewall rules and load-balancer entries for the proxy's RESP port in place, so the links can be re-created at the end.
+5. **The upstream proxy endpoint stays reachable.** The new module replicates over the same proxy endpoint the Redis `6.0` links already used, so a Disaster Recovery group needs no new port opened. The proxy Service is not recreated by the upgrade — it keeps its address, its port and, under NodePort, its node port — so leave the existing firewall rules and load-balancer entries for the proxy's RESP port in place, and the links can be re-created at the end against the same addresses you recorded in step 6.
 6. **Record the current topology.** Note each member's `serviceID`, and which member holds the `ActiveRedisConnection` pointing at which upstream. You will re-create these links.
 
    ```bash
@@ -172,8 +172,9 @@ Confirm that:
 * the connection status is `Healthy`;
 * `status.credentialMode` is `peer-auth-global`;
 * `status.shards[].status` is `Connected` and the offsets advance;
+* `status.shards[].syncStatus` is `PartialSync` — the new module picks the link up from the offset the Redis `6.0` link left off at, so a re-created link resumes rather than re-sending the dataset. A `FullSync` here means the retained state was not usable and the whole dataset is being re-sent; it will still converge, but it costs a full transfer;
 * the upstream's `ActiveRedis` reports the expected `status.downstreamPeerCount`;
-* a key written on the upstream appears on each downstream.
+* a key written on the upstream appears on each downstream, alongside the keys that were there before the upgrade.
 
 Then restore normal client traffic.
 
@@ -224,5 +225,5 @@ Once the group is running on Redis `7.2`, the following become available:
 ## Known gaps in this draft
 
 * The procedure requires a full-group maintenance window. There is no supported way to upgrade a group while keeping replication live.
-* Downgrading from Redis `7.2` back to Redis `6.0` is not supported. If the upgrade must be abandoned, restore the members from the backups taken in the prerequisites.
+* Downgrading from Redis `7.2` back to Redis `6.0` is not supported — and **nothing prevents it**. Setting `spec.version` back to `6.0` is accepted by admission and starts rolling the pods onto the older image immediately. If the upgrade must be abandoned, restore the members from the backups taken in the prerequisites rather than reversing the version.
 * The Web Console does not provide a guided flow for this upgrade; the steps above are CLI-driven.
