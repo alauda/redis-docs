@@ -104,6 +104,18 @@ Because the links were deleted in Step 2, there is no live replication to order 
 The ordering rule matters for later, within-generation upgrades of a **live** group: the safe order is **downstream before upstream**, because a downstream can apply an equal-or-older upstream's Oplog but never a newer one. Bumping an upstream ahead of a live downstream returns an admission warning, and the module holds the affected edge — replication to that downstream pauses until the version skew is resolved.
 </Directive>
 
+<Directive type="info" title="A link wired mid-upgrade parks rather than breaks">
+The same guard covers this upgrade. A connection created while the upstream is already on Redis `7.2` and the downstream is still on `6.0` is accepted, then held — it does not replicate, and it does not damage either side:
+
+```bash
+$ kubectl -n default get activeredisconnections
+NAME              INSTANCE   STATUS   MESSAGE                                                                                                  AGE
+conn-dc2-to-dc1   s6-dc2     Paused   upstream version 7.2 newer than local version 6.0; waiting for local upgrade (safe order upgrades the downstream first)   18s
+```
+
+It stays `Paused` until the local member is upgraded. Following the procedure — links deleted in Step 2, re-created in Step 5 — you will not see this; it is what a mistimed link looks like if you do.
+</Directive>
+
 ### Step 4: Confirm the peer-auth binding
 
 The new module requires a peer-auth credential on every instance. On an instance that already had cross-datacenter replication enabled, the platform binds one automatically — see [Automatic peer-auth binding](#automatic-peer-auth-provisioning).
@@ -122,7 +134,7 @@ rfr-acl-s6-dc1-default   s6-dc1     default    Success   8d
 If the binding is empty, or the `RedisUser` phase is not `Success`, resolve it as described in [If the binding is not there yet](#when-automatic-provisioning-is-on-hold) before continuing.
 
 <Directive type="warning" title="Every member needs the same credential">
-The module accepts an inbound peer only when the username it presents matches the local peer-auth username. The automatic binding uses each instance's `default` account, so members that were already replicating to each other converge on the same credential — that shared `default` password is exactly what their Redis `6.0` links were authenticating with.
+The module accepts an inbound peer only when the credential it presents — username *and* password — matches the local peer-auth credential. The automatic binding uses each instance's `default` account, so members that were already replicating to each other converge on the same credential: that shared `default` password is exactly what their Redis `6.0` links were authenticating with.
 
 If you bound credentials manually on any member, verify that **every** member carries the same username and the same password value before creating any link.
 </Directive>
