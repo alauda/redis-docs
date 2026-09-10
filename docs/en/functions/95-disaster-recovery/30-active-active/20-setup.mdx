@@ -18,12 +18,72 @@ Setting up Active-Active replication has two parts: enabling Active-Active mode 
 
 * Every member runs Redis `7.2`.
 * Each member has a distinct `serviceID` in the range `[0-15]`.
-* Each member's proxy is reachable from every other member on both port `6379` (RESP, used by seeds) and port `7379` (peer port, which carries both gossip and replication).
+* Each member has an externally-routable `announceAddress` set explicitly — see [Step 2](#step-2-enable-active-active-mode). Nothing defaults it to a cross-datacenter address, and admission only warns, so a member left without one advertises an address its peers cannot reach.
+* Each member's proxy endpoint is reachable from every other member on **both** its announced RESP port (`6379` by default) and the peer port (`7379`), and the peer port is not remapped.
 * **The system clocks of all members are synchronized**, through a time-synchronization daemon (`ntpd`, `chronyd`, or the platform equivalent) on every node of every cluster in the group. This is a hard prerequisite, not a recommendation — see [Clock synchronization](./30-operations.mdx#clock-synchronization-requirement).
 
-## Step 1: Confirm the default account in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
+## Step 1: Provision the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
 
-Every peer link in an Active-Active group authenticates, and every member must present the same credential. Bind the instance's own **default account**: every instance already has one, created by its own reconcile, so nothing has to be provisioned. This is the same credential Disaster Recovery uses — if these instances already carry a binding, skip to Step 2.
+Every peer link in an Active-Active group authenticates, and every member must present the same credential: a member accepts an inbound peer only when the username it presents equals the member's own peer-auth username and the password validates against Redis ACL. Each instance binds that credential through `spec.activeRedis.redisUserRef`, which names a `RedisUser` **object** in the instance's own namespace.
+
+Whichever account you bind, it must:
+
+* reference the **local** instance — a `RedisUser` that targets another instance is refused;
+* be a `custom` or a `default` account; a `system` account is always refused;
+* own a password Secret carrying a `password` key;
+* reach `status.phase: Success` — the binding is rejected until then;
+* carry the **same username and the same password value in every datacenter**.
+
+### A dedicated account (recommended)
+
+Create a `custom` `RedisUser` for this purpose in **every** datacenter. It narrows what the credential grants — anything holding the default password can otherwise act as a mesh peer — and lets the replication credential be rotated independently of the instance password.
+
+Password Secrets are one-to-one with `RedisUser` objects, so each datacenter needs its own Secret object; what has to match across datacenters is the password *value*, not the Secret name.
+
+```bash
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aa-peer-auth-dc1
+stringData:
+  password: <the shared peer-auth password>
+---
+apiVersion: redis.middleware.alauda.io/v1
+kind: RedisUser
+metadata:
+  name: aa-peer-auth-s72-dc1
+spec:
+  accountType: custom
+  arch: sentinel
+  redisName: s72-dc1
+  username: aa-peer
+  aclRules: +@all ~*
+  passwordSecrets:
+  - aa-peer-auth-dc1
+EOF
+```
+
+| Field | Description |
+|:------|:------------|
+| `accountType` | `custom`. |
+| `arch` | The architecture of the referenced instance — `sentinel`, `cluster`, or `standalone`. |
+| `redisName` | The local instance this account belongs to. |
+| `username` | The peer-auth username. **Identical in every datacenter.** |
+| `aclRules` | `+@all ~*` — a peer replays the full command surface over every key. |
+| `passwordSecrets` | One Secret, used by no other `RedisUser`, whose `password` key holds the value shared by every datacenter. |
+
+Wait for the account before binding it:
+
+```bash
+$ kubectl -n default get redisusers aa-peer-auth-s72-dc1
+NAME                   INSTANCE   USERNAME     PHASE     AGE
+aa-peer-auth-s72-dc1   s72-dc1    aa-peer      Success   1m
+```
+
+### The instance's default account (fallback)
+
+The instance's own **default account** may be bound instead. Every instance already has one, created by its own reconcile, so nothing has to be provisioned — this is the same credential Disaster Recovery uses, so if these instances already carry a binding, you can skip to Step 2.
 
 The default-account `RedisUser` is named after the instance:
 
@@ -32,23 +92,17 @@ The default-account `RedisUser` is named after the instance:
 | Cluster | `drc-acl-<instance-name>-default` |
 | Sentinel, standalone | `rfr-acl-<instance-name>-default` |
 
-Check that it is provisioned in each datacenter — the binding is rejected unless its phase is `Success`:
-
 ```bash
 $ kubectl -n default get redisusers rfr-acl-s72-dc1-default
 NAME                      INSTANCE   USERNAME   PHASE     AGE
 rfr-acl-s72-dc1-default   s72-dc1    default    Success   3m
 ```
 
-<Directive type="warning" title="Every member needs the same default password">
-The module accepts an inbound peer only when the credential it presents matches the local peer-auth credential. Binding the default account therefore requires every member of the mesh to carry the **same `default` password**, and default passwords are generated per instance — set them to a common value before enabling the mode.
+<Directive type="warning" title="Binding the default account couples the mesh to the instance password">
+Every member must then carry the **same `default` password**, and default passwords are generated per instance — set them to a common value before enabling the mode. Anything holding that password can act as a mesh peer, and rotating the instance password rotates the replication credential with it. A dedicated account avoids both.
 </Directive>
 
-<Directive type="info" title="A dedicated account may be bound instead">
-A `custom` `RedisUser` narrows what the credential grants — anything holding the default password can otherwise act as a mesh peer — and lets the replication credential be rotated independently of the instance password. It must reference the local instance, own its password Secret, reach `status.phase: Success`, and carry the **same username and the same password value in every datacenter**. A `system` account is always refused.
-</Directive>
-
-## Step 2: Enable Active-Active mode on each instance
+## Step 2: Enable Active-Active mode on each instance \{#step-2-enable-active-active-mode}
 
 <Directive type="warning" title="Set the mode when you enable replication">
 These steps assume instances that are being placed into an Active-Active group from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established Disaster Recovery group to Active-Active is not a covered procedure and has not been validated. Build an Active-Active group from instances that are not already wired into a Disaster Recovery group.
@@ -62,7 +116,7 @@ spec:
   activeRedis:
     serviceID: 0
     mode: mesh
-    redisUserRef: rfr-acl-s72-dc1-default
+    redisUserRef: aa-peer-auth-s72-dc1
     proxy:
       service:
         type: LoadBalancer
@@ -75,24 +129,30 @@ spec:
 |:------|:------------|
 | `mode` | `mesh`. |
 | `serviceID` | Unique within the mesh, range `[0-15]`, immutable. |
-| `redisUserRef` | The peer-auth `RedisUser` binding — normally the instance's default account. Mandatory. |
+| `redisUserRef` | The peer-auth `RedisUser` binding from Step 1. Mandatory. |
 | `proxy.service.announceAddress` | The externally-reachable host peers dial to reach this member — the host on the external load balancer or VIP, decoupled from the in-cluster Service. Must be a **bare host**: no scheme, no port, no path. |
-| `proxy.service.announcePort` | The externally-reachable RESP port for the gossip control plane. Defaults to the proxy Service port `6379`; override it only when an external load balancer exposes that port under a different number. |
+| `proxy.service.announcePort` | The externally-reachable RESP port of this member's proxy endpoint. Together with `announceAddress` it forms the pair peers put in their seed lists for this member, and the pair the member matches to recognize its own seed entry. Defaults to the proxy Service port `6379`; override it only when an external load balancer exposes that port under a different number. |
+
+<Directive type="info" title="Set these on the Redis instance, not on the ActiveRedis resource">
+`ActiveRedis` exposes the same `spec.proxy.service` fields, but that resource is derived: the operator rewrites its `spec.proxy` from the `Redis` instance on every reconcile — in mesh mode writing the *resolved* announce address into it — so an edit made there is overwritten. Always patch the `Redis` object.
+</Directive>
 
 <Directive type="warning" title="announceAddress rules">
 * A **DNS name is recommended**: the module re-resolves it on every dial, so it survives IP changes, and a multi-A record can cover several NodePort addresses. When the announce address is a DNS name, the operator binds it to the proxy Service through ExternalDNS.
 * A **bare IP is accepted with a warning** — it will not re-resolve after an IP change, so it is only appropriate for a stable VIP.
-* Leaving it **empty produces a warning** and the module advertises the pod IP, which is not routable across datacenters.
+* Leaving it **empty produces a warning**, and what happens then depends on the operator: if it is configured with a managed DNS zone, it derives `<instance>.<namespace>.<zone>` and publishes that on the proxy Service through ExternalDNS; with no zone configured it sends no announce address at all and the module advertises the **pod IP**, which is not routable across datacenters. Nothing else fills the field in.
 * An address containing a scheme (`tcp://…`), a port (`host:7379`), or a path is **rejected**. The port belongs in `announcePort`.
 </Directive>
 
-<Directive type="warning" title="announcePort does not affect the data plane">
-`announcePort` applies to the gossip control plane only. The module always advertises its own local peer port (`7379`) for replication, so any external endpoint must expose `7379` as `7379`.
+<Directive type="warning" title="announcePort is not a transport — peer traffic rides the peer port">
+Neither gossip nor replication travels on `announcePort`. Both ride the **peer port**, and a member advertises its own local peer port (`7379`) for them — there is no announce override for that number.
+
+The proxy runs a **single listener**: it carries application traffic, gossip, and replication on one port and tells them apart per session. The `7379` entry on the proxy Service is an alias onto that same listener, added in Active-Active mode only, not a second listener. An external load balancer or firewall in front of the proxy must therefore forward **both** numbers — `announcePort` and `7379` — to it, and must not remap `7379`.
 </Directive>
 
 ## Step 3: Create an ActiveRedisMesh in each cluster
 
-Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the externally-routable proxy RESP addresses of members in other datacenters.
+Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the announced endpoints of members in other datacenters — the `announceAddress` and `announcePort` those members were given in Step 2.
 
 ```bash
 $ cat << EOF | kubectl -n default create -f -
@@ -110,7 +170,9 @@ EOF
 
 ### Seed syntax
 
-A seed is `host:port`, where the port is the remote proxy's RESP endpoint — normally `6379`. An optional `@peer-port` suffix overrides the peer port when an external load balancer remaps it; when the suffix is omitted the operator appends the conventional `7379`. The operator normalizes the list before injecting it, so `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`.
+A seed is `host:port` — the remote member's **`announceAddress:announcePort`**, written exactly as that member advertises itself. It is an externally-routable endpoint, so when a load balancer or VIP fronts that member's proxy, the seed is the load balancer's address and port, not the in-cluster proxy Service. Write the pair verbatim: a member recognizes its own entry by comparing a seed's address and port with the pair it announces, and a mismatch defeats that self-skip.
+
+An optional `@peer-port` suffix names the port to dial for the peer transport; when the suffix is omitted the operator appends the conventional `7379`. The operator normalizes the list before injecting it, so `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`.
 
 <Directive type="info" title="Seeds are a bootstrap list, not a membership list">
 One reachable seed per remote datacenter is enough — gossip discovers everything else. The local member's own entry may be included, so every datacenter can carry the same uniform seed list; the module skips its own record.
