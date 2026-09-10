@@ -268,7 +268,7 @@ status:
 
 `status.shards[].status` indicates the connection status of the shard, and `status.shards[].syncStatus` indicates the data synchronization status: `PartialSync` (incremental synchronization of Oplog) or `FullSync` (RDB is being synchronized). `offset` and `opId` advance as the stream is applied — a stalled pair on a `Connected` shard is the signal to look further.
 
-`status.shards[].versionState` is the module's own verdict on the upstream's version. `verified` means the two ends agree; a link held for version skew reports it here.
+`status.shards[].versionState` is the module's own verdict on the upstream's version — `unknown`, `verified`, or `violating`. A shard that is being held for version skew also carries a non-zero `versionHoldSince`.
 
 `status.credentialMode: peer-auth-global` records that the module-side peer records hold no inline credential — outbound dials read the node-local peer-auth credential, so a rotation is picked up on the next re-dial.
 
@@ -292,6 +292,8 @@ You need to create a Redis instance first.
   # Enable ActiveRedis
   $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"activeRedis":{"serviceID":0 }}}'
   ```
+
+  The command returns an admission warning recommending Redis `7.2`; the patch is applied. The instance then performs a **rolling restart** of its data pods to bring up the proxy, so wait for it to be `Ready` again before going on.
 
   </Tab>
   <Tab label="Web Console">
@@ -341,11 +343,19 @@ Each disaster recovery instance will create a Proxy Service with a name that fol
   The range of `serviceID` is `[0-15]`. In the same disaster recovery cluster, the serviceID cannot be repeated.
   </Directive>
 
-#### Wait for the peer-auth binding
+#### Wait for the instance and the peer-auth binding
 
-  The operator adds the binding on a following reconcile, and the connection is rejected while it is still empty. Wait until this prints a name:
+  This side rolls its data pods too. The connection created next is rejected while the instance is still rolling — the `RedisUser` it authenticates as has to report `Success`, and it does not while its nodes are coming back:
+
+  ```
+  peer-auth binding not usable: peer-auth RedisUser not ready: RedisUser
+  "rfr-acl-s6-dest-default" phase is "Pending", want Success
+  ```
+
+  The operator adds the binding on a following reconcile, and the connection is rejected while it is still empty. Wait until the instance is `Ready` and this prints a name:
 
   ```bash
+  $ kubectl -n default get redis s6-dest
   $ kubectl -n default get redis s6-dest -o jsonpath='{.spec.activeRedis.redisUserRef}'
   rfr-acl-s6-dest-default
   ```
@@ -470,7 +480,7 @@ Deleting an `ActiveRedisConnection` tears the link down according to its `spec.t
 spec.teardownPolicy is one-way: cannot change "Decommission" back to "Detach"
 ```
 
-The decision is recorded against the peer's `serviceID` and survives a restart. Nothing stops a connection to that peer from being created again — and one created straight away still resumes from whatever the two ends still hold — but the retention that made resuming possible is no longer being kept, so a peer that comes back after that state has been reclaimed needs a full synchronization.
+The decision is recorded against the peer's `serviceID` and survives a restart. What it changes is what **this** instance keeps for that peer: its Oplog retention, tombstone garbage-collection and lag accounting for that `serviceID` are released and never re-armed. Nothing stops a connection to that peer from being created again, and one created straight away still resumes from whatever the two ends happen to hold — so re-creating the link is not a way to undo the decommission, and a peer that is meant to come back should be detached, not decommissioned.
 </Directive>
 
 ## Credential rotation
