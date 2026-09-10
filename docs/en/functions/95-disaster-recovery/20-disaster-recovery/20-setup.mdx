@@ -383,6 +383,18 @@ EOF
   There is no credential field on the connection. `spec.secretName` has been removed, and a manifest that still sets it is rejected with `unknown field "spec.secretName"`.
   </Directive>
 
+  <Directive type="info" title="A dedicated account works here too, with one caveat">
+  A `custom` `RedisUser` can be bound on Redis `6.0` as well — create it as shown in [Step 1 of the Redis 7.2 procedure](#step-1-create-the-peer-auth-credential-in-each-datacenter) and set `spec.activeRedis.redisUserRef` to it in the same patch that enables replication. A binding that is already set is never replaced by the automatic one, and the link then authenticates as that account rather than as `default`.
+
+  What you do **not** get is rotation safety. A Redis `6.0` link carries its credential inside the module's peer record, frozen there when the link is wired, and the legacy path has no self-healing re-wire. Changing the password leaves the running link working until its session next drops — and then it stays down:
+
+  ```
+  Failed   shard 0 status is Disconnected
+  ```
+
+  Recovering means deleting the `ActiveRedisConnection` and creating it again, which re-wires the peer with the current credential. Plan a rotation on Redis `6.0` as a short outage of the link, or upgrade to Redis `7.2`, where the credential is read per dial instead.
+  </Directive>
+
 #### Check Disaster Recovery Connection Status
 
   ```bash
@@ -493,4 +505,8 @@ That window is not a free-for-all, though: while the values differ, *creating* a
 When a dedicated `custom` account is bound, rotating an instance's own password Secret is independent and does not affect peer links.
 
 When the instance's `default` account is bound, its password Secret **is** the peer-auth Secret: rotating the instance password rotates the replication credential with it, and the rest of the group has to follow. That is the coupling a dedicated account avoids.
+</Directive>
+
+<Directive type="warning" title="On Redis 6.0 a rotation takes the link down">
+None of the above applies to Redis `6.0`. Its links hold the credential inline in the module's peer record, fixed when the link was wired, and there is no self-healing re-wire on that path — so a rotated link keeps running only until its session next drops, then reports `shard 0 status is Disconnected` and stays there. Delete and re-create the `ActiveRedisConnection` to re-wire it with the current credential.
 </Directive>
