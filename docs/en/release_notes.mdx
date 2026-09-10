@@ -30,7 +30,7 @@ Redis `7.2` instances now run a redesigned replication module, offering two mode
 * **Disaster Recovery** (`peerof`, the default) is the hot-standby topology, with directed links from one upstream to up to 15 downstream instances, each ready to be promoted if the upstream datacenter is lost. It remains available on Redis `6.0`.
 * **Active-Active** (`mesh`) lets every datacenter serve reads and writes locally, with conflicts resolved automatically and membership maintained by a gossip mesh seeded from a handful of addresses. It is available on Redis `7.2` only, and is driven by the new `ActiveRedisMesh` resource.
 
-Replication and gossip on Redis `7.2` ride the instance proxy, which tells the two transports apart on a single endpoint. Active-Active additionally exposes the module peer port (`7379`) on the proxy Service, so that mesh members can gossip.
+Replication and gossip on Redis `7.2` ride the instance proxy, which tells the two transports apart on a single endpoint. Active-Active publishes one additional port on the proxy Service, aliased onto that same listener, so that mesh members can gossip.
 
 See [Cross-Datacenter Replication](./functions/95-disaster-recovery/10-intro.mdx).
 

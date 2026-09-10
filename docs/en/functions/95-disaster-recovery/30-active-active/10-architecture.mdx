@@ -47,7 +47,7 @@ The practical differences this produces:
 
 A member is identified in the mesh by its **announced RESP address** — `announceAddress` with `announcePort`, normally `6379`. That is the address written in seed entries and carried in the membership records that gossip exchanges, and it must be routable from every other datacenter.
 
-The traffic itself — both the gossip rounds and the replicated Oplog — is carried on the **peer port**, `7379`. The module always advertises its own local peer port for that traffic, which is why an external load balancer or firewall in front of the proxy must expose `7379` as `7379`. Only the RESP port may be remapped.
+The traffic itself — both the gossip rounds and the replicated Oplog — is carried on the **peer port**: a second number the proxy Service publishes onto that same listener, which you can read off the Service. The module fixes that number itself and advertises it unchanged, which is why an external load balancer or firewall in front of the proxy must publish it under the same number. Only the RESP port may be remapped.
 
 As in Disaster Recovery mode, peers address the proxy of an instance rather than an individual pod, and the proxy resolves each connection to the primary that is current at that moment.
 

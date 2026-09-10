@@ -100,7 +100,7 @@ activeredis-proxy-rfr-s72-dc1   LoadBalancer   10.96.145.32    192.168.1.10    6
 ```
 
 <Directive type="warning" title="One endpoint has to be reachable">
-The proxy Service of a `peerof` instance exposes a single port, `6379`. The proxy carries the RESP control plane and the replication stream on it, telling the two apart per session, so the downstream needs to reach only that one address — the one you put in `spec.addresses`. No `7379` port is created in Disaster Recovery mode, and none has to be opened between datacenters.
+The proxy Service of a `peerof` instance exposes a single port, `6379`. The proxy carries the RESP control plane and the replication stream on it, telling the two apart per session, so the downstream needs to reach only that one address — the one you put in `spec.addresses`. No additional port is created in Disaster Recovery mode, and none has to be opened between datacenters.
 
 Connection admission dials the endpoint it resolves for the replication stream and rejects the connection if it is unreachable. With `spec.peerPort` left unset, that is the address in `spec.addresses[0]` itself.
 </Directive>
