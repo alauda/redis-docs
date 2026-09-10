@@ -79,8 +79,8 @@ Wait for the account before binding it:
 
 ```bash
 $ kubectl -n default get redisusers aa-peer-auth-s72-dc1
-NAME                   INSTANCE   USERNAME     PHASE     AGE
-aa-peer-auth-s72-dc1   s72-dc1    aa-peer      Success   1m
+NAME                   INSTANCE   USERNAME   PHASE     AGE
+aa-peer-auth-s72-dc1   s72-dc1    aa-peer    Success   1m
 ```
 
 ### The instance's default account (fallback)
@@ -169,6 +169,17 @@ The proxy runs a **single listener** — application traffic, gossip, and replic
 ## Step 3: Create an ActiveRedisMesh in each cluster
 
 Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the announced endpoints of members in other datacenters — the `announceAddress` and `announcePort` those members were given in Step 2.
+
+<Directive type="warning" title="Wait for the instance to be Ready first">
+Step 2 rolls the pods, and the module arrives with them. Create the `ActiveRedisMesh` before the roll reaches the master and the mesh lands in `Failed`, reporting that the module's own commands do not exist:
+
+```
+set mesh config on pod rfr-s72-dc1-0: ERR Unknown option or number of arguments for CONFIG SET
+- 'activeredis.mesh-seeds'; shard 0 mesh info: ERR unknown command 'as.mesh'
+```
+
+This clears by itself — the mesh moves to `Pending` once the master carries the module, then to `Healthy` — but it is indistinguishable from a real failure while it lasts. Wait for `kubectl get redis` to report `Ready`.
+</Directive>
 
 ```bash
 $ cat << EOF | kubectl -n default create -f -
