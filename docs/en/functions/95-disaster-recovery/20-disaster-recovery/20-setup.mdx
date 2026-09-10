@@ -22,7 +22,7 @@ The setup procedure differs between the two module generations. Follow the secti
 
 | Redis version | Procedure | Link authentication |
 |:--------------|:----------|:--------------------|
-| `7.2` | [Redis 7.2 — new module](#redis-72--new-module) | The instance's `default` account, bound explicitly |
+| `7.2` | [Redis 7.2 — new module](#redis-72--new-module) | A peer-auth `RedisUser`, bound explicitly — a dedicated `custom` account is recommended |
 | `6.0` | [Redis 6.0 — legacy module](#redis-60--legacy-module) | The instance's `default` account, bound automatically |
 
 <Directive type="warning" title="Both ends must run the same Redis version">
@@ -33,15 +33,83 @@ Replication between Redis `6.0` and Redis `7.2` is not supported. See [Module ge
 
 The new module requires a **peer-auth credential**: every instance in the replication group binds a `RedisUser` through `spec.activeRedis.redisUserRef`. The operator pushes that credential to every node, and both inbound and outbound peer links authenticate with it. Enabling replication without a binding is rejected at admission, and the module rejects all inbound peer replication.
 
-Bind the instance's own **default account**. Every instance already has one — its own reconcile creates it — so nothing has to be provisioned; the binding only names it.
+<Directive type="warning" title="Every datacenter needs the same credential">
+The module accepts an inbound peer only when the credential it presents matches the local peer-auth credential. Every member of the group therefore has to carry the **same username and the same password value**. Wiring a link between two datacenters whose credentials differ is refused at admission:
 
-<Directive type="warning" title="Every datacenter needs the same default password">
-The module accepts an inbound peer only when the credential it presents matches the local peer-auth credential. Binding the default account therefore requires every member of the group to carry the **same `default` password**.
+```
+ActiveRedisConnection validation Connection failed with reason
+ConnectionFailed(Failed to connect to the upstream: ERR WRONGPASS invalid username-password pair)
+```
 
-This is not automatic: default passwords are generated per instance. Set the same default password on every member before you wire the links.
+The bound account may be a `custom` one you create for the purpose, or the instance's own `default` account. A `system` account is always refused.
 </Directive>
 
-### Step 1: Confirm the default account in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
+### Step 1: Create the peer-auth credential in each datacenter \{#step-1-create-the-peer-auth-credential-in-each-datacenter}
+
+#### A dedicated account (recommended)
+
+A `custom` `RedisUser` keeps the replication credential separate from the instance password: binding the default account widens what that password grants — anything holding it can act as a replication peer — and ties credential rotation to instance-password rotation.
+
+Create the same account in **every** datacenter. Password Secrets are one-to-one with `RedisUser` objects, so each datacenter needs its own Secret object; what has to match across datacenters is the password *value*, not the Secret name.
+
+The password is policy-checked at admission: 8 to 32 characters, and it must mix letters, digits and special characters. A value that does not qualify is rejected when the `RedisUser` is created, with `password should consists of letters, number and special characters`.
+
+```bash
+$ cat << EOF | kubectl -n default create -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dr-peer-auth-dc1
+stringData:
+  password: <the shared peer-auth password>
+---
+apiVersion: redis.middleware.alauda.io/v1
+kind: RedisUser
+metadata:
+  name: dr-peer-auth-s72-dc1
+spec:
+  accountType: custom
+  arch: sentinel
+  redisName: s72-dc1
+  username: dr-peer
+  aclRules: +@all ~*
+  passwordSecrets:
+  - dr-peer-auth-dc1
+EOF
+```
+
+| Field | Description |
+|:------|:------------|
+| `accountType` | `custom`. |
+| `arch` | The architecture of the referenced instance — `sentinel`, `cluster`, or `standalone`. |
+| `redisName` | The local instance this account belongs to. |
+| `username` | The peer-auth username. **Identical in every datacenter.** |
+| `aclRules` | `+@all ~*` — a peer replays the full command surface over every key. |
+| `passwordSecrets` | One Secret, used by no other `RedisUser`, whose `password` key holds the value shared by every datacenter. |
+
+Wait for the account before binding it — the binding is rejected unless its phase is `Success`:
+
+```bash
+$ kubectl -n default get redisusers dr-peer-auth-s72-dc1
+NAME                   INSTANCE   USERNAME   PHASE     AGE
+dr-peer-auth-s72-dc1   s72-dc1    dr-peer    Success   1m
+```
+
+#### The instance's default account (fallback)
+
+The instance's own **default account** may be bound instead. It is the account Redis `6.0` links have always used, so an existing group already carries the matching password on every member.
+
+<Directive type="warning" title="Only if the instance has a password">
+Every instance has a default-account `RedisUser`, but it holds a password Secret only when the instance was created with `spec.passwordSecret`. On an instance created without one the account exists and reports `Success` while carrying no credential, and binding it leaves the instance's `ActiveRedis` in `Failed`:
+
+```
+peer-auth RedisUser "rfr-acl-s72-dc1-default" has no password secret: the module rejects credential-less peers
+```
+
+Set an instance password first, or bind a dedicated account as above.
+</Directive>
+
+Binding it requires every member of the group to carry the **same `default` password**. That is not automatic — each instance's password is whatever its own `spec.passwordSecret` holds — and each member needs its own Secret *object*: a Secret shared by several instances is contended by their `RedisUser` controllers and never settles. Set the same password *value* on every member before you wire the links.
 
 The default-account `RedisUser` is named after the instance:
 
@@ -50,7 +118,7 @@ The default-account `RedisUser` is named after the instance:
 | Cluster | `drc-acl-<instance-name>-default` |
 | Sentinel, standalone | `rfr-acl-<instance-name>-default` |
 
-Check that it is provisioned in **both** datacenters — the binding is rejected unless its phase is `Success`:
+Check that it is provisioned in **both** datacenters:
 
 ```bash
 $ kubectl -n default get redisusers rfr-acl-s72-dc1-default
@@ -60,19 +128,30 @@ rfr-acl-s72-dc1-default   s72-dc1    default    Success   3m
 
 The binding itself is set in Step 2, along with the rest of the replication configuration.
 
-<Directive type="info" title="A dedicated account may be bound instead">
-Binding the default account widens what that password grants: anything holding it can act as a replication peer. A `custom` `RedisUser` narrows that, and lets the replication credential be rotated independently of the instance password. It must reference the local instance, carry a password Secret of its own that no other peer-auth `RedisUser` uses, reach `status.phase: Success`, and carry the **same username and the same password value in every datacenter**. A `system` account is always refused.
-</Directive>
-
 ### Step 2: Enable replication on the upstream instance
 
 ```bash
 $ kubectl -n default patch redis s72-dc1 --type=merge \
-    --patch='{"spec": {"activeRedis": {"serviceID": 0, "mode": "peerof", "redisUserRef": "rfr-acl-s72-dc1-default"}}}'
+    --patch='{"spec": {"activeRedis": {"serviceID": 0, "mode": "peerof", "redisUserRef": "dr-peer-auth-s72-dc1"}}}'
 ```
 
 <Directive type="warning">
 The range of `serviceID` is `[0-15]` and it must be unique within the replication group. It cannot be changed later, and replication cannot be turned off once enabled.
+</Directive>
+
+<Directive type="warning" title="Enabling replication restarts the data pods">
+The instance performs a **rolling restart** of its data pods when replication is first enabled — the proxy is created and the module is delivered to each pod. The instance leaves `Ready`, and its `ActiveRedis` sits in `Pending` while the pods roll:
+
+```
+instance s72-dc1 not ready
+```
+
+Wait for both to settle before continuing. The same applies to the downstream in Step 4, and Step 5 dials the upstream, so it needs the upstream settled too.
+
+```bash
+$ kubectl -n default get redis s72-dc1
+$ kubectl -n default get activeredis
+```
 </Directive>
 
 The instance must also satisfy the new module's constraints, which are enforced by admission:
@@ -100,19 +179,21 @@ activeredis-proxy-rfr-s72-dc1   LoadBalancer   10.96.145.32    192.168.1.10    6
 ```
 
 <Directive type="warning" title="One endpoint has to be reachable">
-The proxy Service of a `peerof` instance exposes a single port, `6379`. The proxy carries the RESP control plane and the replication stream on it, telling the two apart per session, so the downstream needs to reach only that one address — the one you put in `spec.addresses`. No `7379` port is created in Disaster Recovery mode, and none has to be opened between datacenters.
+The proxy Service of a `peerof` instance exposes a single port, `6379`. The proxy carries the RESP control plane and the replication stream on it, telling the two apart per session, so the downstream needs to reach only that one address — the one you put in `spec.addresses`. No additional port is created in Disaster Recovery mode, and none has to be opened between datacenters.
 
 Connection admission dials the endpoint it resolves for the replication stream and rejects the connection if it is unreachable. With `spec.peerPort` left unset, that is the address in `spec.addresses[0]` itself.
 </Directive>
 
 ### Step 4: Enable replication on the downstream instance
 
-Confirm the downstream's default account as in Step 1, and make sure its default password matches the upstream's. Then enable replication with a **different** `serviceID`:
+Create the downstream's peer-auth account as in Step 1 — same username, same password value as the upstream's. Then enable replication with a **different** `serviceID`:
 
 ```bash
 $ kubectl -n default patch redis s72-dc2 --type=merge \
-    --patch='{"spec": {"activeRedis": {"serviceID": 1, "mode": "peerof", "redisUserRef": "rfr-acl-s72-dc2-default"}}}'
+    --patch='{"spec": {"activeRedis": {"serviceID": 1, "mode": "peerof", "redisUserRef": "dr-peer-auth-s72-dc2"}}}'
 ```
+
+This restarts the downstream's data pods too. Wait for the instance to be `Ready` before Step 5.
 
 ### Step 5: Create the connection on the downstream side
 
@@ -158,11 +239,12 @@ NAME              INSTANCE   STATUS    MESSAGE   AGE
 conn-dc2-to-dc1   s72-dc2    Healthy             40s
 
 $ kubectl -n default get activeredis
-NAME                 INSTANCE   SERVICEID   SHARDS   PEERS   DPEERS   PHASE     MESSAGE   AGE
-s72-dc2-activeredis  s72-dc2    1           1        1       0        Healthy             3m
+NAME                  INSTANCE   SERVICEID   SHARDS   PEERS   DPEERS   PHASE     MESSAGE   AGE
+s72-dc1-activeredis   s72-dc1    0           1                1        Healthy             16m
+s72-dc2-activeredis   s72-dc2    1           1        1                Healthy             12m
 ```
 
-The upstream instance's `ActiveRedis` resource reports the fan-out through `status.downstreamPeerCount`.
+`PEERS` counts upstream links and `DPEERS` downstream ones, so each side prints one and leaves the other blank — a zero count is not rendered. The upstream instance's fan-out is `status.downstreamPeerCount`.
 
 Inspect the connection for per-shard synchronization detail:
 
@@ -170,26 +252,27 @@ Inspect the connection for per-shard synchronization detail:
 $ kubectl -n default get activeredisconnections conn-dc2-to-dc1 -o yaml
 ...
 status:
-  instance: s72-dc2
   credentialMode: peer-auth-global
+  instance: s72-dc2
   shards:
   - index: 0
-    offset: "15320"
-    opId: "412"
+    offset: "488"
+    opId: "20480"
     status: Connected
     syncStatus: PartialSync
+    versionState: verified
   status: Healthy
   upstreamPeer:
     service_id: 0
-    service_metadata:
-      instance: default/s72-dc1
 ```
 
-`status.shards[].status` indicates the connection status of the shard, and `status.shards[].syncStatus` indicates the data synchronization status: `PartialSync` (incremental synchronization of Oplog) or `FullSync` (RDB is being synchronized).
+`status.shards[].status` indicates the connection status of the shard, and `status.shards[].syncStatus` indicates the data synchronization status: `PartialSync` (incremental synchronization of Oplog) or `FullSync` (RDB is being synchronized). `offset` and `opId` advance as the stream is applied — a stalled pair on a `Connected` shard is the signal to look further.
+
+`status.shards[].versionState` is the module's own verdict on the upstream's version — `unknown`, `verified`, or `violating`. A shard that is being held for version skew also carries a non-zero `versionHoldSince`.
 
 `status.credentialMode: peer-auth-global` records that the module-side peer records hold no inline credential — outbound dials read the node-local peer-auth credential, so a rotation is picked up on the next re-dial.
 
-> The native Redis Sentinel mode does not have the concept of shards. Here, a master-replica pair of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
+> The native Redis Sentinel mode does not have the concept of shards. Here, a primary-replica pair of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
 
 ## Redis 6.0 — legacy module \{#redis-60--legacy-module}
 
@@ -209,6 +292,8 @@ You need to create a Redis instance first.
   # Enable ActiveRedis
   $ kubectl -n default patch redis s6 --type=merge --patch='{"spec": {"activeRedis":{"serviceID":0 }}}'
   ```
+
+  The command returns an admission warning recommending Redis `7.2`; the patch is applied. The instance then performs a **rolling restart** of its data pods to bring up the proxy, so wait for it to be `Ready` again before going on.
 
   </Tab>
   <Tab label="Web Console">
@@ -258,11 +343,19 @@ Each disaster recovery instance will create a Proxy Service with a name that fol
   The range of `serviceID` is `[0-15]`. In the same disaster recovery cluster, the serviceID cannot be repeated.
   </Directive>
 
-#### Wait for the peer-auth binding
+#### Wait for the instance and the peer-auth binding
 
-  The operator adds the binding on a following reconcile, and the connection is rejected while it is still empty. Wait until this prints a name:
+  This side rolls its data pods too. The connection created next is rejected while the instance is still rolling — the `RedisUser` it authenticates as has to report `Success`, and it does not while its nodes are coming back:
+
+  ```
+  peer-auth binding not usable: peer-auth RedisUser not ready: RedisUser
+  "rfr-acl-s6-dest-default" phase is "Pending", want Success
+  ```
+
+  The operator adds the binding on a following reconcile, and the connection is rejected while it is still empty. Wait until the instance is `Ready` and this prints a name:
 
   ```bash
+  $ kubectl -n default get redis s6-dest
   $ kubectl -n default get redis s6-dest -o jsonpath='{.spec.activeRedis.redisUserRef}'
   rfr-acl-s6-dest-default
   ```
@@ -285,9 +378,31 @@ EOF
   > Note to replace the upstream address.
 
   <Directive type="info" title="The link credential is bound on the instance, not on the connection">
-  A Redis `6.0` link authenticates as the instance's **default account**. The operator writes that down for you: the first time it reconciles an instance that has replication enabled and carries no binding, it sets `spec.activeRedis.redisUserRef` to the instance's own default-account `RedisUser` — `drc-acl-<instance-name>-default` for a cluster instance, `rfr-acl-<instance-name>-default` for a Sentinel one. Nothing is provisioned: that account already exists, and the password in it is the one the link uses. Both datacenters must therefore carry the same `default` password.
+  A Redis `6.0` link authenticates as the instance's **default account**. The operator writes that down for you: the first time it reconciles an instance that has replication enabled and carries no binding, it sets `spec.activeRedis.redisUserRef` to the instance's own default-account `RedisUser` — `drc-acl-<instance-name>-default` for a cluster instance, `rfr-acl-<instance-name>-default` for a Sentinel one. Nothing is provisioned: that account already exists, and the password in it is the one the link uses. Both datacenters must therefore carry the same `default` password — the same *value*, each in its own Secret object.
 
   There is no credential field on the connection. `spec.secretName` has been removed, and a manifest that still sets it is rejected with `unknown field "spec.secretName"`.
+  </Directive>
+
+  <Directive type="info" title="Coming from a release before v5.1">
+  Until v5.1, Disaster Recovery on Redis `6.0` was the only cross-datacenter replication this product offered, and the link credential lived on the connection: `ActiveRedisConnection.spec.secretName` named a Secret holding a `password` and nothing else.
+
+  There was never a username in it. The legacy module sends a one-argument `AUTH <password>` when no username is set, and the proxy resolves that to the instance's **default account** — so a Redis `6.0` link has always authenticated as `default`, whatever the Secret was called. Both datacenters have therefore always had to carry the same `default` password.
+
+  v5.1 removes `spec.secretName` from `ActiveRedisConnection` and `ActiveRedisInspection`, and takes the credential from `spec.activeRedis.redisUserRef` alone. **Existing groups need no intervention:** on its first reconcile after the upgrade the operator writes the binding on each replicating instance, pointing it at that instance's own default-account `RedisUser`. Nothing changes on the wire — same account, same password, read from somewhere else — and running links stay up across the upgrade.
+
+  What does change is your manifests. A stored `ActiveRedisConnection` keeps working, but a manifest that still sets `secretName` is rejected on the next apply, and the field is gone from `kubectl explain`. Drop it, and manage the credential through the instance's binding instead.
+  </Directive>
+
+  <Directive type="info" title="A dedicated account works here too, with one caveat">
+  A `custom` `RedisUser` can be bound on Redis `6.0` as well — create it as shown in [Step 1 of the Redis 7.2 procedure](#step-1-create-the-peer-auth-credential-in-each-datacenter) and set `spec.activeRedis.redisUserRef` to it in the same patch that enables replication. A binding that is already set is never replaced by the automatic one, and the link then authenticates as that account rather than as `default`.
+
+  What you do **not** get is rotation safety. A Redis `6.0` link carries its credential inside the module's peer record, frozen there when the link is wired, and the legacy path has no self-healing re-wire. Changing the password leaves the running link working until its session next drops — and then it stays down:
+
+  ```
+  Failed   shard 0 status is Disconnected
+  ```
+
+  Recovering means deleting the `ActiveRedisConnection` and creating it again, which re-wires the peer with the current credential. Plan a rotation on Redis `6.0` as a short outage of the link, or upgrade to Redis `7.2`, where the credential is read per dial instead.
   </Directive>
 
 #### Check Disaster Recovery Connection Status
@@ -332,7 +447,7 @@ status:
 
   Here `status.shards[0].status` indicates the connection status of the shard, and `status.shards[0].syncStatus` indicates the data synchronization status. The synchronization status can be `PartialSync` (indicating incremental synchronization of Oplog) or `FullSync` (indicating that RDB is being synchronized).
 
-  > The native Redis Sentinel mode does not have the concept of shards. Here, a master-slave of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
+  > The native Redis Sentinel mode does not have the concept of shards. Here, a primary-replica pair of Sentinel is abstracted as `shard 0` to be compatible with the same data structure as the Redis cluster mode.
 
   </Tab>
 
@@ -381,11 +496,27 @@ Deleting an `ActiveRedisConnection` tears the link down according to its `spec.t
 | `Decommission` | Permanently decommissions the peer. In addition to removing the link, the module stops retaining Oplog, dead-key tombstones, and lag accounting for that peer. | No |
 
 <Directive type="warning" title="Decommission is one-way">
-`Decommission` is the correct teardown for a datacenter that is gone for good — a detached-but-never-returning peer keeps holding garbage-collection floors on the survivors. It cannot be changed back to `Detach`, and a decommissioned peer that later returns is treated as a brand-new peer requiring a fresh full synchronization.
+`Decommission` is the correct teardown for a datacenter that is gone for good — a detached-but-never-returning peer keeps holding garbage-collection floors on the survivors. It cannot be changed back to `Detach`:
+
+```
+spec.teardownPolicy is one-way: cannot change "Decommission" back to "Detach"
+```
+
+The decision is recorded against the peer's `serviceID` and survives a restart. What it changes is what **this** instance keeps for that peer: its Oplog retention, tombstone garbage-collection and lag accounting for that `serviceID` are released and never re-armed. Nothing stops a connection to that peer from being created again, and one created straight away still resumes from whatever the two ends happen to hold — so re-creating the link is not a way to undo the decommission, and a peer that is meant to come back should be detached, not decommissioned.
 </Directive>
 
 ## Credential rotation
 
-On Redis `7.2`, peer links carry no inline credential: outbound dials read the node-local peer-auth credential that the operator re-pushes on every reconcile. To rotate, update the password Secret of each datacenter's peer-auth `RedisUser` in place, to the same new value, one datacenter at a time. The `RedisUser` controller replays the ACL, the operator re-pushes the credential, and the proxy accepts the new credential on the next rebuild. Existing links stay healthy, and a link that drops after the rotation re-dials with the current credential.
+On Redis `7.2`, peer links carry no inline credential: outbound dials read the node-local peer-auth credential that the operator re-pushes on every reconcile. To rotate, update the password Secret of each datacenter's peer-auth `RedisUser` in place, to the same new value, one datacenter at a time. The `RedisUser` controller replays the ACL, the operator re-pushes the credential, and the proxy accepts the new credential on the next rebuild. Established links stay healthy and keep replicating throughout — including the window in which the datacenters hold different values — and a link that drops after the rotation re-dials with the current credential.
 
-Rotating an instance's own password Secret is independent and does not affect peer links.
+That window is not a free-for-all, though: while the values differ, *creating* a link is refused, because admission dials the upstream with the credential the data path will use. Finish the rotation on every member before wiring anything new.
+
+<Directive type="info" title="With the default account bound, the two rotations are the same rotation">
+When a dedicated `custom` account is bound, rotating an instance's own password Secret is independent and does not affect peer links.
+
+When the instance's `default` account is bound, its password Secret **is** the peer-auth Secret: rotating the instance password rotates the replication credential with it, and the rest of the group has to follow. That is the coupling a dedicated account avoids.
+</Directive>
+
+<Directive type="warning" title="On Redis 6.0 a rotation takes the link down">
+None of the above applies to Redis `6.0`. Its links hold the credential inline in the module's peer record, fixed when the link was wired, and there is no self-healing re-wire on that path — so a rotated link keeps running only until its session next drops, then reports `shard 0 status is Disconnected` and stays there. Delete and re-create the `ActiveRedisConnection` to re-wire it with the current credential.
+</Directive>

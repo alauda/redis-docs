@@ -1560,17 +1560,26 @@ spec:
                         type: string
                       announcePort:
                         description: |-
-                          AnnouncePort is the externally-reachable RESP port peers dial at
-                          AnnounceAddress for the mesh CONTROL plane (gossip) and the legacy
-                          as.peersync transport — module-side it becomes the announced node
-                          record's gossip/legacy dial port (mesh-announce-port). Behind the
-                          operator this is the proxy's RESP listener, so it defaults to the proxy
-                          Service port (6379); override it only when an external LB/F5 exposes
-                          that port under a different number. It does NOT affect the AS_MESH data
-                          plane: the module always advertises its own local peer-port (7379) for
-                          that, so any external endpoint must expose 7379 as 7379. It is DECOUPLED
-                          from the in-cluster Service Port/NodePort; the operator does not copy it
-                          into the k8s Service NodePort.
+                          AnnouncePort is the RESP port this instance publishes as its mesh
+                          IDENTITY — module-side it becomes field 7 of the announced node record
+                          (mesh-announce-port). Behind the operator that is the proxy's RESP
+                          listener, so it defaults to the proxy Service port (6379); override it
+                          only when an external LB/F5 exposes that port under a different number.
+
+                          It carries NO traffic. Both mesh planes dial the PEER port instead: the
+                          AS_MESH data plane through connectPeerPort, and gossip through
+                          gossipOnePeerPort, which is the only gossip transport left since the
+                          plaintext redis-command fallback was removed with the legacy as.peersync
+                          path (redis-modules active-redis src/mesh.zig, gossipOne). What this
+                          value is actually read for is self-recognition: a node matches a seed
+                          against its own announced addr+port (seedMatchesSelfLocked), which is
+                          what lets every DC carry one identical mesh-seeds list.
+
+                          Because the module advertises its own local peer-port verbatim and there
+                          is no announce override for it, any external endpoint must expose 7379
+                          as 7379 — remapping it leaves both planes dialling a port nothing serves.
+                          This field is DECOUPLED from the in-cluster Service Port/NodePort; the
+                          operator does not copy it into the k8s Service NodePort.
                         format: int32
                         maximum: 65535
                         minimum: 0
