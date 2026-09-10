@@ -172,7 +172,7 @@ EOF
 
 A seed is `host:port` — the remote member's **`announceAddress:announcePort`**, written exactly as that member advertises itself. It is an externally-routable endpoint, so when a load balancer or VIP fronts that member's proxy, the seed is the load balancer's address and port, not the in-cluster proxy Service. Write the pair verbatim: a member recognizes its own entry by comparing a seed's address and port with the pair it announces, and a mismatch defeats that self-skip.
 
-An optional `@peer-port` suffix names the port to dial for the peer transport; when the suffix is omitted the operator appends the conventional `7379`. The operator normalizes the list before injecting it, so `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`.
+Write seeds as plain `host:port` and let the operator complete them. It normalizes the list into the module's seed grammar before injecting it, appending the peer port — `redis-dc2.example.com:6379` becomes `redis-dc2.example.com:6379@7379`, which is the form `CONFIG GET activeredis.mesh-seeds` reports back. That completion is not cosmetic: a seed carrying no peer port is undialable, because gossip has no other transport. The peer port is fixed at `7379` and must not be remapped, so there is nothing here for you to override.
 
 <Directive type="info" title="Seeds are a bootstrap list, not a membership list">
 One reachable seed per remote datacenter is enough — gossip discovers everything else. The local member's own entry may be included, so every datacenter can carry the same uniform seed list; the module skips its own record.
