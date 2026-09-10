@@ -42,9 +42,17 @@ The credential is delivered to the nodes at runtime and is never written into th
 
 #### Upgrade Path from Redis 6.0 to Redis 7.2 for Replicating Instances
 
-An instance with cross-datacenter replication enabled can now be upgraded in place from Redis `6.0` to Redis `7.2`. When such an instance carries no peer-auth binding, the platform provisions one automatically, deriving it from the credential the replication group already shares.
+An instance with cross-datacenter replication enabled can now be upgraded in place from Redis `6.0` to Redis `7.2`. When such an instance carries no peer-auth binding, the platform writes one for it, naming the instance's own default-account `RedisUser` — the account a Redis `6.0` link has always authenticated as. Nothing is provisioned, and the credential does not change during the upgrade.
 
 The two module generations do not interoperate, so the whole group must be upgraded together within a maintenance window. See [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/20-disaster-recovery/40-upgrade-6.0-to-7.2.mdx).
+
+#### The Link Credential Moves to the Instance
+
+Until this release, a Redis `6.0` replication link took its credential from the connection: `ActiveRedisConnection.spec.secretName` named a Secret holding a password. That Secret carried no username, so the link authenticated as the instance's default account regardless — which is now where the credential is declared.
+
+`spec.secretName` is **removed** from `ActiveRedisConnection` and `ActiveRedisInspection`. Both module generations take the link credential from `spec.activeRedis.redisUserRef` and nothing else.
+
+Existing Disaster Recovery groups are migrated without intervention: on its first reconcile after the upgrade the operator binds each replicating instance to its own default-account `RedisUser`, which changes nothing on the wire, and running links stay up. Stored resources keep working, but a manifest that still sets `secretName` is rejected on its next apply.
 
 #### Teardown Policy for Replication Links
 

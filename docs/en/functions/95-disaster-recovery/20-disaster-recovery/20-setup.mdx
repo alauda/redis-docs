@@ -383,6 +383,16 @@ EOF
   There is no credential field on the connection. `spec.secretName` has been removed, and a manifest that still sets it is rejected with `unknown field "spec.secretName"`.
   </Directive>
 
+  <Directive type="info" title="Coming from a release before v5.1">
+  Until v5.1, Disaster Recovery on Redis `6.0` was the only cross-datacenter replication this product offered, and the link credential lived on the connection: `ActiveRedisConnection.spec.secretName` named a Secret holding a `password` and nothing else.
+
+  There was never a username in it. The legacy module sends a one-argument `AUTH <password>` when no username is set, and the proxy resolves that to the instance's **default account** — so a Redis `6.0` link has always authenticated as `default`, whatever the Secret was called. Both datacenters have therefore always had to carry the same `default` password.
+
+  v5.1 removes `spec.secretName` from `ActiveRedisConnection` and `ActiveRedisInspection`, and takes the credential from `spec.activeRedis.redisUserRef` alone. **Existing groups need no intervention:** on its first reconcile after the upgrade the operator writes the binding on each replicating instance, pointing it at that instance's own default-account `RedisUser`. Nothing changes on the wire — same account, same password, read from somewhere else — and running links stay up across the upgrade.
+
+  What does change is your manifests. A stored `ActiveRedisConnection` keeps working, but a manifest that still sets `secretName` is rejected on the next apply, and the field is gone from `kubectl explain`. Drop it, and manage the credential through the instance's binding instead.
+  </Directive>
+
   <Directive type="info" title="A dedicated account works here too, with one caveat">
   A `custom` `RedisUser` can be bound on Redis `6.0` as well — create it as shown in [Step 1 of the Redis 7.2 procedure](#step-1-create-the-peer-auth-credential-in-each-datacenter) and set `spec.activeRedis.redisUserRef` to it in the same patch that enables replication. A binding that is already set is never replaced by the automatic one, and the link then authenticates as that account rather than as `default`.
 

@@ -65,6 +65,8 @@ The `spec.activeRedis.mode` field takes the literal values `peerof` and `mesh`. 
 
 The replication module ships in two generations. Which one an instance loads is decided by its Redis version, and the generation determines the feature set, the authentication model, and the peer transport.
 
+Before v5.1 there was only one: Disaster Recovery on Redis `6.0`, introduced in v4.1.0. Redis `7.2` instances and the Active-Active mode arrived with the new module in v5.1, and the legacy generation is now maintained for existing instances only.
+
 | | Redis `6.0` (legacy module) | Redis `7.2` (new module) |
 |:--|:--|:--|
 | Module | Frozen legacy implementation, maintained for existing instances only | Actively developed implementation |
