@@ -41,7 +41,7 @@ The practical differences this produces:
 
 * **Adding a member does not require touching the existing ones.** A new member joins by naming any reachable existing member as a seed, and the whole group learns about it through gossip. Updating the other members' seed lists afterwards is still recommended, so that a member restarting while the original seeds are unreachable can still rejoin.
 * **Seeds are a bootstrap list, not a membership list.** One reachable seed per remote datacenter is enough, and the local member's own entry may be included — which lets every datacenter carry one identical seed list.
-* **Membership is state that converges**, so it is reported rather than declared. The `ActiveRedisMesh` status carries the member list, each member's state, and an `epoch` that advances as membership changes.
+* **Membership is state that converges**, so it is reported rather than declared. The `ActiveRedisMesh` status carries the member list and each member's state. It also carries an `epoch`, which is not a change counter: it advances only when a member is forgotten or permanently decommissioned, so a group that has only ever gained members reports `0`.
 
 ## What travels on which port
 

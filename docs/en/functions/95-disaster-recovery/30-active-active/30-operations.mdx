@@ -49,12 +49,14 @@ Start from the resource, which reports the offset to every member the local inst
 ```bash
 $ kubectl -n default get activeredismesh mesh-dc1 \
     -o jsonpath='{range .status.members[*]}{.address}{"\t"}{.state}{"\t"}{.clockOffsetMs}{"\n"}{end}'
-redis-dc1.example.com   alive   0
-redis-dc2.example.com   alive   -5
-redis-dc3.example.com   alive   4180
+	alive	
+redis-dc2.example.com:6379   alive   -5
+redis-dc3.example.com:6379   alive   4180
 ```
 
-For the aggregated gauges and the attribution flag, read them on the instance itself:
+The first row is the local member. It carries no address and no offset — it is the reference the other offsets are measured against, so only the remote rows are readable here.
+
+For the aggregated gauges and the attribution flag, read them on the instance itself. Run this **against the shard master**: only the master takes part in gossip, so the mesh counters on a replica describe whatever reached it passively and are not a view of the mesh.
 
 ```bash
 $ redis-cli INFO activeredis | grep -E \
@@ -70,7 +72,7 @@ $ redis-cli INFO activeredis | grep -E \
 | `clock_skew_critical_violations` | How many critical episodes have occurred. |
 | `local_clock_is_outlier` | `1` when **this** node's clock is the one that disagrees with all the others. |
 
-Per-member offsets are also available directly from the module, as `clock_offset_ms` on each line:
+Per-member offsets are also available directly from the module, as `clock_offset_ms` on each line. Run it against the shard master, for the reason above:
 
 ```bash
 $ redis-cli as.mesh nodes
