@@ -40,6 +40,8 @@ Create a `custom` `RedisUser` for this purpose in **every** datacenter. It narro
 
 Password Secrets are one-to-one with `RedisUser` objects, so each datacenter needs its own Secret object; what has to match across datacenters is the password *value*, not the Secret name.
 
+The password is policy-checked at admission: 8 to 32 characters, and it must mix letters, digits and special characters. A value that does not qualify is rejected when the `RedisUser` is created, with `password should consists of letters, number and special characters`.
+
 ```bash
 $ cat << EOF | kubectl -n default create -f -
 apiVersion: v1
@@ -83,7 +85,17 @@ aa-peer-auth-s72-dc1   s72-dc1    aa-peer      Success   1m
 
 ### The instance's default account (fallback)
 
-The instance's own **default account** may be bound instead. Every instance already has one, created by its own reconcile, so nothing has to be provisioned — this is the same credential Disaster Recovery uses, so if these instances already carry a binding, you can skip to Step 2.
+The instance's own **default account** may be bound instead — this is the same credential Disaster Recovery uses, so if these instances already carry a binding, you can skip to Step 2.
+
+<Directive type="warning" title="Only if the instance has a password">
+Every instance has a default-account `RedisUser`, but it holds a password Secret only when the instance was created with `spec.passwordSecret`. On an instance created without one the account exists and reports `Success` while carrying no credential, and binding it leaves the instance's `ActiveRedis` in `Failed`:
+
+```
+peer-auth RedisUser "rfr-acl-s72-dc1-default" has no password secret: the module rejects credential-less peers
+```
+
+Set an instance password first, or bind a dedicated account as above.
+</Directive>
 
 The default-account `RedisUser` is named after the instance:
 
@@ -106,6 +118,10 @@ Every member must then carry the **same `default` password**, and default passwo
 
 <Directive type="warning" title="Set the mode when you enable replication">
 These steps assume instances that are being placed into an Active-Active group from the start. Admission does not block changing `spec.activeRedis.mode` from `peerof` to `mesh` on an instance that is already replicating, but converting an established Disaster Recovery group to Active-Active is not a covered procedure and has not been validated. Build an Active-Active group from instances that are not already wired into a Disaster Recovery group.
+</Directive>
+
+<Directive type="warning" title="Enabling the mode restarts the data pods">
+Turning on Active-Active adds the module's init container to the instance, so the operator rolls the Redis pods and the instance passes back through `Initializing` before it is `Ready` again. Complete Step 1 first: while an instance is not `Ready`, a `custom` `RedisUser` cannot be created against it — admission refuses with `redis failover <instance> is not ready` — so enabling the mode before the account exists leaves you waiting out the restart to create it.
 </Directive>
 
 Members must advertise an externally-routable address, because a peer re-resolves it on every dial. This is the `announceAddress`, set on the proxy Service configuration.
@@ -203,33 +219,37 @@ $ kubectl -n default get activeredismesh mesh-dc1 -o yaml
 status:
   phase: Healthy
   instance: s72-dc1
-  epoch: 7
   memberCount: 3
   aliveCount: 3
-  suspectCount: 0
-  deadCount: 0
   fleetFloorVersion: "7.2"
   versionConverged: true
   members:
   - uid: 9f2c1a...
     serviceID: 0
     shardID: 0
-    address: redis-dc1.example.com
     state: alive
-    epoch: 7
-    clockOffsetMs: 2
     version: "7.2"
-    moduleVersion: 10
   - uid: 4b81d3...
     serviceID: 1
     shardID: 0
-    address: redis-dc2.example.com
+    address: redis-dc2.example.com:6379
     state: alive
-    epoch: 7
     clockOffsetMs: -5
     version: "7.2"
     moduleVersion: 10
+  - uid: 07d65b...
+    serviceID: 2
+    shardID: 0
+    address: redis-dc3.example.com:6379
+    state: alive
+    clockOffsetMs: -2
+    version: "7.2"
+    moduleVersion: 10
 ```
+
+<Directive type="info" title="The local member's entry is shorter than the others">
+The first entry above is this instance's own, and it carries no `address`, `clockOffsetMs` or `moduleVersion`. That is expected, not a missing member: gossip reports the *other* members, so the operator fills the local record in from what the instance knows about itself, and those three fields have no local source. Every remote member carries them. Counts that are zero — `suspectCount`, `deadCount` — are omitted rather than printed.
+</Directive>
 
 ### Mesh phases
 
