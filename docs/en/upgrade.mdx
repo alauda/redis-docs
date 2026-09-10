@@ -64,6 +64,14 @@ Confirm that no instance reports `5.0` in the `VERSION` column (for example, run
 If an instance has cross-datacenter replication enabled, its Redis version cannot be changed in isolation. Follow [Upgrade a Disaster Recovery Group from Redis 6.0 to Redis 7.2](./functions/95-disaster-recovery/20-disaster-recovery/40-upgrade-6.0-to-7.2.mdx), which coordinates the whole replication group.
 </Directive>
 
+<Directive type="note" title="Replicating instances during the upgrade to v5.1">
+Upgrading the operator to v5.1 does not interrupt an existing Disaster Recovery group. Replication continues across the upgrade and the data on both sides is unaffected — the instances stay on their current Redis version, so they keep running the module generation they were already using.
+
+One thing does move. In v5.1 the link credential is declared on the instance through `spec.activeRedis.redisUserRef` instead of on the connection through `spec.secretName`, and the operator writes that binding for each replicating instance on its first reconcile after the upgrade. It names the instance's own default account — the account a Redis `6.0` link has always authenticated as — so nothing changes on the wire and no action is required.
+
+Your manifests do need a change: `spec.secretName` is removed from `ActiveRedisConnection` and `ActiveRedisInspection`, and a manifest that still sets it is rejected on its next apply. See [Set Up Disaster Recovery Replication](./functions/95-disaster-recovery/20-disaster-recovery/20-setup.mdx#redis-60--legacy-module).
+</Directive>
+
 ## Upgrade Strategies
 
 ### Minor Version Upgrade
