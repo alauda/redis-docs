@@ -212,3 +212,47 @@ definitive answer needs a register search or counsel.
 | **Active-Passive** | Clear, same class as Active-Active. Considered and not chosen. |
 | **Multi-Active** | **Avoided.** Cockroach Labs presents "Multi-Active Availability" as its own coined term, explicitly contrasted with generic active-active. No ™ and no registration found (their registered mark is COCKROACHDB, Reg. 5307353), but adopting it would read as derivative. |
 | **Mesh** | No trademark issue, but collides with **Service Mesh** in the ACP console. Retained only as a mechanism word. |
+
+## `master` is a forbidden word in the shared glossary (added 2026-09-10)
+
+The shared terms list maps **`master` → `control plane`**, so `doom lint` reports
+`Forbidden word: "master" (control plane)` on any occurrence. The mapping is a
+Kubernetes node-naming rule, and it fires on Redis's own replication role, which
+is genuinely called `master` — `INFO replication` reports `role:master`, and the
+Redis CR carries a `spec.replicas.sentinel.master` field.
+
+Two things make this easy to miss:
+
+* **The local run does not catch it.** `flagWords` are built from the shared
+  terms file, which is fetched over the network; when that fetch is blocked the
+  local `yarn lint` has an empty flag list and reports only unknown words.
+* **CI reports changed lines only,** so the existing occurrences below have never
+  failed a build. They will, on whichever pull request next edits those lines.
+
+Verified against `cspell-lib` with the mapping applied: the hyphenated forms
+**are** flagged (`master-replica` and `master-slave` tokenize to `master`), while
+`mymaster` is not, being a single token.
+
+Pages edited in the cross-datacenter replication pass now use **primary node** /
+**primary-replica pair** and are clean. That is a local choice made to get the
+pass through CI, not a registered term — confirm it, or choose another.
+
+| Still carrying `master` | Line | Kind |
+|:---|:---|:---|
+| `functions/95-disaster-recovery/90-limitations.mdx` | 50 | prose — "master-replica synchronization" |
+| `intro.mdx` | 55 | prose — "master-slave relationships" |
+| `functions/40-accessmethod.mdx` | 51 | prose — "Redis master-replica group" |
+| `functions/75-monitor.mdx` | 35 | prose — alert name "Master-Slave Failover" |
+| `how_to/access/10-sentinel.mdx` | 71 | prose — "master-slave cluster name" |
+
+**Do not rewrite these mechanically.** The same files also carry `master` as an
+identifier, where changing it would be wrong: `spec.replicas.sentinel.master` in
+`functions/10-create-instance.mdx`, and `mymaster` / `MasterName` /
+`setMasterName` / `withSentinelMasterId` in `how_to/access/10-sentinel.mdx` —
+Sentinel's fixed group name and client-library API surface. A blanket
+find-and-replace breaks working examples.
+
+Decisions needed: whether `primary node` is the accepted replacement; whether the
+prose rows above should be converted in one pass; and whether an exemption for
+the Redis role sense belongs in the shared glossary instead, since the product
+will keep meeting the word.

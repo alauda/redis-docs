@@ -171,14 +171,14 @@ The proxy runs a **single listener** — application traffic, gossip, and replic
 Each Kubernetes cluster owns one `ActiveRedisMesh` for its local instance. `spec.seeds` names the announced endpoints of members in other datacenters — the `announceAddress` and `announcePort` those members were given in Step 2.
 
 <Directive type="warning" title="Wait for the instance to be Ready first">
-Step 2 rolls the pods, and the module arrives with them. Create the `ActiveRedisMesh` before the roll reaches the master and the mesh lands in `Failed`, reporting that the module's own commands do not exist:
+Step 2 rolls the pods, and the module arrives with them. Create the `ActiveRedisMesh` before the roll reaches the shard's primary node, and the mesh lands in `Failed`, reporting that the module's own commands do not exist:
 
 ```
 set mesh config on pod rfr-s72-dc1-0: ERR Unknown option or number of arguments for CONFIG SET
 - 'activeredis.mesh-seeds'; shard 0 mesh info: ERR unknown command 'as.mesh'
 ```
 
-This clears by itself — the mesh moves to `Pending` once the master carries the module, then to `Healthy` — but it is indistinguishable from a real failure while it lasts. Wait for `kubectl get redis` to report `Ready`.
+This clears by itself — the mesh moves to `Pending` once the primary node carries the module, then to `Healthy` — but it is indistinguishable from a real failure while it lasts. Wait for `kubectl get redis` to report `Ready`.
 </Directive>
 
 ```bash
@@ -268,7 +268,7 @@ The first entry above is this instance's own, and it carries no `address`, `cloc
 |:------|:--------|
 | `Healthy` | Membership is converged and every known member is alive. |
 | `Degraded` | The mesh is operating with suspect or dead members. |
-| `Pending` | No ready master could be reached to read membership yet — the bootstrap window, or an outage. |
+| `Pending` | No ready primary node could be reached to read membership yet — the bootstrap window, or an outage. |
 | `Paused` | `spec.pause` is `true`. |
 | `Failed` | The mesh could not be configured; `status.message` carries the reason (for example `invalid mesh seed`). |
 
