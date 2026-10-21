@@ -35,3 +35,5 @@ releaseNotes:
     # returns status names translated.
     mw-redis-v4.1.7-fixed: |
       status in (Done, Resolved, 完成) AND (labels not in (安全问题) OR labels is EMPTY) AND project = ECO AND fixVersion = Redis-v4.1.7 AND ReleaseNotesStatus = Publish
+    mw-redis-v4.1.8-fixed: |
+      status in (Done, Resolved, 完成) AND (labels not in (安全问题) OR labels is EMPTY) AND project = ECO AND fixVersion = Redis-v4.1.8 AND ReleaseNotesStatus = Publish
