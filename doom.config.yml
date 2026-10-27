@@ -37,3 +37,11 @@ releaseNotes:
       project = MiddleWare AND type = Bug AND ReleaseNotesStatus = Publish AND Feature = "MiddleWare - Redis" AND affectedVersion in (Redis-v5.0.2) AND fixVersion is EMPTY
     mw-redis-v5.0.2-security: |
       project in (MIDDLEWARE, ECO) AND (issuetype = Vulnerability OR labels in (安全问题)) AND fixVersion = Redis-v5.0.2 AND ReleaseNotesStatus = Publish
+    # Issue tracking moved MIDDLEWARE -> ECO (2026-07), so from v5.0.3 the queries
+    # target project = ECO. The Feature clause is dropped (ECO scopes by
+    # fixVersion) and 完成 is accepted alongside Done/Resolved, since ECO
+    # returns status names translated.
+    mw-redis-v5.0.3-fixed: |
+      status in (Done, Resolved, 完成) AND (labels not in (安全问题) OR labels is EMPTY) AND project = ECO AND fixVersion = Redis-v5.0.3 AND ReleaseNotesStatus = Publish
+    mw-redis-v5.0.3-known: |
+      project = ECO AND type = Bug AND ReleaseNotesStatus = Publish AND affectedVersion in (Redis-v5.0.3) AND fixVersion is EMPTY

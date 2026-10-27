@@ -14,11 +14,30 @@ The following table shows the compatibility and support matrix between the Alaud
 
 | Alauda Cache Service for Redis OSS Version | Redis Versions         | ACP Version      |
 |:-------------------------------------------|------------------------|:-----------------|
+| v5.0.3                                     | 6.0.22, 7.2.16, 8.4.6  | v4.1, v4.2, v4.3 |
 | v5.0.2                                     | 6.0.22, 7.2.15, 8.4.5  | v4.1, v4.2, v4.3 |
 | v5.0.1                                     | 6.0.21, 7.2.14, 8.4.3  | v4.1, v4.2, v4.3 |
 | v5.0.0                                     | 6.0.21, 7.2.12, 8.4.2  | v4.1, v4.2, v4.3 |
 | v4.1.x                                     | 5.0.14, 6.0.20, 7.2.10 | v4.1, v4.2       |
 | v4.0.x                                     | 5.0.14, 6.0.20, 7.2.x  | v4.0             |
+
+## v5.0.3
+
+This patch release contains security fixes only; it introduces no new features. It rebuilds the bundled Redis Server images, upgrading Redis 7.2 to 7.2.16 and Redis 8.4 to 8.4.6; Redis 6.0 remains at 6.0.22.
+
+### Fixed Issues
+
+{/* release-notes-for-bugs?template=mw-redis-v5.0.3-fixed&project=ECO */}
+
+### Known Issues
+
+Using Redis 8.4 on ACP v4.1 or v4.2 requires Alauda Container Platform Data Services Essentials v4.3.1 or later, because earlier versions do not include the Redis 8.4 parameter templates.
+
+{/* release-notes-for-bugs?template=mw-redis-v5.0.3-known&project=ECO */}
+
+### Security Fixes
+
+This release rebuilds the operator and its sub-images to address system and application vulnerabilities. See the security advisory (errata) for the full CVE list.
 
 ## v5.0.2
 
