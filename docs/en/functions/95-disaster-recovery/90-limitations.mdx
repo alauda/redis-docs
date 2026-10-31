@@ -57,6 +57,14 @@ The new module is RDB-only. Its CRDT metadata and the Oplog resume offset persis
 
 Use RDB persistence, and see [the RDB parameter template recommendation](#for-replication-instances-it-is-recommended-to-use-the-rdb-parameter-template).
 
+### Diskless replication is always disabled
+
+The module records the RDB file on disk as the snapshot of every completed fork, including a diskless transfer — a full synchronization to a replica with `repl-diskless-sync yes`, or a `redis-cli --rdb` export — which never rewrites that file. A new or emptied peer that then takes a full synchronization from that record would receive the older file and resume the Oplog past the writes it is missing, silently losing them.
+
+The operator therefore sets `repl-diskless-sync no` on every instance with replication enabled, whatever `customConfig` or the parameter template sets. Redis `7.2` defaults it to `yes`, as do all Redis `7.2` parameter templates and the Redis `6.0` diskless parameter template. The setting is a hot update and does not restart the pods. When an operator upgrade switches a running instance from `yes` to `no`, the operator also runs one `BGSAVE` on every node, so that the recorded snapshot is a file written to disk. The `save` parameter is not changed and stays as configured.
+
+As a result, every full synchronization of a replica, and every backup, first writes an RDB file to disk — including on an instance that uses the diskless parameter template.
+
 ### At most 16 databases (Redis 7.2)
 
 `customConfig.databases` must be `<= 16`. The module's database addressing is 4-bit and it refuses to load beyond 16 databases, which would leave the pods crash-looping. This is rejected by admission.
@@ -113,7 +121,7 @@ In Active-Active mode on Redis `7.2`, a DNS name is the recommended form for the
 
 ### Replication increases storage pressure — local SSD is recommended
 
-An instance with replication enabled writes Oplogs to storage in real time (fsync is executed once per second); when the Oplog reaches the limited size (3 GB), the Oplog file is cut; the cleaning logic regularly marks unused Oplog slice files and cleans them up in time. Therefore, the above will have the storage logic of Oplog reading and writing and RDB generation at the same time, which will increase the pressure on storage. It is recommended to use local SSD as storage to ensure persistence performance.
+An instance with replication enabled writes Oplogs to storage in real time (fsync is executed once per second); when the Oplog reaches the limited size (1 GiB on Redis `7.2`, 3 GiB on Redis `6.0`), the Oplog file is cut; the cleaning logic regularly marks unused Oplog slice files and cleans them up in time. Therefore, the above will have the storage logic of Oplog reading and writing and RDB generation at the same time, which will increase the pressure on storage. It is recommended to use local SSD as storage to ensure persistence performance.
 
 #### For replication instances, it is recommended to use the RDB parameter template \{#for-replication-instances-it-is-recommended-to-use-the-rdb-parameter-template}
 
