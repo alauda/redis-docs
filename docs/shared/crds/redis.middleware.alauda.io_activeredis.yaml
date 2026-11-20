@@ -1544,7 +1544,14 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: Annotations is the annotations for service
+                        description: |-
+                          Annotations are set on the proxy Service — for instance what an external load
+                          balancer needs to publish it (an address pool or a fixed IP, a cloud provider's
+                          internal-LB switch). Removing a key here removes it from the Service; annotations
+                          something else sets on the Service are left alone. In mesh mode with a DNS
+                          announce address the operator owns the ExternalDNS hostname key, which must
+                          resolve to what the module announces, so a value declared here for it is
+                          overridden.
                         type: object
                       announceAddress:
                         description: |-
