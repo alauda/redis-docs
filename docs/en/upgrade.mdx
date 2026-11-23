@@ -62,10 +62,10 @@ The following matrix outlines the tested version combinations and their respecti
 
 ## Upgrade Steps
 
-1.  Download the target version of the `Alauda Cache Service for Redis OSS` plugin from AlaudaCloud to a node that has access to your ACP cluster.
-2.  Utilize the `violet` package management tool to upload the plugin to the target cluster. For detailed instructions, refer to the <ExternalSiteLink name="acp" href="extend/upload_package.html" children="Upload Packages" /> documentation.
+1.  Download the target version of the `Alauda Cache Service for Redis OSS` Operator from AlaudaCloud to a node that has access to your ACP cluster.
+2.  Utilize the `violet` package management tool to upload the Operator to the target cluster. For detailed instructions, refer to the <ExternalSiteLink name="acp" href="extend/upload_package.html" children="Upload Packages" /> documentation.
 3.  Upgrades follow the strategy configured in the Subscription:
-    *   `Automatic Upgrade`: The plugin upgrades automatically upon upload.
+    *   `Automatic Upgrade`: The Operator upgrades automatically upon upload.
     *   `Manual Upgrade`:
          <Tabs>
            <Tab label="CLI">
@@ -87,5 +87,5 @@ The following matrix outlines the tested version combinations and their respecti
            - If the **New Version Detected** notification does not appear, no upgrade is available.
            </Tab>
          </Tabs>
-         For more detailed instructions on upgrading the plugin, refer to the <ExternalSiteLink name="acp" href="extend/operator.html" children="Operator" /> documentation.
+         For more detailed instructions on upgrading the Operator, refer to the <ExternalSiteLink name="acp" href="extend/operator.html" children="Operator" /> documentation.
 4.  To upgrade the Redis instance itself, please refer to the [Instance Upgrade Guide](./how_to/30-upgrade.mdx).
