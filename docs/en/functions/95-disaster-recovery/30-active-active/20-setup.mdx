@@ -212,7 +212,7 @@ The operator injects the normalized set on **every** node, replicas included, so
 | Field | Description |
 |:------|:------------|
 | `pause` | Suspends mesh participation. Defaults to `false`. |
-| `enableTLS` | Enables TLS for the peer transport. |
+| `enableTLS` | **Has no effect.** The peer transport is authenticated but not encrypted, regardless of this field. If replication traffic crosses a network you do not trust, encrypt the path between the datacenters outside this product, for example with a VPN. |
 | `tuning` | Optional gossip and membership timers. See [Tuning](./30-operations.mdx#tuning). |
 | `secretName` | **Deprecated and ignored.** The peer-auth credential is the instance-level `RedisUser` binding. |
 
