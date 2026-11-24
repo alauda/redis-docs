@@ -109,7 +109,7 @@ Five conflict rules are used throughout:
 |:--------|:------------------|:------|
 | `HSET`, `HMSET` | Last-write-wins per field | Two datacenters writing different fields of the same hash both keep their writes. |
 | `HSETNX` | Last-write-wins per field | Replicated as `HSET` when it set the field. |
-| `HDEL` | Add-wins set | A field written concurrently on another member survives the deletion. |
+| `HDEL` | Last-write-wins per field | A concurrent `HSET` of the same field on another member survives only when it carries the higher timestamp. |
 | `HINCRBY`, `HINCRBYFLOAT` | Additive counter per field | Concurrent increments of the same field are summed. |
 
 ### Sets
@@ -128,7 +128,7 @@ Five conflict rules are used throughout:
 |:--------|:------------------|:------|
 | `ZADD` | Last-write-wins per member | A flagged `ZADD` (`NX`/`XX`/`GT`/`LT`/`INCR`) is evaluated locally, and only the members whose score actually changed are replicated, with their exact resulting scores. |
 | `ZINCRBY` | Additive counter | Applied on peers as a relative increment, preserving any base score set by `ZADD`. |
-| `ZREM` | Add-wins set | |
+| `ZREM` | Last-write-wins per member | A concurrent `ZADD` of the same member on another datacenter survives only when it carries the higher timestamp. |
 | `ZREMRANGEBYSCORE`, `ZREMRANGEBYRANK`, `ZREMRANGEBYLEX` | Last-write-wins | |
 | `ZPOPMIN`, `ZPOPMAX`, `BZPOPMIN`, `BZPOPMAX`, `ZMPOP`, `BZMPOP` | Last-write-wins | Replicated as a removal of the members actually popped. **At-least-once** across datacenters. Blocking variants run non-blocking on the receiving member. |
 | `ZUNIONSTORE`, `ZINTERSTORE`, `ZDIFFSTORE`, `ZRANGESTORE` | Last-write-wins on the destination | The destination key is rebuilt on peers. |
