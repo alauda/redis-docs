@@ -268,7 +268,7 @@ The following examples demonstrate best practices for connecting to Redis Cluste
                     // Configures client behavior when disconnected.
                     // DEFAULT - When autoReconnect = true, commands will not be rejected when they come in; otherwise, commands will be rejected.
                     .disconnectedBehavior(ClientOptions.DisconnectedBehavior.DEFAULT)
-                    // Configures socket parameters; lettuce does not enable keepalive by default; this should be enabled for long connection business needs.
+                    // Configures socket parameters; lettuce does not enable keepalive by default; this should be enabled for long-lived connection needs.
                     .socketOptions(socketOptions)
                     .build();
 
@@ -277,9 +277,9 @@ The following examples demonstrate best practices for connecting to Redis Cluste
 
             GenericObjectPoolConfig<StatefulRedisClusterConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
             // Connection pool size should not be too large to avoid wasting server connection resources, leading to exhaustion of connections and instance unavailability.
-            // It is recommended to estimate your business concurrency divided by the number of shards; the final value should be 1.2-1.5 times.
+            // It is recommended to estimate your application concurrency divided by the number of shards; the final value should be 1.2-1.5 times.
             poolConfig.setMaxTotal(200);
-            // Minimum number of idle connections to reserve for faster business response.
+            // Minimum number of idle connections to reserve for faster application response.
             poolConfig.setMinIdle(3);
             // Maximum number of idle connections; exceeding this limit will release idle connections immediately.
             poolConfig.setMaxIdle(10);
@@ -353,9 +353,9 @@ The following examples demonstrate best practices for connecting to Redis Cluste
                     // Idle connection timeout; drop connections idle for more than 60 seconds, default of 10 seconds is too short.
                     .setIdleConnectionTimeout(60000)
                     // Connection pool size should not be too large to avoid wasting server connection resources, leading to exhaustion of connections and instance unavailability.
-                    // It is recommended to estimate your business concurrency divided by the number of shards; the final value should be 1.2-1.5 times.
+                    // It is recommended to estimate your application concurrency divided by the number of shards; the final value should be 1.2-1.5 times.
                     .setMasterConnectionPoolSize(200)
-                    // Minimum number of idle connections to reserve for faster business response.
+                    // Minimum number of idle connections to reserve for faster application response.
                     .setMasterConnectionMinimumIdleSize(10)
                     // Number of retry attempts for failed commands.
                     .setRetryAttempts(3)
