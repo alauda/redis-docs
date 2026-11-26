@@ -15,7 +15,7 @@ Alauda Application Services provides specialized parameter templates for each Re
 | AOF Parameter Template | **AOF Persistence Parameter Template** configures Redis with Append-Only File persistence, which logs all write operations sequentially to ensure data integrity. During instance recovery, Redis replays operations from the AOF file to reconstruct the dataset. This approach is suitable for environments with sufficient resources where data safety takes precedence over performance considerations. Redis can function as a persistent data store in this mode. | The frequent fsync operations required for AOF persistence necessitate high-performance storage infrastructure and may impact overall Redis performance, but provide second-level RPOs. |
 | Diskless Parameter Template | **Diskless Parameter Template** disables Redis persistence mechanisms entirely. In this configuration, Redis functions purely as an in-memory cache to accelerate application performance. All data resides in memory with no disk persistence, resulting in data loss upon Redis restart or failure. This configuration maximizes performance but sacrifices data durability. | Data exists solely in memory, eliminating storage-related performance overhead. However, the failure of all Redis nodes results in complete data loss. |
 
-When creating a Redis instance, select the template that best aligns with your business requirements in the **Parameter Templates** field of the **Create Redis Instance** page.
+When creating a Redis instance, select the template that best aligns with your workload requirements in the **Parameter Templates** field of the **Create Redis Instance** page.
 
 You can also create custom parameter templates for reuse across multiple instances.
 
