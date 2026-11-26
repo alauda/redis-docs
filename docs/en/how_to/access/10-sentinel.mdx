@@ -151,7 +151,7 @@ The following examples demonstrate best practices for connecting to Redis Sentin
             poolConfig.setMaxIdle(10);
             // Set the minimum number of idle connections; if the number falls below this, new idle connections will be created.
             poolConfig.setMinIdle(3);
-            // Maximum wait time for business when there are no available connections and the maximum number of connections has been reached.
+            // Maximum wait time for the application when there are no available connections and the maximum number of connections has been reached.
             poolConfig.setMaxWait(Duration.ofSeconds(1));
             // Validate the connection by pinging it when borrowing from the connection pool.
             poolConfig.setTestOnBorrow(true);
@@ -252,9 +252,9 @@ The following examples demonstrate best practices for connecting to Redis Sentin
             // Pool configuration
             GenericObjectPoolConfig<StatefulRedisConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
             // Connection pool size should not be too large, otherwise it may waste server connection resources, or even exhaust connection numbers leading to health check failures for the instance itself.
-            // Estimate your business concurrency; a suggested concurrency level is 1.2-1.5 times your business scale.
+            // Estimate your application concurrency; a suggested concurrency level is 1.2-1.5 times your application scale.
             poolConfig.setMaxTotal(200);
-            // Minimum idle connections reserved to speed up business response.
+            // Minimum idle connections reserved to speed up application response.
             poolConfig.setMinIdle(3);
             // Maximum idle connections; idle connections exceeding this number will be released immediately.
             poolConfig.setMaxIdle(10);
@@ -264,7 +264,7 @@ The following examples demonstrate best practices for connecting to Redis Sentin
             poolConfig.setNumTestsPerEvictionRun(3);
             // Eviction interval of time; -1 means disabled.
             poolConfig.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
-            // Maximum wait time for business when there are no available connections and the maximum connection number has been reached.
+            // Maximum wait time for the application when there are no available connections and the maximum connection number has been reached.
             poolConfig.setMaxWait(Duration.ofSeconds(1));
             // Validate a connection by pinging it when borrowing from the connection pool.
             poolConfig.setTestOnBorrow(true);
@@ -327,9 +327,9 @@ The following examples demonstrate best practices for connecting to Redis Sentin
                     // Idle connection timeout, set to 60s to avoid default being too short.
                     .setIdleConnectionTimeout(60000)
                     // Connection pool size, should not be too large to avoid wasting server connection resources or exhausting connection numbers, leading to health check failures for the instance itself.
-                    // Estimate your business concurrency; a suggested concurrency level is 1.2-1.5 times your business scale.
+                    // Estimate your application concurrency; a suggested concurrency level is 1.2-1.5 times your application scale.
                     .setMasterConnectionPoolSize(200)
-                    // Minimum idle connections reserved to speed up business response.
+                    // Minimum idle connections reserved to speed up application response.
                     .setMasterConnectionMinimumIdleSize(3)
                     // Number of retries for failed commands.
                     .setRetryAttempts(3)
