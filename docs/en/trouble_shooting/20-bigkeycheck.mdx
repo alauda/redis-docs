@@ -134,7 +134,7 @@ Alauda Application Services provides **Inspections** for you to detect BigKey in
 
 #### Usage Limitations
 
-- The inspection tool performs a full scan of Redis data, which can place a certain amount of stress on the Redis service; it is recommended to use during low business peaks.
+- The inspection tool performs a full scan of Redis data, which can place a certain amount of stress on the Redis service; it is recommended to use during off-peak hours.
 - Currently, the inspection tool only supports detecting `string`, `list`, and `zset` types.
 
 ### Detecting with Command Line
@@ -147,11 +147,11 @@ $ redis-cli -h <host> -a <password> --bigkeys
 
 #### Usage Limitations
 
-- The `redis-cli` detection also performs a full scan of Redis data, which may impose certain pressure on the Redis service; it is recommended to use during low business peaks.
+- The `redis-cli` detection also performs a full scan of Redis data, which may impose certain pressure on the Redis service; it is recommended to use during off-peak hours.
 
 ## Optimization of BigKey
 
-It is necessary to choose appropriate optimization schemes based on specific business scenarios and data characteristics, generally focusing on the following aspects:
+It is necessary to choose appropriate optimization schemes based on specific use cases and data characteristics, generally focusing on the following aspects:
 
 ### Optimization of Storage Data Structures
 

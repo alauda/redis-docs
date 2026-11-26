@@ -17,7 +17,7 @@ Following Redis versions are fully supported: `6.0` and `7.2`; other versions ar
 </Directive>
 
 <Directive type="note" title="Architecture suggestion">
-  `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your business's data and concurrency needs.
+  `Single-node architecture` has no replica nodes and lacks failover capabilities, so it should only be used in development and testing environments. You can choose between `Sentinel architecture` and `Cluster architecture` based on your data and concurrency needs.
 </Directive>
 
 ## Create Redis Instance
@@ -239,7 +239,7 @@ Following Redis versions are fully supported: `6.0` and `7.2`; other versions ar
              <tr>
                <td rowspan="3"><b>Scheduling Configuration</b></td>
                <td><b>Anti-Affinity Policy</b></td>
-               <td>To meet the demands for high reliability and high availability under different business scenarios, the platform provides an anti-affinity policy for <b>Cluster Mode</b>, where <b>Force anti-affinity</b> is the default applied anti-affinity policy. <br /><b>Note</b>: Once the instance is created, this configuration can no longer be modified.</td>
+               <td>To meet the demands for high reliability and high availability under different scenarios, the platform provides an anti-affinity policy for <b>Cluster Mode</b>, where <b>Force anti-affinity</b> is the default applied anti-affinity policy. <br /><b>Note</b>: Once the instance is created, this configuration can no longer be modified.</td>
              </tr>
 
              <tr>
