@@ -232,11 +232,11 @@
       "updated_at": "2026-05-16T10:38:18Z"
     },
     "docs/en/how_to/access/20-cluster.mdx": {
-      "sha256": "059f88573a0d8d4219c97298e673a7deb9b37c606563dd47cb151b9e58451b5c",
-      "size": 18297,
+      "sha256": "3ba78d7789f903e2a1091607a83dbf320ddf1f5eceedcd37b80f1e89b7f7f88e",
+      "size": 18306,
       "description": "Client-connection cookbook for Redis Cluster instances, covering password vs password-less auth, internal per-shard Kubernetes service endpoints, external Shard Addresses, and redis-cli -c usage for following MOVED/ASK redirections. Provides production-grade configuration examples for go-redis NewClusterClient, Jedis JedisCluster with topologyRefreshPeriod, Lettuce RedisClusterClient with ClusterTopologyRefreshOptions and adaptive refresh triggers, and Redisson useClusterServers with setCheckSlotsCoverage, including connection-pool sizing, keepalive, retries, and timeout tuning.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T10:38:18Z"
+      "updated_at": "2026-11-26T18:22:24Z"
     },
     "docs/en/how_to/access/index.mdx": {
       "sha256": "65fea5efe84ae138fada26b5663343871aa87ba676ed7cb70bf0a6cf51561cdd",
@@ -288,11 +288,11 @@
       "updated_at": "2026-05-16T10:38:18Z"
     },
     "docs/en/trouble_shooting/20-bigkeycheck.mdx": {
-      "sha256": "b12f696de62434655b0e10117d45275cb8c6b6f8eaf1f87591af99380f37d92e",
-      "size": 7914,
+      "sha256": "ffdad9f71c427e1482cc3cb53f09b3b6168a0e115fd54309e70e71be37a387cc",
+      "size": 7897,
       "description": "Guidance on detecting and remediating Redis BigKeys, with threshold guidelines (String >5MB; List >20,000; Set/Sorted Set/Hash >10,000 elements/fields) and impact analysis covering single-thread blocking, client timeouts, network saturation, cluster memory imbalance, and slot-migration bottlenecks. Documents enabling the Alauda Application Services Inspection by setting ENABLE_REDIS_KEYS_INDICATOR=1 on the rds-system RdsInstaller, viewing the BigKey Top5 report, and using redis-cli --bigkeys, plus mitigation via splitting collections, ProtoBuffer/MessagePack compression, and preferring UNLINK over the blocking DEL.",
       "generation_method": "ai_agent_reading",
-      "updated_at": "2026-05-16T10:38:18Z"
+      "updated_at": "2026-11-26T18:22:24Z"
     },
     "docs/en/trouble_shooting/index.mdx": {
       "sha256": "a40b14454992dc26c736f69f5e35b18025f62ed92c9cb35475aa19c6e7b89609",
